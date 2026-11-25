@@ -32,7 +32,7 @@ sha2 = "0.10"
 hex = "0.4"
 flate2 = "1"
 tar = { version = "0.4", default-features = false }
-rand = "0.8"
+rand = "0.10"
 rmcp = { version = "3.9", default-features = false, features = ["client", "transport-streamable-http-client-reqwest", "reqwest-native-tls"] }
 reqwest = { version = "0.13", default-features = false, features = ["json", "native-tls"] }
 axum = "0.8"
