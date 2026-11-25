@@ -264,11 +264,12 @@ impl Set {
             let candidato = (entrada.file_name(), entrada.path());
             if mejores.len() < MAX_LISTA {
                 mejores.push(candidato);
-            } else if mejores.peek().is_some_and(|peor| candidato.0 < peor.0) {
+                continue;
+            }
+            cortado = true;
+            if mejores.peek().is_some_and(|peor| candidato.0 < peor.0) {
                 mejores.pop();
                 mejores.push(candidato);
-            } else {
-                cortado = true;
             }
         }
         let mut entradas = mejores.into_vec();

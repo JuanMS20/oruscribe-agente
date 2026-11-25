@@ -44,7 +44,7 @@ jobs:
       # máquina de 16 núcleos multiplica el tiempo del bucle. El aislamiento va
       # en cada test (su propia carpeta de datos), no en una bandera.
       - name: Pruebas
-        run: cargo test --workspace --locked
+        run: cargo test --workspace --locked --no-fail-fast
 
       # #[ignore] porque necesita el binario; sin esto el turno real
       # (app -> arnés -> proveedor -> herramienta -> sesión) no corre en el CI.
@@ -119,7 +119,7 @@ jobs:
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Pruebas
-        run: cargo test --workspace --locked
+        run: cargo test --workspace --locked --no-fail-fast
 
       - name: Compilar la app para Linux
         env:
