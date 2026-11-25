@@ -981,7 +981,7 @@ dependencies = [
 
 [[package]]
 name = "fake-provider"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "axum",
  "serde",
@@ -2544,7 +2544,7 @@ dependencies = [
 
 [[package]]
 name = "orus-agent"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "async-trait",
  "axum",
@@ -2558,7 +2558,7 @@ dependencies = [
 
 [[package]]
 name = "orus-api"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "async-trait",
  "axum",
@@ -2580,7 +2580,7 @@ dependencies = [
 
 [[package]]
 name = "orus-app"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "async-trait",
  "base64",
@@ -2608,7 +2608,7 @@ dependencies = [
 
 [[package]]
 name = "orus-auth"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "chrono",
  "keyring",
@@ -2627,7 +2627,7 @@ dependencies = [
 
 [[package]]
 name = "orus-config"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "chrono",
  "serde",
@@ -2641,7 +2641,7 @@ dependencies = [
 
 [[package]]
 name = "orus-core"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "serde",
  "serde_json",
@@ -2650,7 +2650,7 @@ dependencies = [
 
 [[package]]
 name = "orus-harness"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2669,7 +2669,7 @@ dependencies = [
 
 [[package]]
 name = "orus-install"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "base64",
  "ed25519-dalek",
@@ -2690,7 +2690,7 @@ dependencies = [
 
 [[package]]
 name = "orus-org"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "axum",
  "chrono",
@@ -2708,7 +2708,7 @@ dependencies = [
 
 [[package]]
 name = "orus-server"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "async-trait",
  "axum",
@@ -2729,7 +2729,7 @@ dependencies = [
 
 [[package]]
 name = "orus-shell"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "async-trait",
  "axum",
@@ -2761,7 +2761,7 @@ dependencies = [
 
 [[package]]
 name = "orus-tools"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "async-trait",
  "chrono",

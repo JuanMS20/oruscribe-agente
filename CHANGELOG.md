@@ -1,5 +1,24 @@
 # Cambios por versión
 
+## 0.8.5
+
+Sin migración de datos. Backend: sin cambios.
+
+- Chat que se quedaba pegado: un pánico o un Stop durante la preparación del
+  turno dejaba al agente «ocupado» (todo envío daba 409 hasta reiniciar); la
+  compactación volvía a resumir su propio resumen en cada paso; enviar un
+  mensaje podía dejar la pantalla sin «Trabajando…» ni respuesta si había otra
+  consulta de estado en vuelo o el envío fallaba por red.
+- Herramientas: `bash` sin `timeout` ya devuelve al modelo la salida parcial y
+  el motivo en vez de «context deadline exceeded» sin salida; la salida larga
+  conserva el inicio y el final, donde está el error; la búsqueda de texto sigue
+  tras una carpeta sin permiso y lo avisa.
+- Proveedores compatibles con OpenAI: un stream que ya dijo `stop` o
+  `tool_calls` y cierra sin `[DONE]` ya no se pierde.
+- Linux: el listado de carpetas marcaba mal el corte a 500 entradas; el
+  instalador y el paquete se prueban ahora en Ubuntu 22.04 y 24.04, Debian 12,
+  Fedora y Arch, y las pruebas de llavero corren contra gnome-keyring real.
+
 ## 0.8.4
 
 Sin migración de datos. Backend: sin cambios.
