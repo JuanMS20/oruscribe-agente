@@ -316,10 +316,21 @@ impl Set {
             visitados: HashSet::new(),
             salida: String::new(),
             encontrados: 0,
+            sin_permiso: 0,
+            primer_sin_permiso: None,
         };
         self.buscar_en(&real, &mut busqueda)?;
         if busqueda.encontrados == 0 {
-            return Ok("sin coincidencias".to_owned());
+            return match busqueda.primer_sin_permiso {
+                Some((path, source)) => Err(Error::BusquedaFallida { path, source }),
+                None => Ok("sin coincidencias".to_owned()),
+            };
+        }
+        if busqueda.sin_permiso > 0 {
+            busqueda.salida.push_str(&format!(
+                "[{} rutas sin permiso de lectura se omitieron]\n",
+                busqueda.sin_permiso
+            ));
         }
         Ok(busqueda.salida)
     }
@@ -333,14 +344,7 @@ impl Set {
         // (#79). Lo que desapareció en medio del recorrido se salta.
         let tipo = match std::fs::symlink_metadata(ruta) {
             Ok(info) => info.file_type(),
-            Err(error)
-                if matches!(
-                    error.kind(),
-                    std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
-                ) =>
-            {
-                return Ok(());
-            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
             Err(source) => {
                 return Err(Error::BusquedaFallida {
                     path: ruta.to_path_buf(),
@@ -360,20 +364,8 @@ impl Set {
         }
         let entradas = match std::fs::read_dir(ruta) {
             Ok(entradas) => entradas,
-            Err(error)
-                if matches!(
-                    error.kind(),
-                    std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
-                ) =>
-            {
-                return Ok(());
-            }
-            Err(source) => {
-                return Err(Error::BusquedaFallida {
-                    path: ruta.to_path_buf(),
-                    source,
-                });
-            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(source) => return busqueda.omitir_sin_permiso(ruta.to_path_buf(), source),
         };
         for entrada in entradas {
             if busqueda.cancel.esta_cancelado() {
@@ -409,14 +401,7 @@ impl Set {
         };
         let tipo = match std::fs::symlink_metadata(&seguro) {
             Ok(info) => info.file_type(),
-            Err(error)
-                if matches!(
-                    error.kind(),
-                    std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
-                ) =>
-            {
-                return Ok(());
-            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
             Err(source) => {
                 return Err(Error::BusquedaFallida {
                     path: seguro,
@@ -436,20 +421,8 @@ impl Set {
         }
         let archivo = match opciones.open(&seguro) {
             Ok(archivo) => archivo,
-            Err(error)
-                if matches!(
-                    error.kind(),
-                    std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
-                ) =>
-            {
-                return Ok(());
-            }
-            Err(source) => {
-                return Err(Error::BusquedaFallida {
-                    path: seguro,
-                    source,
-                });
-            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(source) => return busqueda.omitir_sin_permiso(seguro, source),
         };
         let info = archivo.metadata()?;
         if !info.is_file() || info.len() > MAX_LEER as u64 {
@@ -458,14 +431,7 @@ impl Set {
         let mut datos = Vec::new();
         match archivo.take(MAX_LEER as u64 + 1).read_to_end(&mut datos) {
             Ok(_) => {}
-            Err(error)
-                if matches!(
-                    error.kind(),
-                    std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
-                ) =>
-            {
-                return Ok(());
-            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
             Err(source) => {
                 return Err(Error::BusquedaFallida {
                     path: seguro,
@@ -503,6 +469,23 @@ struct Busqueda<'a> {
     visitados: HashSet<PathBuf>,
     salida: String,
     encontrados: usize,
+    sin_permiso: usize,
+    primer_sin_permiso: Option<(PathBuf, std::io::Error)>,
+}
+
+impl Busqueda<'_> {
+    /// Una carpeta de otro usuario no debe tirar la búsqueda entera: se cuenta
+    /// y se sigue. Si al final no hubo coincidencias, el primer fallo vuelve
+    /// como error, porque «sin coincidencias» no puede ocultar que no se pudo
+    /// leer (#79). Cualquier otro error se propaga igual que antes.
+    fn omitir_sin_permiso(&mut self, path: PathBuf, source: std::io::Error) -> Result<(), Error> {
+        if source.kind() != std::io::ErrorKind::PermissionDenied {
+            return Err(Error::BusquedaFallida { path, source });
+        }
+        self.sin_permiso += 1;
+        self.primer_sin_permiso.get_or_insert((path, source));
+        Ok(())
+    }
 }
 
 /// Recorta a 200 runas y agrega "…", como `localtools.go:434-436`.
@@ -725,7 +708,7 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn la_busqueda_salta_las_carpetas_sin_permiso_y_conserva_lo_encontrado() {
+    fn una_carpeta_sin_permiso_no_tira_la_busqueda_pero_se_avisa() {
         use std::os::unix::fs::PermissionsExt;
 
         let raiz = tempfile::tempdir().expect("raiz");
@@ -744,6 +727,11 @@ mod tests {
             .expect("devolver permisos");
         let salida = resultado.expect("una carpeta sin permiso no aborta la búsqueda");
         assert!(salida.contains("a.txt"), "{salida}");
+        let leyo_la_privada = salida.contains("b.txt");
+        assert!(
+            leyo_la_privada || salida.contains("sin permiso de lectura"),
+            "no avisó de lo que no pudo leer: {salida}"
+        );
     }
 
     #[tokio::test]
