@@ -30,16 +30,17 @@ fn ruta_del_binario() -> PathBuf {
         return PathBuf::from(ruta);
     }
     let actual = std::env::current_exe().expect("la ruta del test");
-    let debug = actual
-        .parent()
-        .and_then(|deps| deps.parent())
-        .expect("la carpeta target/debug");
     let nombre = if cfg!(windows) {
         "fake-provider.exe"
     } else {
         "fake-provider"
     };
-    debug.join(nombre)
+    actual
+        .ancestors()
+        .skip(1)
+        .map(|carpeta| carpeta.join(nombre))
+        .find(|candidato| candidato.is_file())
+        .unwrap_or_else(|| PathBuf::from(nombre))
 }
 
 fn puerto_libre() -> u16 {

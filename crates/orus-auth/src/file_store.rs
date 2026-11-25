@@ -215,7 +215,7 @@ pub(crate) fn read_private(path: &Path) -> io::Result<Vec<u8>> {
 
 /// Borra un respaldo bajo el mismo candado que `FileStore`, sin borrar los
 /// temporales ajenos. No encontrar el archivo no es error.
-#[cfg(any(test, target_os = "linux"))]
+#[cfg(test)]
 pub(crate) fn delete_private(path: &Path) -> io::Result<()> {
     let _guard = write_lock();
     let _candado = adquirir_candado(path)?;
@@ -241,7 +241,7 @@ fn marcar_respaldo(path: &Path, datos: &[u8]) -> io::Result<()> {
     write_private(&ruta_marca(path), Sha256::digest(datos).as_slice())
 }
 
-#[cfg(any(test, target_os = "linux"))]
+#[cfg(test)]
 pub(crate) fn borrar_marca(path: &Path) -> io::Result<()> {
     delete_private(&ruta_marca(path))
 }
