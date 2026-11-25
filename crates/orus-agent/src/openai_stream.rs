@@ -34,10 +34,13 @@ pub(crate) async fn leer_stream(
         Err(error) => return Err(error.con_parcial(estado.terminar())),
     };
     let cortada = estado.cortada;
+    let finalizada = estado.finalizada;
     let respuesta = estado.terminar();
-    if !terminado {
-        // Sin [DONE] la respuesta no está completa: la parcial que la persona
-        // ya vio viaja en el error para que el runner la guarde (issue #93).
+    if !terminado && !finalizada {
+        // Sin [DONE] ni un `finish_reason` final la respuesta no está completa:
+        // la parcial que la persona ya vio viaja en el error para que el
+        // runner la guarde (issue #93). Varios servidores compatibles cierran
+        // el stream tras `finish_reason` sin mandar [DONE].
         return Err(ProviderError::local(CORTE_STREAM).con_parcial(respuesta));
     }
     if cortada {
@@ -67,6 +70,7 @@ struct Estado {
     prompt_tokens: i64,
     completion_tokens: i64,
     cortada: bool,
+    finalizada: bool,
 }
 
 #[derive(Debug)]
@@ -121,8 +125,10 @@ impl Estado {
         }
 
         for eleccion in &evento.choices {
-            if eleccion.finish_reason.as_deref() == Some("length") {
-                self.cortada = true;
+            match eleccion.finish_reason.as_deref() {
+                Some("length") => self.cortada = true,
+                Some("stop" | "tool_calls" | "function_call") => self.finalizada = true,
+                _ => {}
             }
             if let Some(contenido) = &eleccion.delta.content
                 && !contenido.is_empty()
@@ -569,6 +575,21 @@ mod tests {
             error.to_string(),
             "la respuesta del proveedor se cortó a mitad"
         );
+    }
+
+    #[tokio::test]
+    async fn un_final_con_finish_reason_sin_done_es_una_respuesta_completa() {
+        let servidor_url = servidor(|_peticion: Request| async {
+            sse("data: {\"choices\":[{\"delta\":{\"content\":\"hola\"},\"finish_reason\":\"stop\"}]}\n\n")
+        })
+        .await;
+
+        let respuesta = proveedor(&servidor_url)
+            .chat(peticion_con_delta(fragmentos()))
+            .await
+            .expect("un stream que ya dijo stop no se pierde por faltar [DONE]");
+
+        assert_eq!(respuesta.message.content, "hola");
     }
 
     /// Port de `TestStreamSeCortaAlCancelar` (`stream_test.go:135-164`). En

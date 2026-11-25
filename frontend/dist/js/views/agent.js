@@ -157,7 +157,10 @@ export function agentWatch(on) {
 }
 
 export async function loadAgent() {
-  if (R.agentLoading) return;
+  if (R.agentLoading) {
+    R.agentPendiente = true;
+    return;
+  }
   const generacion = R.meGeneracion;
   const marca = generacion + 1;
   R.agentLoading = marca;
@@ -210,6 +213,10 @@ export async function loadAgent() {
     return;
   } finally {
     if (R.agentLoading === marca) R.agentLoading = 0;
+    if (R.agentPendiente && !R.agentLoading) {
+      R.agentPendiente = false;
+      setTimeout(loadAgent, 0);
+    }
   }
   if (S.view === "agent") renderAgent();
   else if (S.view === "panel") renderPanel();
@@ -1028,6 +1035,14 @@ export async function agentSend() {
   try {
     await api("/api/agent/send", { method: "POST", body: JSON.stringify({ text: payload, images }), timeout: AGENT_SEND_TIMEOUT_MS });
   } catch (err) {
+    if (!err.status) {
+      await loadAgent();
+      if (S.agent && S.agent.running) {
+        S.agentSince = since;
+        updateAgentSend();
+        return;
+      }
+    }
     // Si la persona ya escribio otra cosa mientras esperaba, no se la pisa.
     if (!input.value) input.value = previo;
     updateAgentSend();

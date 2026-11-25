@@ -333,7 +333,14 @@ impl Set {
         // (#79). Lo que desapareció en medio del recorrido se salta.
         let tipo = match std::fs::symlink_metadata(ruta) {
             Ok(info) => info.file_type(),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
+                ) =>
+            {
+                return Ok(());
+            }
             Err(source) => {
                 return Err(Error::BusquedaFallida {
                     path: ruta.to_path_buf(),
@@ -353,7 +360,14 @@ impl Set {
         }
         let entradas = match std::fs::read_dir(ruta) {
             Ok(entradas) => entradas,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
+                ) =>
+            {
+                return Ok(());
+            }
             Err(source) => {
                 return Err(Error::BusquedaFallida {
                     path: ruta.to_path_buf(),
@@ -395,7 +409,14 @@ impl Set {
         };
         let tipo = match std::fs::symlink_metadata(&seguro) {
             Ok(info) => info.file_type(),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
+                ) =>
+            {
+                return Ok(());
+            }
             Err(source) => {
                 return Err(Error::BusquedaFallida {
                     path: seguro,
@@ -415,7 +436,14 @@ impl Set {
         }
         let archivo = match opciones.open(&seguro) {
             Ok(archivo) => archivo,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
+                ) =>
+            {
+                return Ok(());
+            }
             Err(source) => {
                 return Err(Error::BusquedaFallida {
                     path: seguro,
@@ -430,7 +458,14 @@ impl Set {
         let mut datos = Vec::new();
         match archivo.take(MAX_LEER as u64 + 1).read_to_end(&mut datos) {
             Ok(_) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
+                ) =>
+            {
+                return Ok(());
+            }
             Err(source) => {
                 return Err(Error::BusquedaFallida {
                     path: seguro,
@@ -686,6 +721,29 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn la_busqueda_salta_las_carpetas_sin_permiso_y_conserva_lo_encontrado() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let raiz = tempfile::tempdir().expect("raiz");
+        std::fs::write(raiz.path().join("a.txt"), "una aguja").expect("a");
+        let privada = raiz.path().join("privada");
+        std::fs::create_dir(&privada).expect("carpeta");
+        std::fs::write(privada.join("b.txt"), "otra aguja").expect("b");
+        std::fs::set_permissions(&privada, std::fs::Permissions::from_mode(0o000))
+            .expect("quitar permisos");
+        let set = conjunto(raiz.path());
+        let resultado = set.search_text(
+            json!({"path": raiz.path().to_string_lossy(), "text": "aguja"}),
+            &CancelToken::new(),
+        );
+        std::fs::set_permissions(&privada, std::fs::Permissions::from_mode(0o700))
+            .expect("devolver permisos");
+        let salida = resultado.expect("una carpeta sin permiso no aborta la búsqueda");
+        assert!(salida.contains("a.txt"), "{salida}");
     }
 
     #[tokio::test]
