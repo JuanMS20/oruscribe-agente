@@ -70,7 +70,7 @@ jobs:
           Write-Host "sha256 $hash"
           "sha256 $hash" | Set-Content target\release\SHA256.txt -Encoding ascii
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: oruscribe-shell-windows
           path: |
@@ -152,7 +152,7 @@ jobs:
           tar -czf "build/release/oruscribe-agente-$version-linux-x86_64.tar.gz" -C build/linux/pkg .
           sha256sum "build/release/oruscribe-agente-$version-linux-x86_64.tar.gz" > build/release/SHA256-linux.txt
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: oruscribe-shell-linux
           path: |
