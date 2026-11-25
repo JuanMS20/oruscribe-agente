@@ -14,7 +14,7 @@ pub fn swap(downloaded: &Path, target: &Path) -> std::io::Result<()> {
     })
 }
 
-#[cfg(any(windows, test))]
+#[cfg(windows)]
 pub(super) fn intercambiar(
     downloaded: &Path,
     target: &Path,
