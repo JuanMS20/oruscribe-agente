@@ -1,0 +1,58 @@
+name: Probar lo publicado
+
+on:
+  workflow_dispatch:
+    inputs:
+      motivo:
+        description: Motivo de la prueba
+        required: false
+        default: release
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Solo las bibliotecas de ejecucion
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-0 \
+            libayatana-appindicator3-1 \
+            xvfb xdotool x11-apps imagemagick
+
+      - name: Bajar el paquete publicado y comprobar su huella
+        run: |
+          base=https://raw.githubusercontent.com/JuanMS20/oruscribe-agente-descargas/main
+          curl -fsSL "$base/latest.json" -o latest.json
+          url=$(python3 -c "import json;print(json.load(open('latest.json'))['linux'])")
+          esperada=$(python3 -c "import json;print(json.load(open('latest.json'))['linux_sha256'])")
+          version=$(python3 -c "import json;print(json.load(open('latest.json'))['version'])")
+          curl -fsSL "$url" -o paquete.tar.gz
+          real=$(sha256sum paquete.tar.gz | cut -d' ' -f1)
+          echo "manifiesto $version  esperada=$esperada  real=$real"
+          [ "$real" = "$esperada" ]
+          mkdir paquete && tar -xzf paquete.tar.gz -C paquete
+          [ "$(cat paquete/VERSION.txt)" = "$version" ]
+
+      - name: Instalar como una persona
+        run: |
+          export ORUSCRIBE_PREFIX="$RUNNER_TEMP/prefix"
+          sh paquete/install.sh
+          test -x "$ORUSCRIBE_PREFIX/bin/oruscribe-agente"
+          test -f "$ORUSCRIBE_PREFIX/share/applications/oruscribe-agente.desktop"
+          ldd "$ORUSCRIBE_PREFIX/bin/oruscribe-agente" | grep "not found" && exit 1 || true
+
+      - name: Humo de la ventana sobre el binario instalado
+        run: |
+          chmod +x scripts/smoke-linux.sh
+          xvfb-run -a -s "-screen 0 1280x1024x24" scripts/smoke-linux.sh "$RUNNER_TEMP/prefix/bin/oruscribe-agente"
