@@ -476,7 +476,16 @@ impl Agent {
         let agente = Arc::clone(self);
         tokio::spawn(async move {
             let generacion = preparado.generacion;
-            match preparar(preparado.turno).await {
+            let _libera = LiberaTurno {
+                agente: &agente,
+                generacion,
+            };
+            let cancel = preparado.cancel.clone();
+            let resultado = tokio::select! {
+                resultado = preparar(preparado.turno) => resultado,
+                () = cancel.esperar() => Err(AgentError::Cancelled),
+            };
+            match resultado {
                 Ok(turno) => {
                     preparado.turno = turno;
                     let _ = agente.correr(preparado).await;

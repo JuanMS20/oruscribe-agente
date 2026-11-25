@@ -476,42 +476,50 @@ impl Drop for HomeTemporal {
     }
 }
 
-/// Guarda hasta `max` bytes y marca si algo quedó afuera, sin bloquear al
-/// proceso que escribe (`command.go:145-179`).
+/// Guarda hasta `max` bytes sin bloquear al proceso que escribe
+/// (`command.go:145-179`). Si se pasa, conserva el inicio y el final y marca el
+/// hueco: el error de un `cargo build` o un `pytest` está en la cola.
 struct Limitado {
     max: usize,
-    datos: Vec<u8>,
+    cabeza: Vec<u8>,
+    cola: std::collections::VecDeque<u8>,
     cortado: bool,
 }
+
+const CABEZA_SALIDA: usize = 8 << 10;
 
 impl Limitado {
     fn nuevo(max: usize) -> Self {
         Self {
             max,
-            datos: Vec::new(),
+            cabeza: Vec::new(),
+            cola: std::collections::VecDeque::new(),
             cortado: false,
         }
     }
 
     fn escribir(&mut self, datos: &[u8]) {
-        let espacio = self.max.saturating_sub(self.datos.len());
-        if espacio > 0 {
-            if datos.len() <= espacio {
-                self.datos.extend_from_slice(datos);
-            } else {
-                self.datos.extend_from_slice(&datos[..espacio]);
-                self.cortado = true;
-            }
-        } else if !datos.is_empty() {
+        let tope_cabeza = CABEZA_SALIDA.min(self.max);
+        let para_cabeza = tope_cabeza
+            .saturating_sub(self.cabeza.len())
+            .min(datos.len());
+        self.cabeza.extend_from_slice(&datos[..para_cabeza]);
+        self.cola.extend(&datos[para_cabeza..]);
+        let tope_cola = self.max - tope_cabeza;
+        if self.cola.len() > tope_cola {
+            let sobra = self.cola.len() - tope_cola;
+            self.cola.drain(..sobra);
             self.cortado = true;
         }
     }
 
     fn texto(&self) -> String {
-        let mut salida = String::from_utf8_lossy(&self.datos).into_owned();
+        let mut salida = String::from_utf8_lossy(&self.cabeza).into_owned();
         if self.cortado {
-            salida.push_str("\n[recortado]");
+            salida.push_str("\n[recortado]\n");
         }
+        let cola: Vec<u8> = self.cola.iter().copied().collect();
+        salida.push_str(&String::from_utf8_lossy(&cola));
         salida
     }
 }
@@ -826,13 +834,17 @@ mod tests {
         .expect("correr");
         assert_eq!(
             salida.len(),
-            MAX_SALIDA + "\n[recortado]".len(),
+            MAX_SALIDA + "\n[recortado]\n".len(),
             "la salida no quedó en 64 KiB"
         );
         assert!(
-            salida.ends_with("\n[recortado]"),
-            "falta la marca de recorte: {}",
-            &salida[salida.len().saturating_sub(20)..]
+            salida.contains("\n[recortado]\n"),
+            "falta la marca de recorte"
+        );
+        assert!(
+            salida.contains("FIN-DEL-ERROR"),
+            "el final de la salida se perdió: {}",
+            &salida[salida.len().saturating_sub(60)..]
         );
     }
 
@@ -991,7 +1003,7 @@ mod tests {
                 );
             }
             "echo" => print!("ARG={texto}"),
-            "grande" => print!("{}", "a".repeat(70 * 1024)),
+            "grande" => print!("{}FIN-DEL-ERROR", "a".repeat(70 * 1024)),
             "family" => {
                 let mut hijo = Command::new(std::env::current_exe().expect("exe de pruebas"))
                     .args([

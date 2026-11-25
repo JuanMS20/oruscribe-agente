@@ -68,10 +68,14 @@ impl Tool for HerramientaLocal {
         if self.nombre != "bash" {
             return None;
         }
-        args.get("timeout")
-            .and_then(Value::as_u64)
-            .filter(|segundos| (1..=600).contains(segundos))
-            .map(|segundos| Duration::from_secs(segundos + MARGEN_PLAZO))
+        let margen = Duration::from_secs(MARGEN_PLAZO);
+        match args.get("timeout").filter(|valor| !valor.is_null()) {
+            None => Some(self.set.timeout + margen),
+            Some(valor) => valor
+                .as_u64()
+                .filter(|segundos| (1..=600).contains(segundos))
+                .map(|segundos| Duration::from_secs(segundos) + margen),
+        }
     }
 
     async fn run(&self, args: Value) -> Result<String, ToolError> {
@@ -242,7 +246,11 @@ mod tests {
             Some(Duration::from_secs(125))
         );
         assert_eq!(bash.plazo(&json!({"timeout": 601})), None);
-        assert_eq!(bash.plazo(&json!({})), None);
+        assert_eq!(
+            bash.plazo(&json!({})),
+            Some(Duration::from_secs(65)),
+            "sin timeout el runner espera el plazo interno más el margen para que el modelo reciba la salida parcial"
+        );
     }
 
     /// El camino feliz sigue respondiendo igual con la herramienta fuera del

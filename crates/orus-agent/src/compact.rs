@@ -55,6 +55,12 @@ pub(crate) async fn compactar(peticion: Peticion<'_>, msgs: Vec<Message>) -> Com
     if corte == 0 || corte >= msgs.len() {
         return Compactacion::intacta(msgs);
     }
+    let solo_resumen_previo = msgs[..corte]
+        .iter()
+        .all(|m| m.role == "system" && m.content.starts_with(PREFIJO_RESUMEN));
+    if solo_resumen_previo {
+        return Compactacion::intacta(msgs);
+    }
 
     let mut peticion_resumen = Vec::with_capacity(corte + 1);
     peticion_resumen.push(Message {
@@ -189,6 +195,27 @@ mod tests {
     use crate::types::{ChatReply, ChatRequest, Provider};
 
     use super::PROMPT_RESUMEN;
+
+    #[tokio::test]
+    async fn no_vuelve_a_resumir_un_resumen_previo() {
+        let proveedor = Arc::new(PedidosFalsos::default());
+        let mut runner = Runner::new(como_proveedor(&proveedor), "m");
+        runner.max_chars = 400;
+
+        let mut historial = vec![mensaje("system", "Resumen de lo anterior:\nlo que pasó")];
+        historial.extend(historial_largo(6));
+        assert_eq!(historial.len(), 13);
+
+        let (_, resultado) = runner.run(&historial, &CancelToken::new()).await;
+        assert!(resultado.is_ok(), "Run falló: {resultado:?}");
+        let pedidos = proveedor.pedidos();
+        assert_eq!(
+            pedidos.len(),
+            1,
+            "resumir el resumen gasta una petición por paso"
+        );
+        assert!(!pide_resumen(&pedidos[0]));
+    }
 
     /// Proveedor falso que contesta el resumen cuando ve su mensaje `system`
     /// exacto y guarda cada petición. `compact_test.go:12-35`.

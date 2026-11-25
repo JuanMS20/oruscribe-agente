@@ -1439,4 +1439,46 @@ mod tests {
         );
         assert!(!agente.busy());
     }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn un_panico_o_un_stop_durante_la_preparacion_no_dejan_el_agente_ocupado() {
+        let local = app_con_clave(
+            "http://127.0.0.1:1/v1",
+            &std::env::temp_dir().to_string_lossy(),
+        );
+        let agente = local.agent().expect("la app lleva el agente");
+
+        let turno = local.turno_para("hola").await.expect("arma el turno");
+        agente
+            .empezar_con("hola", turno, |_| {
+                Box::pin(async move { panic!("preparación rota") })
+            })
+            .expect("el turno arranca");
+        for _ in 0..100 {
+            if !agente.busy() {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+        assert!(
+            !agente.busy(),
+            "un pánico en la preparación dejó el agente ocupado"
+        );
+
+        let turno = local.turno_para("hola").await.expect("arma el turno");
+        agente
+            .empezar_con("hola", turno, |_| {
+                Box::pin(async move { std::future::pending().await })
+            })
+            .expect("el turno arranca");
+        assert!(agente.busy());
+        agente.cancel();
+        for _ in 0..100 {
+            if !agente.busy() {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+        assert!(!agente.busy(), "Stop no cortó la preparación");
+    }
 }
