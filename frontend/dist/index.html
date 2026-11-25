@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; media-src 'self' blob:; connect-src 'self' https://*.supabase.co; frame-src https://*.supabase.co; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oruscribe Agente</title>
+
+
+
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="stage">
+<div class="win" id="win">
+
+  <div class="intro play" id="intro">
+    <div class="stagebox"><span class="wave w1"></span><span class="wave w2"></span>
+      <div class="tile"><svg viewBox="0 0 100 100"><use href="#oru"/></svg></div></div>
+    <h1>Oruscribe Agente</h1>
+    <p data-i18n="intro.sub">Tu agente, en tu equipo</p>
+  </div>
+
+  <!-- El aviso de versión nueva vive fuera de las pantallas: sin sesión, en la
+       bienvenida y en el login también se ve. -->
+  <div class="notice-banner update" id="update-banner" role="status">
+    <div class="update-body">
+      <span id="update-banner-text"></span>
+      <span class="update-progress" id="update-progress" hidden></span>
+      <details class="update-notes" id="update-notes-box" hidden>
+        <summary data-i18n="update.notes">Novedades</summary>
+        <pre id="update-notes"></pre>
+      </details>
+    </div>
+    <div class="notice-actions">
+      <button class="btn sm primary" id="update-banner-go" data-i18n="set.doUpdate">Actualizar ahora</button>
+      <button class="btn sm" id="update-banner-dismiss" data-i18n="common.later">Más tarde</button>
+    </div>
+  </div>
+
+  <section class="screen on" data-screen="welcome">
+    <div class="onb"><div class="onb-card">
+      <svg class="mark" style="width:56px;height:56px" viewBox="0 0 100 100"><use href="#oru"/></svg>
+      <h1 data-i18n="welcome.title">Tu agente, en tu equipo</h1>
+      <p class="lead" data-i18n="welcome.lead">Entra con tu cuenta de Oruscribe y trabaja con tu agente, tus tareas y el chat de tu equipo.</p>
+      <ul class="welcome-list">
+        <li><svg class="i"><use href="#i-zap"/></svg><span data-i18n="welcome.f1">Tu agente lee tus tareas y te ayuda a moverlas.</span></li>
+        <li><svg class="i"><use href="#i-message"/></svg><span data-i18n="welcome.f2">El chat, los avisos y el mapa de tu equipo, en la misma ventana.</span></li>
+        <li><svg class="i"><use href="#i-download"/></svg><span data-i18n="welcome.f3">Un solo programa. No necesitas instalar OpenCode, Node ni nada aparte.</span></li>
+      </ul>
+      <button class="btn primary block" id="btn-login" data-i18n="welcome.login">Iniciar sesión</button>
+      <p class="fine" id="welcome-error" style="color:var(--danger);display:none"></p>
+      <p class="fine" data-i18n="welcome.fine">Se abre tu navegador y vuelves aquí solo. El programa nunca ve tu contraseña.</p>
+      <button class="btn block" data-quit data-i18n="common.quit" style="margin-top:10px">Salir de Oruscribe</button>
+      <details class="more" style="margin-top:20px;text-align:left">
+        <summary><svg class="i"><use href="#i-chev"/></svg><span data-i18n="set.adv">Avanzado: entrar con un token</span></summary>
+        <p class="fine" style="text-align:left;margin:8px 0" data-i18n="set.advSub">Si el inicio de sesión con navegador no está disponible, pega el token JWT de tu sesión. Los tokens syn_ de la API no sirven para el cerebro.</p>
+        <div class="field"><input class="input mono" id="w-token" type="password" placeholder="eyJ…" autocomplete="off"></div>
+        <div class="row" style="margin-top:8px"><button class="btn sm primary" id="w-token-save" data-i18n="set.advSave">Usar este token</button></div>
+        <p class="fine" id="w-token-msg" style="text-align:left"></p>
+      </details>
+    </div></div>
+  </section>
+
+  <section class="screen" data-screen="login">
+    <div class="onb"><button class="back" data-back="welcome"><svg class="i"><use href="#i-back"/></svg><span data-i18n="common.back">Atrás</span></button><div class="onb-card">
+      <div id="login-wait">
+        <h1 data-i18n="login.wait">Continúa en tu navegador</h1>
+        <p class="lead" data-i18n="login.lead">Abrimos app.oruscribe.com para que inicies sesión. Al aprobar, vuelves aquí solo.</p>
+        <div class="waiting"><span class="spinner"></span> <span data-i18n="login.waiting">Esperando a que apruebes…</span></div>
+        <button class="btn block" id="open-browser" data-i18n="login.again">Abrir en el navegador</button>
+        <p class="fine" data-i18n="login.fine">Solo recibe un permiso que puedes revocar cuando quieras.</p>
+      </div>
+      <div id="login-ok" style="display:none">
+        <div class="check"><svg class="i"><use href="#i-check"/></svg></div>
+        <h1 data-i18n="login.ok">Sesión iniciada</h1>
+        <p class="lead" id="login-ok-text"></p>
+        <button class="btn primary block" id="login-continue" data-i18n="common.continue">Continuar</button>
+      </div>
+      <div id="login-fail" style="display:none">
+        <h1 data-i18n="login.fail">No se pudo iniciar sesión</h1>
+        <p class="lead" id="login-fail-text"></p>
+        <button class="btn block" id="login-retry" data-i18n="common.retry">Reintentar</button>
+      </div>
+      <div id="login-url-box" style="display:none">
+        <p class="fine" data-i18n="login.urlHelp">Si el navegador no se abrió, abre este enlace o cópialo:</p>
+        <input class="input mono" id="login-url" type="text" readonly spellcheck="false" autocomplete="off" aria-label="Enlace de inicio de sesión">
+        <button class="btn sm block" id="copy-login-url" data-i18n="login.copy">Copiar enlace</button>
+        <p class="fine" id="login-url-msg" role="status"></p>
+      </div>
+    </div></div>
+  </section>
+
+  <section class="screen" data-screen="app">
+    <div class="app">
+      <header class="topbar">
+        <button class="iconbtn menu-btn" id="menu" data-t-title="ui.menu" data-t-aria="ui.menu"><svg class="i"><use href="#i-menu"/></svg></button>
+        <button class="brand" data-view="today"><svg class="mark" viewBox="0 0 512 512" aria-hidden="true"><use href="#oru"/></svg><span>ORUSCRIBE</span></button>
+        <button class="cmdk-open" id="open-cmdk" data-t-aria="cmdk.aria">
+          <svg class="i"><use href="#i-search"/></svg>
+          <span data-i18n="cmdk.open">Buscar o ir a…</span>
+          <kbd id="cmdk-key">Ctrl K</kbd>
+        </button>
+        <div class="top-actions">
+          <span class="pill conn" id="conn-pill" role="status" aria-live="polite"><span class="dot"></span><span data-i18n="conn.ok">En línea</span></span>
+          <button class="iconbtn" id="reload" data-t-title="ui.reload" data-t-aria="ui.reload"><svg class="i"><use href="#i-refresh"/></svg></button>
+          <button class="iconbtn" id="tb-theme" data-t-title="ui.themeToggle" data-t-aria="ui.themeToggle"><svg class="i"><use href="#i-moon"/></svg></button>
+          <div class="lang"><button data-lang="es" class="on">ES</button><span>·</span><button data-lang="en">EN</button></div>
+          <button class="iconbtn" id="tb-bell" data-view="bell" data-t-title="nav.alerts" data-t-aria="nav.alerts"><svg class="i"><use href="#i-bell"/></svg></button>
+        </div>
+      </header>
+
+      <div class="load-banner" id="load-banner" role="status"><span id="load-banner-text" data-i18n="load.reconnecting">Sin conexión. Reconectando…</span><button class="btn sm" data-load-retry>Reintentar ahora</button><button class="btn sm" data-load-login style="display:none">Iniciar sesión</button><button class="btn sm" data-quit data-i18n="common.quit">Salir de Oruscribe</button></div>
+      <div class="notice-banner" id="autostart-prompt" role="status" style="display:none">
+        <span data-i18n="autostart.ask">¿Abrir Oruscribe al iniciar el equipo? Así te enteras de menciones y tareas sin abrirlo a mano.</span>
+        <div class="notice-actions">
+          <button class="btn sm primary" data-autostart-answer="yes" data-i18n="autostart.yes">Sí, abrir al iniciar</button>
+          <button class="btn sm" data-autostart-answer="no" data-i18n="autostart.no">Ahora no</button>
+        </div>
+      </div>
+
+      <aside class="side" id="side">
+        <nav class="side-nav">
+          <p class="grp-t" data-i18n="grp.work">Trabajo</p>
+          <button class="nav-it strong" data-view="agent"><svg class="i"><use href="#i-zap"/></svg><span data-i18n="nav.agent">Chat</span></button>
+          <button class="nav-it on" data-view="panel" aria-current="page"><svg class="i"><use href="#i-panel"/></svg><span data-i18n="nav.panel">Hoy</span><span class="count" id="c-today" style="display:none"></span></button>
+          <button class="nav-it" data-view="tasks"><svg class="i"><use href="#i-tasks"/></svg><span data-i18n="nav.tasks">Mis tareas</span><span class="count" id="c-tasks" style="display:none"></span></button>
+          <button class="nav-it" data-view="team"><svg class="i"><use href="#i-hash"/></svg><span data-i18n="nav.chat">Chat del equipo</span><span class="count" id="c-chat" style="display:none"></span></button>
+          <details class="side-more" id="side-more">
+            <summary class="grp-t side-more-sum"><span data-i18n="nav.more">Más de la organización</span></summary>
+            <button class="nav-it" data-view="bell"><svg class="i"><use href="#i-bell"/></svg><span data-i18n="nav.alerts">Avisos</span><span class="count" id="c-bell" style="display:none"></span></button>
+            <button class="nav-it" data-view="mentions"><svg class="i"><use href="#i-at"/></svg><span data-i18n="nav.mentions">Menciones</span><span class="count" id="c-mentions" style="display:none"></span></button>
+            <button class="nav-it" data-view="track"><svg class="i"><use href="#i-columns"/></svg><span data-i18n="nav.track">Seguimiento</span></button>
+            <button class="nav-it" data-view="brain"><svg class="i"><use href="#i-brain"/></svg><span data-i18n="nav.brain">Cerebro</span></button>
+            <button class="nav-it" data-view="goals"><svg class="i"><use href="#i-target"/></svg><span data-i18n="nav.goals">Metas</span></button>
+            <button class="nav-it" data-view="people"><svg class="i"><use href="#i-users"/></svg><span data-i18n="nav.people">Equipos</span></button>
+            <button class="nav-it" data-view="capture"><svg class="i"><use href="#i-refresh"/></svg><span data-i18n="nav.capture">Puesta al día</span></button>
+            <button class="nav-it" data-view="notes"><svg class="i"><use href="#i-notebook"/></svg><span data-i18n="nav.notes">Notas</span></button>
+          </details>
+          <a class="nav-it nav-ext" href="https://app.oruscribe.com" target="_blank" rel="noreferrer"><svg class="i"><use href="#i-expand"/></svg><span data-i18n="nav.openWeb">Abrir en web</span></a>
+        </nav>
+        <div class="org-switch" id="org-switch" style="display:none">
+          <label for="org-select" data-i18n="org.switch">Organización</label>
+          <select id="org-select" data-t-aria="org.switch" aria-label="Organización"></select>
+          <p class="fine" id="org-switch-note" style="display:none;margin:6px 0 0" data-i18n="org.noSupport">El servidor no ofrece la lista de organizaciones.</p>
+        </div>
+        <div class="me" id="me">
+          <div class="av" id="me-av">··</div>
+          <div class="who-t"><b id="me-name">—</b><span id="me-sub">—</span></div>
+          <button class="iconbtn" id="open-settings" data-t-title="set.title" data-t-aria="set.title" title="Configuración" aria-label="Configuración"><svg class="i"><use href="#i-settings"/></svg></button>
+        </div>
+      </aside>
+
+      <main class="main" id="main">
+        <div class="page-head">
+          <div class="ph-l">
+            <p class="kicker"><i></i><span id="page-kicker">Tu día</span></p>
+            <h1 id="page-title">Hoy</h1>
+            <p class="lede" id="page-sub"></p>
+          </div>
+          <div class="ph-r" id="page-actions"></div>
+        </div>
+
+        <div class="content" id="content">
+          <div class="view on" id="v-panel"></div>
+          <div class="view" id="v-track"></div>
+          <div class="view" id="v-brain">
+            <div id="brain-loading"></div>
+            <div id="brain-shell" style="display:none">
+              <div class="brain-top">
+                <div class="brain-chips" id="brain-chips"></div>
+                <div class="brain-tools">
+                  <label class="brain-search"><svg class="i"><use href="#i-search"/></svg><input id="brain-q" type="text" data-t-placeholder="brain.search" spellcheck="false" autocomplete="off"/></label>
+                  <div class="brain-ctrls">
+                    <button class="iconbtn" id="brain-reset" data-t-title="ui.center" data-t-aria="ui.center"><svg class="i"><use href="#i-target"/></svg></button>
+                  <button class="iconbtn" id="brain-zout" data-t-title="ui.zoomOut" data-t-aria="ui.zoomOut">−</button>
+                    <button class="iconbtn" id="brain-zin" data-t-title="ui.zoomIn" data-t-aria="ui.zoomIn">+</button>
+                    <button class="iconbtn" id="brain-fs" data-t-title="ui.fullscreen" data-t-aria="ui.fullscreen"><svg class="i"><use href="#i-expand"/></svg></button>
+                  </div>
+                </div>
+              </div>
+              <div class="brain-canvas" id="brain-canvas">
+                <svg id="brain-svg" viewBox="0 0 1000 700" role="img" data-t-aria="brain.aria" aria-label="Cerebro"><g id="brain-world"><g id="brain-links"></g><g id="brain-nodes"></g></g></svg>
+                <span class="brain-count" id="brain-count"></span>
+                <div class="brain-empty" id="brain-empty" data-i18n="brain.empty" hidden>Nada que mapear todavía.</div>
+                <div class="brain-card" id="brain-card"></div>
+              </div>
+            </div>
+          </div>
+          <div class="view" id="v-goals"></div>
+          <div class="view" id="v-people"></div>
+          <div class="view" id="v-tasks"></div>
+          <div class="view" id="v-bell"></div>
+          <div class="view" id="v-capture"></div>
+          <div class="view" id="v-mentions"></div>
+
+          <div class="view" id="v-agent">
+            <section class="card agent-error-card" id="agent-error" style="display:none"><b data-i18n="agent.loadFail">No se pudo cargar el agente</b><p class="fine" id="agent-error-msg"></p><button class="btn sm" data-agent-retry data-i18n="common.retry">Reintentar</button></section>
+            <section class="card agent-setup-card" id="agent-setup" style="display:none">
+              <div class="agent-card">
+                <b class="agent-h" id="agent-setup-title" data-i18n="agent.title">Conecta un modelo</b>
+                <p class="form-sec" data-i18n="agent.secBrain">Cerebro</p>
+                <div class="field"><label class="lbl" for="agent-kind" data-i18n="agent.kind">Cerebro</label>
+                  <select class="input" id="agent-kind">
+                    <option value="org" data-i18n="agent.kindOrg">IA de Oruscribe (trabaja con tu cuenta)</option>
+                    <option value="openai" data-i18n="agent.kindOwn">Mi clave (arnés completo en este equipo)</option>
+                  </select></div><p class="fine" id="agent-kind-note" style="margin:6px 0 0;padding:9px 11px;background:var(--soft);border-radius:8px;line-height:1.5"></p>
+                <div class="field" id="agent-provider-field"><label class="lbl" for="agent-provider" data-i18n="agent.provider">Proveedor</label>
+                  <select class="input" id="agent-provider">
+                    <option value="openrouter" data-i18n="agent.providerOpenRouter">OpenRouter</option>
+                    <option value="other" data-i18n="agent.providerOther">Otro compatible con OpenAI</option>
+                  </select></div>
+                <div class="field" id="agent-base-field" style="display:none"><label class="lbl" for="agent-base" data-i18n="agent.base">Dirección del proveedor</label>
+                  <input class="input mono" id="agent-base" placeholder="https://" autocomplete="off"></div>
+                <div class="field" id="agent-model-field"><label class="lbl" for="agent-model" data-i18n="agent.model">Modelo</label>
+                  <input class="input" id="agent-model" list="agent-model-options" data-t-placeholder="agent.modelPh" placeholder="Nombre del modelo" autocomplete="off">
+                  <datalist id="agent-model-options"></datalist>
+                  <p class="fine" id="agent-model-link"><a id="agent-models-link" href="https://pi.dev/models" target="_blank" rel="noreferrer" data-i18n="agent.modelsLink">Ver modelos disponibles</a></p></div>
+                <div class="field" id="agent-key-field"><label class="lbl" for="agent-key"><span data-i18n="agent.key">Clave</span> <small id="agent-key-req" style="display:none" data-i18n="agent.keyRequired">obligatoria</small></label>
+                  <input class="input mono" type="password" id="agent-key" autocomplete="off"></div>
+                <p class="fine" id="agent-key-note" data-i18n="agent.keyNote">La clave se guarda en el almacén seguro del equipo y no vuelve a mostrarse.</p>
+                <p class="fine" id="agent-data-note" data-i18n="agent.dataNote">Lo que el agente lea de Oruscribe (tareas, mensajes) se envía al proveedor que elijas.</p>
+                <p class="fine" id="agent-org-note" style="display:none" data-i18n="agent.orgNote">El cerebro corre en los servidores de Oruscribe y actúa con tu cuenta, igual que en la web. El modelo lo elige la organización y no se guarda ninguna clave en este equipo.</p>
+
+                <p class="form-sec" id="agent-sec-permissions" data-i18n="agent.secPermissions">Permisos</p>
+                <div class="field" id="agent-mode-field"><label class="lbl" for="agent-mode" data-i18n="agent.mode">Modo</label>
+                  <select class="input" id="agent-mode">
+                    <option value="ask" data-i18n="agent.modeAsk">Pedir permiso</option>
+                    <option value="readonly" data-i18n="agent.modeRead">Solo lectura</option>
+                    <option value="autonomous" data-i18n="agent.modeAuto">Autónomo</option>
+                  </select>
+                  <p class="fine" id="agent-mode-warn" style="display:none" data-i18n="agent.modeAutoWarn">El agente podrá hacer cualquier cambio que tu cuenta pueda hacer en Oruscribe (enviar mensajes, cambiar o archivar tareas, crear agentes) en tu nombre.</p></div>
+                <div class="field" id="agent-folders-field"><label class="lbl" data-i18n="agent.folders">Carpetas permitidas</label>
+                  <div class="row"><button class="btn sm" data-agent-act="addfolder" data-i18n="agent.addFolder">Añadir carpeta</button></div>
+                  <div class="agent-folders" id="agent-folders"></div>
+                  <p class="fine" id="agent-folder-warn" style="display:none" data-i18n="agent.folderFirst">El agente solo puede ver y cambiar lo que esté dentro de estas carpetas. Cada cambio pide tu aprobación.</p>
+                  <p class="fine" data-i18n="agent.foldersNote">Sin carpetas, el agente no puede leer ni escribir archivos ni ejecutar programas.</p></div>
+                <div class="field" id="agent-programs-field"><label class="lbl" for="agent-programs" data-i18n="agent.programs">Programas permitidos</label>
+                  <input class="input mono" id="agent-programs" data-t-placeholder="agent.programsPh" placeholder="git, go, node" autocomplete="off">
+                  <p class="fine" data-i18n="agent.programsNote">Separados por comas. Cada ejecución pide aprobación, también en modo Autónomo.</p></div>
+                <div class="field" id="agent-rules-field"><label class="lbl" data-i18n="agent.rules">Reglas recordadas</label>
+                  <div class="agent-rules" id="agent-rules-list"></div></div>
+
+                <p class="form-sec" id="agent-sec-auto" data-i18n="agent.secAuto">Autonomía</p>
+                <div class="field" id="agent-wake-field"><label class="lbl" for="agent-wake"><input type="checkbox" id="agent-wake"> <span data-i18n="agent.wake">El agente trabaja solo</span></label>
+                  <p class="fine" data-i18n="agent.wakeNote">Se despierta con menciones, tareas asignadas y alertas. No responde a lo que escribe la propia persona ni repite el mismo evento. Una ejecución a la vez.</p>
+                  <div class="row agent-wake-limits">
+                    <div class="field"><label class="lbl" for="agent-wake-minute" data-i18n="agent.wakeMinute">Por minuto</label><input class="input" id="agent-wake-minute" type="number" min="1" max="30" value="3"></div>
+                    <div class="field"><label class="lbl" for="agent-wake-day" data-i18n="agent.wakeDay">Por día</label><input class="input" id="agent-wake-day" type="number" min="1" max="500" value="20"></div>
+                    <div class="field"><label class="lbl" for="agent-wake-tokens" data-i18n="agent.wakeTokens">Tokens por día</label><input class="input" id="agent-wake-tokens" type="number" min="1000" max="200000" step="1000" value="20000"></div>
+                  </div></div>
+                <p class="form-sec" id="agent-sec-voice" data-i18n="agent.secVoice">Voz (opcional)</p>
+                <div class="field" id="agent-voice-fields">
+                  <p class="fine" data-i18n="agent.voiceServerNote">Un servidor compatible con OpenAI en este equipo o en otro. Si vive fuera, usa una dirección https.</p>
+                  <div class="row agent-voice-grid">
+                    <div class="field"><label class="lbl" for="agent-voice-stt-url" data-i18n="agent.voiceSTTURL">Dirección del dictado</label>
+                      <input class="input mono" id="agent-voice-stt-url" placeholder="http://127.0.0.1:8080/v1" autocomplete="off"></div>
+                    <div class="field"><label class="lbl" for="agent-voice-stt-model" data-i18n="agent.voiceSTTModel">Modelo de dictado</label>
+                      <input class="input" id="agent-voice-stt-model" placeholder="whisper-1" autocomplete="off"></div>
+                  </div>
+                  <div class="row agent-voice-grid">
+                    <div class="field"><label class="lbl" for="agent-voice-tts-url" data-i18n="agent.voiceTTSURL">Dirección de la lectura</label>
+                      <input class="input mono" id="agent-voice-tts-url" placeholder="http://127.0.0.1:8080/v1" autocomplete="off"></div>
+                    <div class="field"><label class="lbl" for="agent-voice-tts-model" data-i18n="agent.voiceTTSModel">Modelo de lectura</label>
+                      <input class="input" id="agent-voice-tts-model" placeholder="tts-1" autocomplete="off"></div>
+                    <div class="field"><label class="lbl" for="agent-voice-tts-voice" data-i18n="agent.voiceTTSVoice">Voz</label>
+                      <input class="input" id="agent-voice-tts-voice" placeholder="alloy" autocomplete="off"></div>
+                  </div>
+                </div>
+                <p class="fine" id="agent-setup-msg"></p>
+                <div class="row" style="margin-top:12px">
+                  <button class="btn sm" id="agent-cancel" data-agent-act="cancel" style="display:none" data-i18n="common.cancel">Cancelar</button>
+                  <button class="btn sm" id="agent-test-btn" data-agent-act="test" data-i18n="agent.test">Probar conexión</button>
+                  <button class="btn sm primary" data-agent-act="save" data-i18n="agent.save">Guardar</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="agent-chat" id="agent-chat" style="display:none">
+              <aside class="agent-sessions" data-t-aria="agent.sessions" aria-label="Sesiones">
+                <div class="agent-sessions-head">
+                  <b data-i18n="agent.sessions">Sesiones</b>
+                  <button class="btn sm" data-agent-act="reset" data-i18n="agent.newChatShort">Nueva</button>
+                </div>
+                <div class="agent-sessions-list" id="agent-session-list"></div>
+                <div class="agent-sessions-foot">
+                  <button class="btn sm" data-agent-act="delconvs" data-i18n="agent.deleteConvs">Borrar todas</button>
+                </div>
+              </aside>
+              <div class="agent-main">
+                <div class="agent-bar">
+                  <div class="agent-id">
+                    <span class="agent-mark"><svg class="i"><use href="#i-zap"/></svg></span>
+                    <div><b data-i18n="nav.agent">Agente</b><small><span id="agent-brain"></span><span id="agent-mode-label"></span><span class="agent-cwd-pill mono" id="agent-cwd-pill"></span></small></div>
+                  </div>
+                  <div class="agent-tools">
+                    <select id="agent-convs" data-t-aria="agent.convsAria" aria-label="Conversaciones guardadas" style="display:none"></select>
+                    <select class="input sel" id="agent-mode-quick" data-t-aria="agent.mode" aria-label="Modo" style="height:28px;padding:0 8px;font-size:12px;width:auto">
+                      <option value="autonomous" data-i18n="agent.modeAuto">Autónomo (Turbo)</option>
+                      <option value="ask" data-i18n="agent.modeAsk">Pedir permiso</option>
+                      <option value="readonly" data-i18n="agent.modeRead">Solo lectura</option>
+                    </select>
+                    <button class="btn sm" id="agent-undo" data-agent-act="undo" data-i18n="agent.journalBtn">Cambios locales</button>
+                    <button class="btn sm" data-agent-act="settings" data-i18n="agent.settingsShort">Ajustes</button>
+                    <button class="btn sm" data-agent-act="delconv" data-i18n="agent.deleteConv">Borrar</button>
+                  </div>
+                </div>
+                <div class="agent-approvals" id="agent-approvals" style="display:none"></div>
+                <div class="agent-log" id="agent-log"></div>
+                <div class="agent-foot">
+                  <details class="agent-wake-log" id="agent-wake-log" style="display:none">
+                    <summary data-i18n="agent.wakeLog">Lo que hizo solo</summary>
+                    <div id="agent-wake-items"></div>
+                  </details>
+                  <p class="fine" id="agent-tokens"></p>
+                </div>
+                <div class="agent-docs" id="agent-images" style="display:none"></div>
+                <div class="agent-docs" id="agent-docs" style="display:none"></div>
+                <div class="agent-comp">
+                  <label class="agent-sr" for="agent-input" data-i18n="agent.inputLabel">Mensaje para el chat</label>
+                  <button class="iconbtn agent-clip" id="agent-attach" data-t-title="agent.attach" data-t-aria="agent.attach"><svg class="i"><use href="#i-clip"/></svg></button>
+                  <button class="iconbtn agent-clip agent-mic" id="agent-mic" data-t-title="agent.mic" data-t-aria="agent.mic"><svg class="i"><use href="#i-mic"/></svg></button>
+                  <input type="file" id="agent-file" multiple style="display:none" accept="image/png,image/jpeg,image/webp,image/gif,.txt,.md,.markdown,.csv,.json,.log,.go,.js,.mjs,.ts,.tsx,.jsx,.py,.sh,.ps1,.yaml,.yml,.toml,.html,.css,.xml,.sql,.ini,.cfg,.conf,.env,.gitignore,.patch,.diff">
+                  <textarea class="input area" id="agent-input" rows="2" data-t-placeholder="agent.placeholder" placeholder="Escribe tu pregunta"></textarea>
+                  <button class="btn primary" id="agent-send" data-agent-act="send" disabled data-i18n="agent.send">Enviar</button>
+                </div>
+                <p class="fine" id="agent-msg"></p>
+              </div>
+            </section>
+          </div>
+
+          <div class="view grid" id="v-team">
+            <div class="rooms" id="rooms">
+              <div class="rooms-top"><div class="rooms-search"><svg class="i"><use href="#i-search"/></svg><input id="room-q" data-t-placeholder="chat.searchPh" placeholder="Buscar"></div>
+                <button class="send quiet" id="new-dm" data-t-title="chat.newDm"><svg class="i"><use href="#i-plus"/></svg></button></div>
+              <div id="room-list"></div>
+            </div>
+            <div class="room-main">
+              <div class="room-head"><button class="iconbtn room-back" id="room-back"><svg class="i"><use href="#i-back"/></svg></button><div style="flex:1;min-width:0"><b id="room-title">—</b><small id="room-sub"></small></div></div>
+              <div class="room-msgs" id="room-msgs"></div>
+              <div class="room-reply" id="room-reply" style="display:none"><svg class="i"><use href="#i-reply"/></svg><span id="room-reply-t"></span><button class="iconbtn" id="room-reply-x"><svg class="i"><use href="#i-x"/></svg></button></div>
+              <div class="room-comp">
+                <button class="iconbtn" id="room-attach" data-t-title="chat.attach"><svg class="i"><use href="#i-clip"/></svg></button>
+                <input type="file" id="room-file" style="display:none">
+                <div class="emoji-wrap" id="emoji-wrap" style="display:none"></div>
+                <button class="iconbtn" id="room-emoji" data-t-title="chat.emoji"><svg class="i"><use href="#i-smile"/></svg></button>
+                <input id="room-input" data-t-placeholder="room.placeholder" placeholder="Escribe un mensaje">
+                <button class="send" id="room-send" disabled data-t-title="chat.send" data-t-aria="chat.send"><svg class="i"><use href="#i-up"/></svg></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="view grid" id="v-notes">
+            <div class="notes-list" id="notes-list">
+              <div class="notes-top">
+                <div class="rooms-search"><svg class="i"><use href="#i-search"/></svg><input id="note-q" data-t-placeholder="notes.search" placeholder="Buscar en tus notas"></div>
+                <button class="send quiet" id="note-new" data-t-title="notes.new"><svg class="i"><use href="#i-plus"/></svg></button>
+              </div>
+              <div id="notes-items"></div>
+              <div class="notes-foot"><svg class="i"><use href="#i-lock"/></svg> <span data-i18n="notes.foot">Se guardan solo en este equipo.</span></div>
+            </div>
+            <div class="note-ed" id="note-ed">
+              <div class="note-bar"><button class="iconbtn note-back" id="note-back"><svg class="i"><use href="#i-back"/></svg></button><small id="note-saved" data-i18n="notes.saved">Guardado</small>
+                <button class="iconbtn" id="note-del" data-t-title="common.delete" style="color:var(--danger)"><svg class="i"><use href="#i-trash"/></svg></button></div>
+              <input id="note-title" data-t-placeholder="notes.title" placeholder="Título" maxlength="200">
+              <textarea id="note-body" data-t-placeholder="notes.body" placeholder="Escribe tu nota…"></textarea>
+              <div class="note-confirm" id="note-confirm"><b data-i18n="notes.del">¿Borrar esta nota?</b><span data-i18n="notes.delSub">Se borra de este equipo y no se puede recuperar.</span><div class="row"><button class="btn sm" id="note-del-no" data-i18n="common.cancel">Cancelar</button><button class="btn sm danger" id="note-del-yes" data-i18n="common.delete">Borrar</button></div></div>
+              <div class="note-empty" id="note-empty"><svg class="i" style="width:30px;height:30px"><use href="#i-notebook"/></svg><b data-i18n="notes.empty">Elige una nota o crea una nueva</b></div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <button class="chat-fab" id="chat-fab" data-view="agent" data-t-aria="nav.agent" aria-label="Chat">
+        <svg class="i"><use href="#i-zap"/></svg><span data-i18n="nav.agent">Chat</span>
+      </button>
+    </div>
+  </section>
+
+  <div class="modal" id="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="sheet">
+      <nav>
+        <h4 id="settings-title" data-i18n="set.title">Configuración</h4>
+        <button class="nav-it on" data-pane="cuenta"><svg class="i"><use href="#i-user"/></svg> <span data-i18n="set.account">Cuenta</span></button>
+        <button class="nav-it" data-pane="sistema"><svg class="i"><use href="#i-monitor"/></svg> <span data-i18n="set.system">Sistema</span></button>
+        <button class="nav-it" data-pane="avisos"><svg class="i"><use href="#i-bell"/></svg> <span data-i18n="set.alerts">Avisos</span></button>
+      </nav>
+      <div class="pane">
+        <button class="iconbtn close-x" id="close-settings"><svg class="i"><use href="#i-x"/></svg></button>
+        <div data-p="cuenta">
+          <h3 data-i18n="set.account">Cuenta</h3><p class="sub" data-i18n="set.accountSub">Con quién está conectado este equipo.</p>
+          <div class="set-row"><div class="av" id="ac-av">··</div><div class="lbl"><b id="ac-name">—</b><small id="ac-email">—</small></div></div>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.org">Organización</b><small id="ac-org">—</small></div></div>
+          <p class="fine" id="org-note" style="display:none" data-i18n="org.noSupport">El servidor no ofrece la lista de organizaciones.</p>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.role">Rol</b><small id="ac-role">—</small></div></div>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.server">Servidor</b><small class="mono" id="ac-server">—</small></div><span class="pill" id="ac-pill"><span class="dot"></span>OK</span></div>
+          <div class="set-row" id="ac-quota-row" style="display:none"><div class="lbl"><b data-i18n="set.mcpQuota">Cuota MCP</b><small data-i18n="set.mcpQuotaSub">Límite local de seguridad (minuto / hora).</small></div><span class="pill2 mono" id="ac-quota">—</span></div>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.logout">Cerrar sesión</b><small data-i18n="set.logoutSub">Borra el permiso de este equipo.</small></div><button class="btn sm" style="color:var(--danger)" id="logout" data-i18n="set.logout">Cerrar sesión</button></div>
+          <details class="more" style="margin-top:14px">
+            <summary><svg class="i"><use href="#i-chev"/></svg><span data-i18n="set.adv">Avanzado: entrar con un token</span></summary>
+            <p class="fine" style="text-align:left;margin:8px 0" data-i18n="set.advSub">Si el inicio de sesión con navegador no está disponible, pega el token JWT de tu sesión. Los tokens syn_ de la API no sirven para el cerebro.</p>
+            <div class="field"><input class="input mono" id="token-input" type="password" placeholder="eyJ…" autocomplete="off"></div>
+            <div class="row" style="margin-top:8px"><button class="btn sm primary" id="token-save" data-i18n="set.advSave">Usar este token</button></div>
+            <p class="fine" id="token-msg" style="text-align:left"></p>
+          </details>
+        </div>
+        <div data-p="sistema" style="display:none">
+          <h3 data-i18n="set.system">Sistema</h3><p class="sub" data-i18n="set.systemSub">Un solo programa, sin dependencias.</p>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.lang">Idioma</b></div><div class="seg2"><button data-lang="es" class="on">Español</button><button data-lang="en">English</button></div></div>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.theme">Apariencia</b><small data-i18n="set.themeSub">Automático sigue el tema de tu sistema</small></div><div class="seg2"><button data-theme="auto" class="on" data-i18n="set.auto">Automático</button><button data-theme="light" data-i18n="set.light">Claro</button><button data-theme="dark" data-i18n="set.dark">Oscuro</button></div></div>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.autostart">Iniciar con el equipo</b><small data-i18n="set.autostartSub">Se abre solo al encender el equipo, para que no tengas que buscarlo.</small></div><button class="btn sm" id="autostart-toggle">—</button></div>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.autoUpdate">Buscar actualizaciones sola</b><small data-i18n="set.autoUpdateSub">Al arrancar, comprueba si hay una versión nueva y te avisa aquí. Nunca reinicia sin tu clic.</small></div><button class="btn sm" id="autoupdate-toggle">—</button></div>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.telemetry">Reportar errores automáticamente</b><small data-i18n="set.telemetrySub">Activado por defecto. Envía solo fallos técnicos redactados (pocos por hora) para poder corregirlos; apágalo cuando quieras.</small></div><button class="btn sm" id="telemetry-toggle">—</button></div>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.version">Versión</b><small class="mono" id="ac-version">—</small></div><button class="btn sm" id="check-update" data-i18n="set.check">Buscar actualización</button></div>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.diag">Diagnóstico</b><small data-i18n="set.diagSub">Versión, sistema y últimos errores. Sin datos personales.</small></div><button class="btn sm" id="copy-diag" data-i18n="set.diagCopy">Copiar</button></div>
+          <p class="fine" id="diag-msg" style="text-align:left"></p>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.data">Carpeta de datos</b><small class="mono" id="ac-datadir">—</small></div></div>
+          <p class="fine" id="update-msg" style="text-align:left"></p>
+          <div class="set-row" id="uninstall-row" style="display:none"><div class="lbl"><b data-i18n="set.uninstall">Desinstalar</b><small data-i18n="set.uninstallSub">Quita los accesos directos y el arranque con Windows.</small></div><button class="btn sm" style="color:var(--danger)" id="uninstall" data-i18n="set.uninstall">Desinstalar</button></div>
+        </div>
+        <div data-p="avisos" style="display:none">
+          <h3 data-i18n="set.alerts">Avisos</h3><p class="sub" data-i18n="set.alertsSub">De dónde salen los avisos de este equipo.</p>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.alertsOn">Avisos de Oruscribe</b><small data-i18n="set.alertsOnSub">Menciones, tareas asignadas y bloqueos.</small></div><span class="pill"><span class="dot"></span><span data-i18n="set.always">Siempre</span></span></div>
+          <div class="set-row"><div class="lbl"><b data-i18n="set.doorbell">Timbre</b><small data-i18n="set.doorbellSub">El canal en vivo que avisa cuando alguien te menciona, te asigna algo o comenta.</small></div><span class="pill" id="ac-doorbell" style="opacity:.6"><span class="dot" style="background:var(--muted)"></span><span>—</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="modal" id="install-modal" role="dialog" aria-modal="true" aria-labelledby="install-title">
+  <div class="sheet" style="max-width:620px">
+    <div class="pane" style="padding:22px">
+      <button class="iconbtn close-x" id="install-close"><svg class="i"><use href="#i-x"/></svg></button>
+      <h3 id="install-title">Términos de uso</h3>
+      <p class="sub" data-i18n="install.sub">Antes de instalar, lee esto. Es corto a propósito.</p>
+      <pre id="install-terms" style="white-space:pre-wrap;font:13px/1.6 inherit;background:var(--soft,#f4f4f5);padding:14px;border-radius:12px;max-height:44vh;overflow:auto;margin:12px 0"></pre>
+      <label class="row" style="align-items:center;gap:8px;margin:10px 0"><input type="checkbox" id="install-terms-ok" style="width:auto"> <span data-i18n="install.accept">Acepto estos términos</span></label>
+      <label class="row" style="align-items:center;gap:8px;margin:10px 0"><input type="checkbox" id="install-auto" checked style="width:auto"> <span data-i18n="install.autostart">Iniciar con el equipo</span></label>
+      <div class="row" style="margin-top:16px;justify-content:flex-end;gap:8px">
+        <button class="btn sm" id="install-cancel" data-i18n="common.cancel">Cancelar</button>
+        <button class="btn sm primary" id="install-go" disabled data-i18n="install.go">Instalar</button>
+      </div>
+      <p class="fine" id="install-msg" style="text-align:left"></p>
+    </div>
+  </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="og" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset=".55" stop-color="#9b6bff"/><stop offset="1" stop-color="#d1497a"/></linearGradient>
+    <symbol id="i-hash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></symbol><symbol id="i-notebook" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v18H5.5A1.5 1.5 0 0 1 4 19.5z"/><path d="M8 7h7M8 11h7M4 17h15"/></symbol><symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol><symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol><symbol id="i-reply" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 14-5-5 5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v5"/></symbol><symbol id="i-smile" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/></symbol><symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol><symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol><symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol><symbol id="i-plug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></symbol><symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol><symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol><symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol><symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></symbol><symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></symbol><symbol id="i-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></symbol><symbol id="i-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></symbol><symbol id="i-message" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol><symbol id="i-tasks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol><symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></symbol><symbol id="i-clip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol><symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol><symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol><symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol><symbol id="i-monitor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol><symbol id="i-square" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol><symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></symbol><symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol><symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol><symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol><symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol><symbol id="i-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
+    <symbol id="oru" viewBox="0 0 512 512"><rect width="512" height="512" rx="112.64" fill="#0A0A0A"/><path fill="#FFFFFF" d="M256 100.68L276.97 121.65L256 142.62L235.03 121.65ZM297.52 107.34L318.41 128.23L297.52 149.12L276.62 128.23ZM334.97 126.88L355.4 147.31L334.97 167.74L314.53 147.31ZM364.69 157.64L384.08 177.03L364.69 196.42L345.3 177.03ZM383.77 196.77L401.49 214.48L383.77 232.2L366.06 214.48ZM390.35 240.49L405.86 256L390.35 271.51L374.84 256ZM383.77 284.51L396.78 297.52L383.77 310.52L370.77 297.52ZM364.69 324.43L375.23 334.97L364.69 345.5L354.16 334.97ZM334.97 356.25L343.41 364.69L334.97 373.13L326.52 364.69ZM297.52 376.73L304.56 383.77L297.52 390.82L290.47 383.77ZM256 383.8L262.55 390.35L256 396.9L249.45 390.35ZM214.48 376.73L221.53 383.77L214.48 390.82L207.44 383.77ZM177.03 356.25L185.48 364.69L177.03 373.13L168.59 364.69ZM147.31 324.43L157.84 334.97L147.31 345.5L136.77 334.97ZM128.23 284.51L141.23 297.52L128.23 310.52L115.22 297.52ZM121.65 240.49L137.16 256L121.65 271.51L106.14 256ZM128.23 196.77L145.94 214.48L128.23 232.2L110.51 214.48ZM147.31 157.64L166.7 177.03L147.31 196.42L127.92 177.03ZM177.03 126.88L197.47 147.31L177.03 167.74L156.6 147.31ZM214.48 107.34L235.38 128.23L214.48 149.12L193.59 128.23ZM277.15 146.53L293.97 163.36L277.15 180.18L260.32 163.36ZM315.25 165.46L331.5 181.7L315.25 197.95L299 181.7ZM341.62 199.75L356.64 214.77L341.62 229.79L326.6 214.77ZM351.03 242.78L364.25 256L351.03 269.22L337.8 256ZM341.62 286.04L352.81 297.23L341.62 308.42L330.42 297.23ZM315.25 320.88L324.66 330.3L315.25 339.71L305.83 330.3ZM277.15 340.27L285.52 348.64L277.15 357.02L268.77 348.64ZM234.85 340.27L243.23 348.64L234.85 357.02L226.48 348.64ZM196.75 320.88L206.17 330.3L196.75 339.71L187.34 330.3ZM170.38 286.04L181.58 297.23L170.38 308.42L159.19 297.23ZM160.97 242.78L174.2 256L160.97 269.22L147.75 256ZM170.38 199.75L185.4 214.77L170.38 229.79L155.36 214.77ZM196.75 165.46L213 181.7L196.75 197.95L180.5 181.7ZM234.85 146.53L251.68 163.36L234.85 180.18L218.03 163.36Z"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol><symbol id="i-at" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.5"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="i-columns" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="10" rx="1.5"/><rect x="17" y="4" width="4" height="13" rx="1.5"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.8a3.2 3.2 0 0 1 0 6.4M17.5 14.4a6.5 6.5 0 0 1 4 5.6"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 5h9l-1 3 1 3H5"/><path d="M14 5h5l-1.5 3 1.5 3h-5"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 4 16 8-16 8 3-8-3-8z"/></symbol><symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></symbol><symbol id="i-speaker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7v6l-4 2v-8L4 5z"/></symbol>
+    <symbol id="i-search2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.2"/><circle cx="18" cy="8" r="2.2"/><circle cx="9" cy="18" r="2.2"/><path d="M7.8 7.2 16 7.6M7.2 8 8.4 15.8M16.4 9.5 11 16.7"/></symbol>
+  </defs>
+</svg>
+<div class="toast" id="toast" role="status" aria-live="polite"><div class="t-head"><svg class="i"><use href="#i-bell"/></svg><span>Oruscribe</span></div><div></div></div>
+<div class="modal" id="newgoal" role="dialog" aria-modal="true" aria-labelledby="ng-title">
+  <div class="sheet form-sheet">
+    <div class="pane">
+      <button class="iconbtn close-x" id="ng-close"><svg class="i"><use href="#i-x"/></svg></button>
+      <h3 id="ng-title" data-i18n="ng.title">Nueva meta</h3>
+      <p class="sub" data-i18n="ng.sub">Lo que la organización se propone. Se mide con las tareas que la cierran.</p>
+      <div class="field"><label class="lbl" data-i18n="ng.name">Título</label><input class="input" id="ng-name" maxlength="200"></div>
+      <div class="field"><label class="lbl" data-i18n="ng.desc">Descripción</label><textarea class="input area" id="ng-desc" rows="3" data-t-placeholder="ng.descPh" placeholder="Qué se quiere lograr y cómo se sabrá que está hecho."></textarea></div>
+      <div class="field2">
+        <div class="field"><label class="lbl" data-i18n="ng.due">Fecha límite</label><input class="input" id="ng-due" type="date"></div>
+        <div class="field"><label class="lbl" data-i18n="ng.team">Equipo</label><select class="input" id="ng-team"><option value="" data-i18n="ng.org">Toda la organización</option></select></div>
+      </div>
+      <div class="field"><label class="lbl" data-i18n="ng.period">Periodo</label><select class="input" id="ng-period"></select></div>
+      <div class="row" style="margin-top:16px"><button class="btn sm" id="ng-cancel" data-i18n="common.cancel">Cancelar</button><button class="btn sm primary" id="ng-create" data-i18n="ng.create">Crear meta</button></div>
+      <p class="fine" id="ng-status"></p>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="newtask" role="dialog" aria-modal="true" aria-labelledby="nt-title">
+  <div class="sheet form-sheet">
+    <div class="pane">
+      <button class="iconbtn close-x" id="nt-close"><svg class="i"><use href="#i-x"/></svg></button>
+      <h3 id="nt-title" data-i18n="nt.title">Nueva tarea</h3>
+      <p class="sub" data-i18n="nt.sub">Se crea a tu nombre y queda en tu equipo.</p>
+      <div class="field"><label class="lbl" data-i18n="nt.name">Título</label><input class="input" id="nt-name" maxlength="500"></div>
+      <div class="field"><label class="lbl" data-i18n="nt.desc">Descripción</label><textarea class="input area" id="nt-desc" rows="3" data-t-placeholder="nt.descPh" placeholder="Qué cambia, dónde y por qué."></textarea></div>
+      <div class="field2">
+        <div class="field"><label class="lbl" data-i18n="nt.priority">Prioridad</label>
+          <select class="input" id="nt-priority"><option value="medium" data-i18n="prio.medium">Media</option><option value="high" data-i18n="prio.high">Alta</option><option value="low" data-i18n="prio.low">Baja</option><option value="critical" data-i18n="prio.critical">Crítica</option></select>
+        </div>
+        <div class="field"><label class="lbl" data-i18n="nt.due">Fecha límite</label><input class="input" id="nt-due" type="date"></div>
+      </div>
+      <div class="field"><label class="lbl" data-i18n="nt.goal">Meta</label><select class="input" id="nt-goal"><option value="" data-i18n="nt.noGoal">Sin meta</option></select></div>
+      <div class="row" style="margin-top:16px"><button class="btn sm" id="nt-cancel" data-i18n="common.cancel">Cancelar</button><button class="btn sm primary" id="nt-create" data-i18n="nt.create">Crear tarea</button></div>
+      <p class="fine" id="nt-status"></p>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="blockwhy" role="dialog" aria-modal="true" aria-labelledby="bw-title">
+  <div class="sheet form-sheet">
+    <div class="pane">
+      <button class="iconbtn close-x" id="bw-close"><svg class="i"><use href="#i-x"/></svg></button>
+      <h3 id="bw-title" data-i18n="bw.title">Qué te bloquea</h3>
+      <p class="sub" data-i18n="bw.sub">Una línea: qué te detiene y qué necesitas. La ven las personas que pueden desbloquearte.</p>
+      <div class="field"><label class="lbl" data-i18n="bw.reason">Motivo</label><input class="input" id="bw-note" maxlength="500" data-t-placeholder="bw.ph" placeholder="Qué te bloquea y qué necesitas."></div>
+      <div class="row" style="margin-top:16px"><button class="btn sm" id="bw-cancel" data-i18n="common.cancel">Cancelar</button><button class="btn sm primary" id="bw-send" data-i18n="bw.send">Bloquear tarea</button></div>
+      <p class="fine" id="bw-status"></p>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="focusmodal" role="dialog" aria-modal="true" aria-labelledby="fm-title">
+  <div class="sheet form-sheet">
+    <div class="pane">
+      <button class="iconbtn close-x" id="fm-close"><svg class="i"><use href="#i-x"/></svg></button>
+      <h3 id="fm-title" data-i18n="fm.title">Mi foco</h3>
+      <p class="sub" data-i18n="fm.sub">Lo que tu equipo ve de ti en la web y en la app. Cámbialo cuando cambie tu trabajo.</p>
+      <div class="field"><label class="lbl" data-i18n="fm.focus">Foco actual</label><textarea class="input area" id="fm-focus" rows="3" maxlength="500" data-t-placeholder="fm.ph" placeholder="En qué estás trabajando."></textarea></div>
+      <div class="field2">
+        <div class="field"><label class="lbl" data-i18n="fm.mood">Cómo va</label>
+          <select class="input" id="fm-mood"><option value="on_track" data-i18n="fm.onTrack">Al día</option><option value="at_risk" data-i18n="fm.atRisk">En riesgo</option><option value="blocked" data-i18n="fm.blocked">Bloqueado</option></select>
+        </div>
+        <div class="field"><label class="lbl" data-i18n="fm.notes">Notas</label><input class="input" id="fm-notes" maxlength="4000" placeholder="—"></div>
+      </div>
+      <div class="row" style="margin-top:16px"><button class="btn sm" id="fm-cancel" data-i18n="common.cancel">Cancelar</button><button class="btn sm primary" id="fm-save" data-i18n="fm.save">Guardar foco</button></div>
+      <p class="fine" id="fm-status"></p>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="newperiod" role="dialog" aria-modal="true" aria-labelledby="np-title">
+  <div class="sheet form-sheet">
+    <div class="pane">
+      <button class="iconbtn close-x" id="np-close"><svg class="i"><use href="#i-x"/></svg></button>
+      <h3 id="np-title" data-i18n="periods.title">Nuevo periodo</h3>
+      <p class="sub" data-i18n="periods.sub">Un mes, un sprint o un rango para agrupar metas. Un coordinador lo crea para su equipo; la organización entera es cosa de un gerente.</p>
+      <div class="field"><label class="lbl" data-i18n="periods.name">Nombre</label><input class="input" id="np-name" maxlength="120"></div>
+      <div class="field2">
+        <div class="field"><label class="lbl" data-i18n="periods.start">Inicio</label><input class="input" id="np-start" type="date"></div>
+        <div class="field"><label class="lbl" data-i18n="periods.end">Fin</label><input class="input" id="np-end" type="date"></div>
+      </div>
+      <div class="field2">
+        <div class="field"><label class="lbl" data-i18n="periods.kind">Tipo</label>
+          <select class="input" id="np-kind"><option value="month" data-i18n="periods.month">Mes</option><option value="sprint" data-i18n="periods.sprint">Sprint</option><option value="quarter" data-i18n="periods.quarter">Trimestre</option><option value="custom" data-i18n="periods.custom">Personalizado</option></select>
+        </div>
+        <div class="field"><label class="lbl" data-i18n="periods.team">Equipo</label><select class="input" id="np-team"></select></div>
+      </div>
+      <div class="row" style="margin-top:16px"><button class="btn sm" id="np-cancel" data-i18n="common.cancel">Cancelar</button><button class="btn sm primary" id="np-create" data-i18n="periods.create">Crear periodo</button></div>
+      <p class="fine" id="np-status"></p>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="taskdetail" role="dialog" aria-modal="true" aria-labelledby="td-title">
+  <div class="sheet form-sheet">
+    <div class="pane">
+      <button class="iconbtn close-x" id="td-close"><svg class="i"><use href="#i-x"/></svg></button>
+      <h3 class="agent-sr" id="td-title" data-i18n="task.detailTitle">Detalle de la tarea</h3><div id="td-body"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="newdm" role="dialog" aria-modal="true" aria-labelledby="dm-title">
+  <div class="sheet form-sheet">
+    <div class="pane">
+      <button class="iconbtn close-x" id="dm-close"><svg class="i"><use href="#i-x"/></svg></button>
+      <h3 id="dm-title" data-i18n="dm.title">Nuevo mensaje</h3>
+      <p class="sub" data-i18n="dm.sub">Un chat directo con una persona o un agente de tu organización.</p>
+      <div class="field"><label class="lbl" data-i18n="dm.to">Para</label><select class="input" id="dm-to"></select></div>
+      <div class="field"><label class="lbl" data-i18n="dm.msg">Mensaje</label><textarea class="input area" id="dm-msg" rows="4" data-t-placeholder="dm.ph" placeholder="Escribe el mensaje."></textarea></div>
+      <div class="row" style="margin-top:16px"><button class="btn sm" id="dm-cancel" data-i18n="common.cancel">Cancelar</button><button class="btn sm primary" id="dm-send" data-i18n="dm.send">Enviar</button></div>
+      <p class="fine" id="dm-status"></p>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="alertbox" role="dialog" aria-modal="true" aria-labelledby="al-title">
+  <div class="sheet form-sheet">
+    <div class="pane">
+      <button class="iconbtn close-x" id="al-close"><svg class="i"><use href="#i-x"/></svg></button>
+      <h3 id="al-title" data-i18n="al.title">Enviar alerta</h3>
+      <p class="sub" data-i18n="al.sub">A tu equipo o a una persona. Solo si de verdad necesita parar.</p>
+      <div class="field2">
+        <div class="field"><label class="lbl" data-i18n="al.type">Tipo</label>
+          <select class="input" id="al-type"><option value="info" data-i18n="al.info">Info</option><option value="blocker" data-i18n="al.blocker">Bloqueador</option><option value="misalignment" data-i18n="al.misalign">Desalineación</option><option value="milestone" data-i18n="al.milestone">Hito</option></select>
+        </div>
+        <div class="field"><label class="lbl" data-i18n="al.to">Para</label><select class="input" id="al-target"></select></div>
+      </div>
+      <div class="field"><label class="lbl" data-i18n="al.msg">Mensaje</label><textarea class="input area" id="al-msg" rows="4" maxlength="1000" data-t-placeholder="al.ph" placeholder="Qué pasa y qué necesitas."></textarea></div>
+      <div class="row" style="margin-top:16px"><button class="btn sm" id="al-cancel" data-i18n="common.cancel">Cancelar</button><button class="btn sm primary" id="al-send" data-i18n="al.send">Enviar alerta</button></div>
+      <p class="fine" id="al-status"></p>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="goaldetail" role="dialog" aria-modal="true" aria-labelledby="gd-title">
+  <div class="sheet form-sheet">
+    <div class="pane">
+      <button class="iconbtn close-x" id="gd-close"><svg class="i"><use href="#i-x"/></svg></button>
+      <h3 class="agent-sr" id="gd-title" data-i18n="goal.detailTitle">Detalle de la meta</h3><div id="gd-body"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="advances" role="dialog" aria-modal="true" aria-labelledby="adv-title">
+    <div class="sheet" style="max-width:640px">
+      <button class="iconbtn close-x" id="adv-close"><svg class="i"><use href="#i-x"/></svg></button>
+      <h3 id="adv-title">Avances</h3>
+      <div id="adv-list"></div>
+      <div style="margin-top:14px">
+        <div class="field"><input type="file" id="adv-file"></div>
+        <div class="field"><textarea id="adv-note" data-t-placeholder="adv.note" placeholder="Nota del avance" rows="2"></textarea></div>
+        <div class="row" style="margin-top:8px"><button class="btn sm primary" id="adv-upload" data-i18n="adv.upload">Subir avance</button></div>
+        <p class="fine" id="adv-status"></p>
+      </div>
+    </div>
+  </div>
+<div class="modal" id="attach-view" role="dialog" aria-modal="true" aria-labelledby="attach-title">
+  <div class="sheet attach-sheet">
+    <button class="iconbtn close-x" id="attach-close" data-t-aria="common.close" aria-label="Cerrar"><svg class="i"><use href="#i-x"/></svg></button>
+    <h3 id="attach-title" data-i18n="attach.title">Adjunto</h3>
+    <p class="fine" id="attach-kind"></p>
+    <div id="attach-body"></div>
+    <p class="fine" id="attach-msg"></p>
+    <a class="btn sm" id="attach-download" href="#" target="_blank" rel="noreferrer" data-i18n="attach.download" style="display:none">Descargar</a>
+  </div>
+</div>
+
+<div class="modal" id="journal-modal" role="dialog" aria-modal="true" aria-labelledby="jn-title">
+  <div class="sheet form-sheet">
+    <div class="pane">
+      <button class="iconbtn close-x" id="jn-close" data-t-aria="common.close" aria-label="Cerrar"><svg class="i"><use href="#i-x"/></svg></button>
+      <h3 id="jn-title" data-i18n="agent.journalTitle">Cambios locales del agente</h3>
+      <p class="sub" data-i18n="agent.journalSub">Archivos creados o editados por el arnés en este equipo. Puedes deshacer el último cambio en un clic.</p>
+      <div id="jn-list" style="max-height:44vh;overflow:auto;margin:12px 0"></div>
+      <div class="row" style="margin-top:12px;justify-content:flex-end;gap:8px">
+        <button class="btn sm" id="jn-cancel" data-i18n="common.close">Cerrar</button>
+        <button class="btn sm danger" id="jn-undo-one" style="display:none" data-i18n="agent.undoLast">Deshacer última escritura</button>
+      </div>
+      <p class="fine" id="jn-msg" style="text-align:left"></p>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="cmdk" role="dialog" aria-modal="true" aria-labelledby="cmdk-title">
+  <div class="sheet cmdk-sheet">
+    <div class="pane cmdk-pane">
+      <h3 class="cmdk-sr" id="cmdk-title" data-i18n="cmdk.title">Buscar o ir a</h3>
+      <div class="cmdk-top">
+        <svg class="i"><use href="#i-search"/></svg>
+        <input id="cmdk-q" type="text" role="combobox" aria-expanded="true" aria-controls="cmdk-list" aria-autocomplete="list" data-t-placeholder="cmdk.placeholder" placeholder="Busca una pantalla o una acción" spellcheck="false" autocomplete="off">
+        <kbd>Esc</kbd>
+      </div>
+      <div class="cmdk-list" id="cmdk-list" role="listbox" aria-label="Resultados"></div>
+      <p class="fine cmdk-foot" data-i18n="cmdk.hint">Flechas para moverte, Enter para abrir, Esc para cerrar.</p>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/main.js"></script>
+
+</body>
+</html>

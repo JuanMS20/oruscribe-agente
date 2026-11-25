@@ -1,0 +1,13 @@
+/dist/
+*.exe
+*.test
+node_modules/
+.task
+.afk/
+.planning/
+.data/
+build/bin/
+build/release/
+/bin/
+/immune/
+/target/

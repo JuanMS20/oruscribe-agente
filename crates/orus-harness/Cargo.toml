@@ -1,0 +1,22 @@
+[package]
+name = "orus-harness"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+orus-core = { path = "../orus-core" }
+orus-agent = { path = "../orus-agent" }
+orus-tools = { path = "../orus-tools" }
+orus-config = { path = "../orus-config" }
+orus-org = { path = "../orus-org" }
+rmcp.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true

@@ -1,0 +1,22 @@
+[package]
+name = "orus-org"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+orus-config = { path = "../orus-config" }
+chrono.workspace = true
+futures-util = "0.3"
+reqwest.workspace = true
+rmcp.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["sync", "time"] }
+tokio-tungstenite.workspace = true
+
+[dev-dependencies]
+axum.workspace = true
+tempfile.workspace = true
+tokio.workspace = true

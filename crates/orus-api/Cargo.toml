@@ -1,0 +1,25 @@
+[package]
+name = "orus-api"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+orus-app = { path = "../orus-app" }
+orus-config = { path = "../orus-config" }
+orus-install = { path = "../orus-install" }
+async-trait.workspace = true
+axum = { workspace = true, features = ["multipart"] }
+chrono.workspace = true
+regex.workspace = true
+reqwest = { workspace = true, features = ["multipart"] }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+orus-auth = { path = "../orus-auth" }
+orus-org = { path = "../orus-org" }
+serial_test.workspace = true
+tempfile.workspace = true

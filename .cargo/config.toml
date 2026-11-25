@@ -1,0 +1,4 @@
+# Linker más rápido para MSVC en esta máquina.
+# Revertir: borrar este archivo (cargo vuelve a link.exe).
+[target.x86_64-pc-windows-msvc]
+linker = "rust-lld.exe"

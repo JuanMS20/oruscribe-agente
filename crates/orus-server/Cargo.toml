@@ -1,0 +1,24 @@
+[package]
+name = "orus-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+orus-api = { path = "../orus-api" }
+orus-app = { path = "../orus-app" }
+orus-auth = { path = "../orus-auth" }
+orus-config = { path = "../orus-config" }
+async-trait.workspace = true
+axum.workspace = true
+hex.workspace = true
+rand.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+orus-org = { path = "../orus-org" }
+reqwest.workspace = true
+serde_json.workspace = true
+serial_test.workspace = true
+temp-env = { workspace = true, features = ["async_closure"] }
+tempfile.workspace = true

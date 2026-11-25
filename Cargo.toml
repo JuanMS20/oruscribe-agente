@@ -1,0 +1,61 @@
+[workspace]
+resolver = "3"
+members = [
+  "crates/orus-agent",
+  "crates/orus-api",
+  "crates/orus-app",
+  "crates/orus-auth",
+  "crates/orus-config",
+  "crates/orus-core",
+  "crates/orus-install",
+  "crates/orus-server",
+  "crates/orus-shell",
+  "crates/orus-harness",
+  "crates/orus-org",
+  "crates/orus-tools",
+  "tools/fake-provider",
+]
+
+[workspace.package]
+version = "0.8.4"
+edition = "2024"
+rust-version = "1.89"
+
+[workspace.dependencies]
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1"
+sha2 = "0.10"
+hex = "0.4"
+flate2 = "1"
+tar = { version = "0.4", default-features = false }
+rand = "0.8"
+rmcp = { version = "3.9", default-features = false, features = ["client", "transport-streamable-http-client-reqwest", "reqwest-native-tls"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "native-tls"] }
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util"] }
+tokio-tungstenite = { version = "0.30", default-features = false, features = ["connect", "native-tls"] }
+windows-sys = { version = "0.61", features = ["Win32_Globalization"] }
+tempfile = "3"
+temp-env = "0.3"
+serial_test = "3"
+
+[profile.dev]
+# Backtraces con línea y sin el PDB final: menos disco y enlace más rápido.
+debug = "line-tables-only"
+split-debuginfo = "unpacked"
+
+[profile.test]
+debug = "line-tables-only"
+split-debuginfo = "unpacked"
+
+[profile.release]
+lto = "thin"
+# Un pánico en release necesita nombres de función y línea para ser útil:
+# `strip = true` los borraba y el backtrace salía vacío. En Windows queda el
+# .pdb junto al binario (release.ps1 lo archiva); en Linux va dentro del ELF.
+debug = "line-tables-only"
+strip = "none"

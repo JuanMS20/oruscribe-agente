@@ -1,0 +1,3 @@
+# Los scripts de shell viajan con LF aunque el repositorio se clone en Windows;
+# un CRLF deja un \r al final de la línea y el intérprete falla.
+*.sh text eol=lf
