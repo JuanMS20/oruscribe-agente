@@ -91,7 +91,8 @@ while [ "$INTENTO" -lt 20 ]; do
     exit 1
   fi
   if ! xwd -silent -id "$ID" >"$CAPTURA" 2>/dev/null; then
-    break
+    sleep 1
+    continue
   fi
   CAPTURADA=1
   COLORES=$(convert "$CAPTURA" -format %k info: 2>/dev/null || echo 0)
