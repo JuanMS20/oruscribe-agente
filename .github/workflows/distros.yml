@@ -1,0 +1,91 @@
+name: Distros y llavero
+
+on:
+  workflow_dispatch:
+    inputs:
+      motivo:
+        description: Motivo de la prueba
+        required: false
+        default: release
+
+permissions:
+  contents: read
+
+jobs:
+  distro:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nombre: debian-12
+            imagen: debian:12
+            deps: |
+              apt-get update
+              DEBIAN_FRONTEND=noninteractive apt-get install -y libwebkit2gtk-4.1-0 libayatana-appindicator3-1 xvfb xdotool x11-apps imagemagick curl python3 ca-certificates binutils libc-bin tar gzip
+          - nombre: fedora
+            imagen: fedora:latest
+            deps: |
+              dnf install -y webkit2gtk4.1 libayatana-appindicator-gtk3 xorg-x11-server-Xvfb xdotool xorg-x11-apps ImageMagick curl python3 binutils tar gzip which findutils glibc-common
+          - nombre: archlinux
+            imagen: archlinux:latest
+            deps: |
+              pacman -Syu --noconfirm webkit2gtk-4.1 libayatana-appindicator xorg-server-xvfb xdotool xorg-xwd xorg-xauth imagemagick curl python binutils tar gzip which
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.imagen }}
+      options: --security-opt seccomp=unconfined
+    timeout-minutes: 20
+    steps:
+      - name: Dependencias de ejecucion de ${{ matrix.nombre }}
+        run: ${{ matrix.deps }}
+
+      - uses: actions/checkout@v4
+
+      - name: Bajar el paquete publicado y comprobar su huella
+        run: |
+          base=https://raw.githubusercontent.com/JuanMS20/oruscribe-agente-descargas/main
+          curl -fsSL "$base/latest.json" -o latest.json
+          url=$(python3 -c "import json;print(json.load(open('latest.json'))['linux'])")
+          esperada=$(python3 -c "import json;print(json.load(open('latest.json'))['linux_sha256'])")
+          curl -fsSL "$url" -o paquete.tar.gz
+          real=$(sha256sum paquete.tar.gz | cut -d' ' -f1)
+          echo "esperada=$esperada real=$real"
+          [ "$real" = "$esperada" ]
+          mkdir paquete && tar -xzf paquete.tar.gz -C paquete
+
+      - name: Instalar
+        run: |
+          export ORUSCRIBE_PREFIX="$RUNNER_TEMP/prefix"
+          sh paquete/install.sh
+          test -x "$ORUSCRIBE_PREFIX/bin/oruscribe-agente"
+          if ldd "$ORUSCRIBE_PREFIX/bin/oruscribe-agente" | grep "not found"; then exit 1; fi
+
+      - name: Humo de la ventana
+        env:
+          WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS: "1"
+        run: |
+          chmod +x scripts/smoke-linux.sh
+          xvfb-run -a -s "-screen 0 1280x1024x24" scripts/smoke-linux.sh "$RUNNER_TEMP/prefix/bin/oruscribe-agente"
+
+  llavero:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Dependencias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libdbus-1-dev pkg-config gnome-keyring dbus-x11 libsecret-tools
+      - name: Pruebas de orus-auth con Secret Service real desbloqueado
+        run: |
+          dbus-run-session -- bash -ec '
+            echo "" | gnome-keyring-daemon --unlock --components=secrets >/dev/null
+            secret-tool store --label=prueba clave prueba <<< "x"
+            secret-tool lookup clave prueba
+            cargo test -p orus-auth --locked -- --test-threads=1
+          '
+      - name: Pruebas de orus-auth sin llavero (respaldo en archivo)
+        run: |
+          env -u DBUS_SESSION_BUS_ADDRESS cargo test -p orus-auth --locked -- --test-threads=1
