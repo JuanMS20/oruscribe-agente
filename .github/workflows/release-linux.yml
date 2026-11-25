@@ -2,6 +2,11 @@ name: Release Linux
 
 on:
   workflow_dispatch:
+    inputs:
+      motivo:
+        description: Para qué es esta compilación
+        required: false
+        default: release
 
 permissions:
   contents: read
