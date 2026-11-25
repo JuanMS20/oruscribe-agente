@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       motivo:
-        description: Para qué es esta compilación
+        description: Motivo de la compilacion
         required: false
         default: release
 
