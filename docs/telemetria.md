@@ -29,7 +29,7 @@ El cliente sigue siendo Sentry (POST JSON a `/api/<id>/store/`). No hay OpenTele
 
 Cupos por hora: 5 fatales, 10 errores y 5 avisos (`warning` e `info`), cada uno aparte, más deduplicación de 5 minutos. El consentimiento se lee al arrancar, antes de crear la sesión, para que un fallo temprano también cuente.
 
-No se verificó entrega real a Sentry desde una app compilada. En el proyecto `oruscribe-agente` solo consta un evento sintético (`qa.release_check`).
+Entrega real verificada con el DSN de producción el 2026-11-26: un `orus-server` real envió un evento sintético `qa.release_check` y el diagnóstico quedó en `configurada; 1 entregados, 0 fallos`. No se enviaron datos personales.
 
 ## Cómo configurarlo en un build
 

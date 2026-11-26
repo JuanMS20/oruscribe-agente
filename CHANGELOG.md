@@ -1,5 +1,25 @@
 # Cambios por versión
 
+## 0.8.6
+
+Sin migración de datos. Backend: sin cambios.
+
+- Errores del cliente: un JSON roto, un tipo equivocado o una validación
+  rechazada responden 400 en vez de 500. El 500 hacía parecer un fallo del
+  servidor, ensuciaba la telemetría y en algunos casos se comprobaba antes que
+  la sesión.
+- Herramientas: `edit` acepta un `old_string` con saltos de línea LF sobre
+  archivos CRLF y conserva el estilo del archivo; `write` en una carpeta que no
+  existe avisa con un texto claro en vez de un error del sistema.
+- Linux sin llavero: `ORUSCRIBE_ALLOW_FILE_SECRETS=1` usa el archivo como store
+  principal también para la clave del proveedor, y el primer guardado crea la
+  carpeta de datos. Antes, la primera configuración en un equipo sin Secret
+  Service fallaba.
+- Pruebas reales: la suite E2E cubre entradas mal formadas, edición CRLF,
+  rutas con espacios y tildes, enlaces simbólicos, solo lectura y envíos
+  simultáneos; corre en Windows y Linux. La entrega de telemetría se comprobó
+  contra el Sentry de producción con un evento sintético.
+
 ## 0.8.5
 
 Sin migración de datos. Backend: sin cambios.
