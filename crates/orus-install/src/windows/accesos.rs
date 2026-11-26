@@ -1,6 +1,6 @@
 //! Accesos directos del menú Inicio y del escritorio.
 //!
-//! Port de `install_windows.go:118-153` y `shortcut.go:12-69`. Las rutas se
+//! Las rutas se
 //! inyectan; los tests nunca escriben en el escritorio real.
 
 use std::env;
@@ -69,7 +69,7 @@ impl RutasAccesos {
         Self::new(menu_inicio(), escritorio)
     }
 
-    /// Las dos rutas `.lnk` en el orden de Go: menú Inicio y escritorio.
+    /// Las dos rutas `.lnk` en el orden del contrato: menú Inicio y escritorio.
     pub fn lista(&self) -> [PathBuf; 2] {
         let nombre = format!("{NOMBRE_APP}.lnk");
         [
@@ -85,7 +85,7 @@ pub trait CreadorAccesos {
 }
 
 /// Crea los dos accesos; si una carpeta no se puede crear, se salta ese
-/// acceso, como `install_windows.go:143-151`.
+/// acceso, como.
 pub fn crear_accesos(
     accesos: &RutasAccesos,
     destino: &Path,
@@ -111,7 +111,7 @@ pub fn crear_accesos(
     Ok(())
 }
 
-/// Crea el `.lnk` con WScript.Shell, igual que Go.
+/// Crea el `.lnk` con WScript.Shell, igual que el contrato.
 ///
 /// shortcut: se llama a PowerShell con WScript.Shell porque `windows-sys` no
 /// expone `IShellLinkW` y D202 no aprueba la crate `windows`; si el instalador
@@ -216,9 +216,9 @@ fn expandir_userprofile(texto: &str, perfil: Option<&OsStr>) -> String {
     texto.replace("%USERPROFILE%", &perfil)
 }
 
-/// `os.UserHomeDir()` en Windows solo mira `USERPROFILE`. Si falta, Go deja
+/// `os.UserHomeDir` en Windows solo mira `USERPROFILE`. Si falta, el contrato deja
 /// `home` vacío y el escritorio queda relativo (`Desktop`), como
-/// `install_windows.go:120-124`; no se inventa `HOMEDRIVE` + `HOMEPATH`.
+/// No se inventa `HOMEDRIVE` + `HOMEPATH`.
 fn home_dir(perfil: Option<&std::ffi::OsStr>) -> PathBuf {
     perfil
         .filter(|valor| !valor.is_empty())

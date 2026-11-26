@@ -96,7 +96,7 @@ pub fn otra_org() -> OtherOrg {
     }
 }
 
-/// Un token sin vencimiento (el cero de Go) para que `client()` no renueve.
+/// Un token sin vencimiento (el cero) para que `client` no renueve.
 pub fn token_de_prueba() -> Token {
     serde_json::from_value(json!({"access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.firma-prueba"})).expect("token de prueba")
 }
@@ -307,7 +307,7 @@ pub fn en_datos_aislados(nombre: &str, cuerpo: impl FnOnce()) {
     }
     let dir = tempfile::tempdir().expect("carpeta temporal");
     // `tempfile` crea su carpeta con el umask (0755 en Linux), no con 0700
-    // como el `t.TempDir()` de Go. El hijo recibe una subcarpeta que aún no
+    // como el `t.TempDir` del contrato. El hijo recibe una subcarpeta que aún no
     // existe: la crea la propia app con el 0700 del contrato.
     let datos = dir.path().join("datos");
     let hecho = dir.path().join("hecho");

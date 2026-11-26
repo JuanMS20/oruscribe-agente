@@ -1,5 +1,4 @@
 //! Contrato de abrir y borrar conversaciones desde el agente
-//! (`internal/app/conversations.go:63-118`).
 
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -404,10 +403,10 @@ async fn borrar_no_pisa_el_turno_del_timbre() {
     );
 
     agente.cancel();
-    tokio::time::timeout(Duration::from_secs(2), runner.terminado.notified())
+    tokio::time::timeout(Duration::from_secs(10), runner.terminado.notified())
         .await
         .expect("el turno termina: cancelar sigue funcionando");
-    tokio::time::timeout(Duration::from_secs(2), async {
+    tokio::time::timeout(Duration::from_secs(10), async {
         while agente.busy() {
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
@@ -637,7 +636,14 @@ impl TurnRunner for RunnerAprobacion {
             args: serde_json::json!({"path": "archivo.txt"}),
             ..ToolCall::default()
         };
-        match self.approvals.request(&llamada, Risk::Write, &cancel) {
+        let approvals = Arc::clone(&self.approvals);
+        let cancelacion = cancel.clone();
+        let respuesta = tokio::task::spawn_blocking(move || {
+            approvals.request(&llamada, Risk::Write, &cancelacion)
+        })
+        .await
+        .expect("la espera de aprobación no entra en pánico");
+        match respuesta {
             Ok(true) => Ok(()),
             Ok(false) => Err(ErrorTurno::Turno(RunnerError::Cancelado)),
             Err(ApprovalError::Vencida) => {

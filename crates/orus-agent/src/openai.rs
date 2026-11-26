@@ -1,8 +1,8 @@
 //! Cliente HTTP compatible con el chat de OpenAI.
 //!
-//! Port de `internal/agent/openai.go:19-218` (petición, validación de la base
-//! y reintento), `:220-335` (streaming, en `openai_stream.rs`) y `:337-450`
-//! (respuesta completa, mensajes y herramientas).
+//! Incluye la petición, la validación de la base, el reintento, la respuesta
+//! completa, los mensajes y las herramientas; el streaming vive en
+//! `openai_stream.rs`.
 
 use std::fmt;
 use std::time::Duration;
@@ -17,11 +17,11 @@ use crate::error::{ProviderError, SIN_RESPUESTA};
 use crate::reintento::{MAX_INTENTOS, espera_reintento};
 use crate::types::{ChatReply, ChatRequest, Provider, ToolSpec};
 
-/// Tope de la respuesta del proveedor; `maxRespuesta` en Go.
+/// Tope de la respuesta del proveedor.
 pub(crate) const MAX_RESPUESTA: usize = 4 << 20;
-/// Caracteres del cuerpo de un error que se muestran; `maxCuerpoErr` en Go.
+/// Caracteres del cuerpo de un error que se muestran.
 pub(crate) const MAX_CUERPO_ERR: usize = 300;
-/// Tiempo máximo de una petición completa; `timeoutCliente` en Go. En
+/// Tiempo máximo de una petición completa. En
 /// streaming es el plazo por lectura, no un deadline total (issue #93).
 const TIMEOUT_CLIENTE: Duration = Duration::from_secs(120);
 
@@ -31,8 +31,8 @@ pub type RetryDelay = Box<dyn Fn(u32) -> Duration + Send + Sync>;
 
 /// Habla con cualquier proveedor que use el formato de chat de OpenAI.
 ///
-/// Copia de `internal/agent/openai.go:26-32`. Los campos son públicos como en
-/// Go: la fábrica de proveedores arma el cliente HTTP una sola vez y las
+/// Los campos son públicos:
+/// la fábrica de proveedores arma el cliente HTTP una sola vez y las
 /// pruebas sustituyen la espera.
 pub struct OpenAICompat {
     pub base_url: String,
@@ -68,7 +68,7 @@ impl OpenAICompat {
 
     /// Manda la conversación al proveedor y devuelve su respuesta completa.
     ///
-    /// Port de `OpenAICompat.Chat` (`internal/agent/openai.go:110-159`), sin la
+    /// Sin la
     /// rama de streaming.
     pub async fn chat(&self, req: ChatRequest) -> Result<ChatReply, ProviderError> {
         let base = validar_base(&self.base_url)?;
@@ -90,9 +90,8 @@ impl OpenAICompat {
     /// Lee una respuesta 2xx como eventos SSE, o devuelve el error HTTP antes
     /// de empezar a leer el cuerpo.
     ///
-    /// Port de la rama `OnDelta != nil` de `Chat`
-    /// (`internal/agent/openai.go:140-146`). Go ignora el error de lectura del
-    /// cuerpo de error y devuelve igual el código con lo que alcanzó a leer.
+    /// Se ignora el error de lectura del cuerpo de error y se devuelve igual el
+    /// código con lo que alcanzó a leer.
     async fn procesar_stream(
         &self,
         respuesta: reqwest::Response,
@@ -106,9 +105,6 @@ impl OpenAICompat {
     }
 
     /// Manda la petición y comparte el bucle de reintento con Anthropic.
-    ///
-    /// Port de `doConReintentos` (`internal/agent/openai.go:166-168`) y
-    /// `conReintentos` (`internal/agent/reintentar.go:23-64`).
     async fn enviar(
         &self,
         url: reqwest::Url,
@@ -137,7 +133,7 @@ impl OpenAICompat {
 
     /// Lee el cuerpo, comprueba el tamaño y delega el parseo.
     ///
-    /// Port de `internal/agent/openai.go:148-158`. El orden importa: Go
+    /// El orden importa: el contrato
     /// prefiere el error de tamaño aunque el status no sea 2xx.
     async fn procesar(&self, respuesta: reqwest::Response) -> Result<ChatReply, ProviderError> {
         let datos = procesar_respuesta(respuesta, |datos| self.resumen(datos)).await?;
@@ -145,15 +141,11 @@ impl OpenAICompat {
     }
 
     /// Deja el cuerpo de un error sin la clave y en 300 caracteres como máximo.
-    ///
-    /// Port de `OpenAICompat.resumen` (`internal/agent/openai.go:208-218`).
     pub(crate) fn resumen(&self, datos: &[u8]) -> String {
         resumen(datos, &self.api_key)
     }
 
     /// Lee una respuesta 2xx completa.
-    ///
-    /// Port de `leerRespuesta` (`internal/agent/openai.go:337-375`).
     fn leer_respuesta(&self, datos: &[u8]) -> Result<ChatReply, ProviderError> {
         let respuesta: OaiRespuesta = serde_json::from_slice(datos).map_err(|error| {
             ProviderError::local(format!("respuesta del proveedor inválida: {error}"))
@@ -174,7 +166,7 @@ impl OpenAICompat {
 
         let mut llamadas = Vec::with_capacity(eleccion.message.tool_calls.len());
         for (indice, llamada) in eleccion.message.tool_calls.iter().enumerate() {
-            // Go guarda los argumentos crudos y el bucle marca `invalidArgs`;
+            // El contrato guarda los argumentos crudos y el bucle marca `invalidArgs`;
             // acá `Args` ya es un `Value`, así que la marca se pone al entrar.
             llamadas.push(ToolCall::con_argumentos(
                 &llamada.id,
@@ -221,8 +213,6 @@ impl Provider for OpenAICompat {
 
 /// Valida la dirección antes de mandar la clave: https, o http solo en
 /// loopback. Quita la consulta, el fragmento y la barra final.
-///
-/// Port de `ValidarBase` (`internal/agent/openai.go:173-187`).
 pub fn validar_base(raw: &str) -> Result<String, ProviderError> {
     let mut url = reqwest::Url::parse(raw)
         .map_err(|_| ProviderError::local("la dirección del proveedor no es válida"))?;
@@ -308,8 +298,6 @@ pub(crate) fn retry_after_de(headers: &reqwest::header::HeaderMap) -> Option<Str
 }
 
 /// Espera entre reintentos: el hook de las pruebas manda sobre el reloj.
-///
-/// `esperaReintento` (`internal/agent/reintentar.go:87-110`).
 pub(crate) async fn esperar(
     intento: u32,
     retry_after: Option<&str>,
@@ -329,7 +317,7 @@ pub(crate) async fn esperar(
 /// para no repetir texto en la ventana ni cobrar dos veces una respuesta que
 /// sí llegó.
 ///
-/// Port de `conReintentos` (`internal/agent/reintentar.go:23-64`). La clausura
+/// La clausura
 /// arma la petición en cada intento porque el cuerpo no es clonable.
 pub(crate) async fn enviar_con_reintentos(
     construir: impl Fn() -> reqwest::RequestBuilder,
@@ -365,9 +353,7 @@ pub(crate) async fn enviar_con_reintentos(
 }
 
 /// Lee el cuerpo acotado y convierte el status no 2xx en error. El error de
-/// tamaño gana al HTTP porque ese es el orden de Go.
-///
-/// Port de `internal/agent/openai.go:148-158` y `anthropic.go:157-167`.
+/// tamaño gana al HTTP porque ese es el orden del contrato.
 pub(crate) async fn procesar_respuesta(
     mut respuesta: reqwest::Response,
     resumir: impl Fn(&[u8]) -> String,
@@ -385,10 +371,8 @@ pub(crate) async fn procesar_respuesta(
     Ok(datos)
 }
 
-/// Convierte la respuesta no 2xx de un stream en error. Go ignora el fallo de
+/// Convierte la respuesta no 2xx de un stream en error. El contrato ignora el fallo de
 /// lectura del cuerpo y devuelve el código con lo que alcanzó a leer.
-///
-/// Port de `internal/agent/openai.go:140-146` y `anthropic.go:149-153`.
 pub(crate) async fn error_de_stream(
     mut respuesta: reqwest::Response,
     resumir: impl Fn(&[u8]) -> String,
@@ -425,7 +409,6 @@ pub(crate) async fn leer_cuerpo(
     }
 }
 
-/// Port de `errRespuestaCortadaProveedor` (`internal/agent/openai.go:377-379`).
 pub(crate) fn error_respuesta_cortada() -> &'static str {
     "la respuesta se cortó por el límite de tokens del proveedor; pide una respuesta más corta o continúa en otro mensaje"
 }
@@ -445,7 +428,6 @@ fn armar_cuerpo(req: &ChatRequest) -> OaiRequest {
     }
 }
 
-/// Port de `convertirMensajes` (`internal/agent/openai.go:402-416`).
 fn convertir_mensajes(msgs: &[Message]) -> Vec<OaiMessage> {
     msgs.iter()
         .map(|m| {
@@ -473,7 +455,7 @@ fn convertir_mensajes(msgs: &[Message]) -> Vec<OaiMessage> {
 }
 
 /// Los argumentos viajan como la cadena JSON que espera el proveedor. Un
-/// `Value::Null` es el "sin argumentos" de Go (`json.RawMessage` nil) y se
+/// `Value::Null` es el "sin argumentos" y se
 /// manda como `{}`, igual que la normalización de las respuestas.
 fn argumentos(llamada: &ToolCall) -> String {
     if llamada.args.is_null() {
@@ -482,7 +464,7 @@ fn argumentos(llamada: &ToolCall) -> String {
     serde_json::to_string(&llamada.args).unwrap_or_else(|_| "{}".to_owned())
 }
 
-/// Port de `contenidoOAI` (`internal/agent/openai.go:420-435`): una cadena sin
+/// Una cadena sin
 /// imágenes y un arreglo de partes cuando las hay. El texto va primero.
 fn contenido_oai(m: &Message) -> OaiContent {
     let imagenes = m.images.as_deref().unwrap_or_default();
@@ -509,7 +491,7 @@ fn contenido_oai(m: &Message) -> OaiContent {
     OaiContent::Partes(partes)
 }
 
-/// Port de `convertirHerramientas` (`internal/agent/openai.go:437-450`). Un
+/// Un
 /// schema `null` se cambia por el objeto vacío que exige el proveedor.
 fn convertir_herramientas(specs: &[ToolSpec]) -> Vec<OaiTool> {
     specs
@@ -533,7 +515,7 @@ fn esquema_vacio() -> Value {
     json!({"type": "object", "properties": {}})
 }
 
-/// Port de `textoDeContenido` (`internal/agent/openai.go:383-400`): acepta la
+/// Acepta la
 /// cadena normal y el arreglo de partes que algunos proveedores devuelven.
 fn texto_de_contenido(contenido: Option<&Value>) -> String {
     match contenido {
@@ -1208,7 +1190,6 @@ mod tests {
         assert_eq!(parcial.message.content, "a medias");
     }
 
-    /// Port de `TestOpenAIMandaLaImagenComoParte` (`vision_test.go:12-31`).
     #[test]
     fn manda_la_imagen_como_parte() {
         const PNG: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lU7c5wAAAABJRU5ErkJggg==";
@@ -1239,7 +1220,6 @@ mod tests {
         assert!(url.ends_with(PNG));
     }
 
-    /// Port de `TestOpenAISinImagenSigueMandandoTexto` (`vision_test.go:33-38`).
     #[test]
     fn sin_imagen_sigue_mandando_texto() {
         let mensajes = convertir_mensajes(&[Message {
@@ -1253,7 +1233,7 @@ mod tests {
         assert_eq!(texto, "hola");
     }
 
-    /// `convertirMensajes` (`openai.go:402-416`) envía de vuelta el historial
+    /// La conversión de mensajes envía de vuelta el historial
     /// con sus llamadas y el `tool_call_id` del resultado.
     #[test]
     fn convierte_tool_calls_y_tool_call_id() {

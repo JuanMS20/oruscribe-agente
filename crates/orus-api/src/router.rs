@@ -53,7 +53,7 @@ registrar_rutas! {
     ("/api/auth/logout", POST => post(auth::logout)),
     ("/api/org/seleccionar", POST => post(org::seleccionar)),
     ("/api/events", GET => get(events::handle_events)),
-    // Go registraba sin método (`http.go:736`); el handler decide y contesta
+    // El contrato registraba sin método; el handler decide y contesta
     // 405 para el resto.
     ("/api/notes", GET, POST, DELETE => any(notes::notas)),
     ("/api/diagnostics", GET => get(diagnostics::diagnostico)),

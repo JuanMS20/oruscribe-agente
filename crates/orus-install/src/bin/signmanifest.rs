@@ -1,6 +1,6 @@
 //! Firma `latest.json` con la llave privada de Oruscribe.
 //!
-//! Es el mismo contrato que `cmd/signmanifest/main.go` (D203):
+//! Contrato de firma (D203):
 //!
 //! ```text
 //! signmanifest -gen -out llave.txt

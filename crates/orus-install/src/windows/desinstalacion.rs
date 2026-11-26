@@ -1,6 +1,6 @@
 //! Desinstalación: accesos, claves y el `.cmd` que termina el trabajo.
 //!
-//! Port de `install_windows.go:192-232`. El programa no puede borrarse
+//! El programa no puede borrarse
 //! mientras corre, así que un `.cmd` espera a que este proceso termine y borra
 //! cada carpeta dos veces. `chcp 65001` es obligatorio: sin él, `cmd` lee las
 //! rutas con la página OEM y no encuentra una carpeta con acentos.
@@ -14,10 +14,10 @@ use crate::windows::Error;
 use crate::windows::accesos::RutasAccesos;
 use crate::windows::registro::{CLAVE_DESINSTALACION, CLAVE_DESINSTALACION_GO, Registro};
 
-/// Pausa del `.cmd` antes de cada `rd` (`install_windows.go:204`).
+/// Pausa del `.cmd` antes de cada `rd`.
 pub const ESPERA: &str = "ping -n 4 127.0.0.1 >nul";
 
-/// Prefijo del script temporal (`install_windows.go:203`). El sufijo aleatorio
+/// Prefijo del script temporal. El sufijo aleatorio
 /// evita colisiones en un `%TEMP%` compartido por varios procesos.
 pub const PREFIJO_SCRIPT: &str = "oruscribe-desinstalar";
 
@@ -33,7 +33,7 @@ pub struct Desinstalacion {
 /// fallo al escribir no deje la app instalada pero invisible para Windows.
 ///
 /// `datos` solo se incluye cuando el llamador ya decidió que se pueden borrar
-/// (`install_windows.go:205-208`). No ejecuta el `.cmd`: eso queda en
+/// No ejecuta el `.cmd`: eso queda en
 /// `Desinstalacion::lanzar`.
 pub fn preparar_desinstalacion(
     rutas: &Rutas,
@@ -97,7 +97,7 @@ fn escribir_script(script: &Path, contenido: &str) -> Result<(), Error> {
     Ok(())
 }
 
-/// Arma el texto del `.cmd` con saltos CRLF, como Go.
+/// Arma el texto del `.cmd` con saltos CRLF
 ///
 /// En un `.cmd` el `%` inicia una variable: en la ruta se escribe `%%`.
 pub fn guion(espera: &str, carpetas: &[PathBuf]) -> String {

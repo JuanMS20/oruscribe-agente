@@ -1,6 +1,6 @@
 //! Términos de uso que la pantalla de instalación muestra antes de tocar nada.
 //!
-//! Port exacto de `internal/install/terms.go`. `TERMS_VERSION` cambia cuando
+//! `TERMS_VERSION` cambia cuando
 //! cambia el texto: la instalación guarda la versión aceptada, así un texto
 //! nuevo se vuelve a mostrar en vez de darse por aceptado.
 
@@ -11,7 +11,7 @@ pub const TERMS_VERSION: &str = "2026-11-2";
 pub const TERMS_TITLE: &str = "Términos de uso";
 
 /// Texto de los términos. Se arma con `concat!` para que los saltos de línea
-/// sean `\n` también en un checkout con CRLF: el texto de Go no lleva `\r`.
+/// sean `\n` también en un checkout con CRLF: el texto del contrato no lleva `\r`.
 pub const TERMS_BODY: &str = concat!(
     "Oruscribe Agente · versión de prueba para la organización\n",
     "\n",

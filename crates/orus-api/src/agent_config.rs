@@ -1,6 +1,6 @@
 //! `POST /api/agent/config`: valida, guarda y devuelve la vista.
 //!
-//! Port de `internal/app/http.go:838-850` y `agent.go:275-392`. El cuerpo se
+//! El cuerpo se
 //! decodifica con su tope antes de reservar el agente; la reserva y la
 //! validación viven en `orus-app`.
 

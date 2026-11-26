@@ -11,7 +11,7 @@ use super::validacion::{
     deserializar_bool, deserializar_i64, deserializar_texto, deserializar_textos,
 };
 
-/// Un paso de la traza que pinta la ventana (`agent.go:91-97`).
+/// Un paso de la traza que pinta la ventana.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentStep {
     pub at: DateTime<Utc>,
@@ -39,14 +39,12 @@ pub enum AgentError {
     #[error("{0}")]
     Conversaciones(String),
     /// Un fallo de la sesión al armar el turno; `LoggedOut` conserva el 401
-    /// (`agent.go:598-607`).
     #[error(transparent)]
     Sesion(#[from] SessionError),
 }
 
 /// Lo que manda el formulario de configuración. Un campo ausente o `null`
 /// vale cero; una `api_key` vacía conserva la clave guardada
-/// (`AgentInput`, `agent.go:53-72`).
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 pub struct AgentInput {
     #[serde(default, deserialize_with = "deserializar_texto")]
@@ -98,7 +96,7 @@ pub(crate) struct EstadoAgente {
     pub(crate) draft: String,
     pub(crate) busy: bool,
     /// Una operación exclusiva (configurar o deshacer) tomó el agente antes de
-    /// empezar; `send` también la mira (`agentSetup`, `agent.go:249-266`).
+    /// empezar; `send` también la mira.
     pub(crate) setup: bool,
     pub(crate) cancel: Option<CancelToken>,
     pub(crate) generation: u64,

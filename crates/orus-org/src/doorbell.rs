@@ -1,6 +1,6 @@
 //! Timbre de Oruscribe: suscripción viva a un topic de Supabase Realtime.
 //!
-//! Port de `internal/doorbell/doorbell.go:19-250`: `Config`, `Event`, la unión
+//! `Config`, `Event`, la unión
 //! al canal con `phx_join`, el latido cada 25 s, el bucle de lectura y el cierre
 //! idempotente.
 
@@ -28,14 +28,13 @@ type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 type SocketSink = SplitSink<Socket, Message>;
 type SocketStream = SplitStream<Socket>;
 
-/// El `ref` del join; el primer latido usa "2" (`doorbell.go:225-230`).
+/// El `ref` del join; el primer latido usa "2".
 const JOIN_REF: &str = "1";
 
-/// El handshake y el join esperan como máximo lo mismo que el
-/// `context.WithTimeout` de Go.
+/// El handshake y el join esperan como máximo 15 s.
 const JOIN_TIMEOUT: Duration = Duration::from_secs(15);
 
-/// Cada cuánto late el timbre (`doorbell.go:53`).
+/// Cada cuánto late el timbre.
 const HEARTBEAT_EVERY: Duration = Duration::from_secs(25);
 
 /// Sin tráfico ni respuesta al latido, el socket quedó a medias. Se corta para
@@ -44,8 +43,8 @@ const READ_TIMEOUT: Duration = Duration::from_secs(90);
 
 /// Lo que responde la herramienta `get_my_doorbell`.
 ///
-/// Port de `doorbell.Config` (`doorbell.go:20-28`). Un campo ausente queda en
-/// su cero, como el `encoding/json` de Go.
+/// Un campo ausente queda en
+/// su cero, como el `encoding/json` del contrato.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, rename_all = "snake_case")]
 pub struct Config {
@@ -54,14 +53,13 @@ pub struct Config {
     pub anon_key: String,
     pub private: bool,
     /// JWT del usuario. Vacío en un canal público, y entonces no viaja en el
-    /// join (`doorbell.go:103-108`).
+    /// join.
     pub access_token: String,
 }
 
 /// El contenido de un aviso.
 ///
-/// Port de `doorbell.Event` (`doorbell.go:32-36`). El Go guarda el payload como
-/// `json.RawMessage`; acá es un [`Value`], así que se conserva la estructura
+/// El payload es un [`Value`], así que se conserva la estructura
 /// pero no el orden de las claves.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Event {
@@ -71,7 +69,6 @@ pub struct Event {
 }
 
 /// El aviso que corre en la tarea de lectura; no debe bloquear
-/// (`doorbell.go:57-58`).
 pub type OnEvent = Box<dyn FnMut(Event) + Send + 'static>;
 
 /// Lo que comparten el cierre, el latido y la tarea de lectura.
@@ -92,7 +89,7 @@ pub struct Doorbell {
 
 /// Error del timbre.
 ///
-/// Los textos son los del Go: los lee una persona y algunos los comparan los
+/// Los textos son los del contrato: los lee una persona y algunos los comparan los
 /// tests.
 #[derive(Debug, Error)]
 pub enum DoorbellError {
@@ -111,15 +108,15 @@ pub enum DoorbellError {
     #[error("el timbre no contestó: {0}")]
     NoReply(String),
 
-    /// Un fallo de `write`: serializar o escribir el frame. Go devuelve el
-    /// error sin envolver (`doorbell.go:212-223`).
+    /// Un fallo de `write`: serializar o escribir el frame. El contrato devuelve el
+    /// error sin envolver.
     #[error("{0}")]
     Write(String),
 }
 
 /// Se une al topic y deja corriendo el latido y la lectura.
 ///
-/// Port de `doorbell.Dial` (`doorbell.go:59-89`). El callback corre en la tarea
+/// El callback corre en la tarea
 /// de lectura y no debe bloquear.
 pub async fn dial(
     cfg: Config,
@@ -157,7 +154,7 @@ async fn dial_with_heartbeat(
     let uri = url
         .parse::<Uri>()
         .map_err(|error| DoorbellError::Connect(error.to_string()))?;
-    // El User-Agent es el del Go (`doorbell.go:71-73`).
+    // El User-Agent es el del contrato.
     let request = ClientRequestBuilder::new(uri).with_header("User-Agent", "Oruscribe Agente");
     // El handshake (TCP + TLS + upgrade HTTP) también tiene plazo: un servidor
     // que acepta y calla no puede dejar la app en «conectando» para siempre.
@@ -168,8 +165,7 @@ async fn dial_with_heartbeat(
 
     let topic = format!("realtime:{}", cfg.topic);
     if let Err(error) = join(&mut conn, &topic, &cfg.access_token, cfg.private).await {
-        // Go cierra con StatusInternalError y "sin canal" si el join falla
-        // (`doorbell.go:80-84`).
+        // El contrato cierra con StatusInternalError y "sin canal" si el join falla
         let _ = conn
             .close(Some(CloseFrame {
                 code: CloseCode::Error,
@@ -180,7 +176,6 @@ async fn dial_with_heartbeat(
     }
 
     // El sink queda detrás del mutex y el stream en la tarea de lectura
-    // (`doorbell.go:86-88`).
     let (sink, stream) = conn.split();
     let (done, _) = watch::channel(false);
     let shared = Arc::new(Shared {
@@ -199,7 +194,7 @@ async fn dial_with_heartbeat(
     Ok(Doorbell { shared })
 }
 
-/// Arma la URL del websocket como el Go (`doorbell.go:66-68`).
+/// Arma la URL del websocket
 fn websocket_url(supabase: &str, anon_key: &str) -> String {
     let url = supabase.replacen("https://", "wss://", 1);
     let url = url.replacen("http://", "ws://", 1);
@@ -212,7 +207,7 @@ fn websocket_url(supabase: &str, anon_key: &str) -> String {
 impl Doorbell {
     /// Espera a que el canal se cierre, por la app o por la red.
     ///
-    /// Port de `Done` (`doorbell.go:232-234`). Mira el valor actual, así que un
+    /// Mira el valor actual, así que un
     /// cierre anterior no se pierde.
     pub async fn done(&self) {
         let mut done = self.shared.done.subscribe();
@@ -221,7 +216,7 @@ impl Doorbell {
 
     /// Cierra el canal. Es seguro llamarlo más de una vez.
     ///
-    /// Port de `Close` (`doorbell.go:236-250`): la segunda llamada devuelve
+    /// La segunda llamada devuelve
     /// `Ok`, cierra `Done` una sola vez y manda el cierre normal "adios".
     pub async fn close(&self) -> std::result::Result<(), DoorbellError> {
         self.shared.close().await
@@ -230,7 +225,6 @@ impl Doorbell {
 
 impl Shared {
     /// Serializa, comprueba el cierre y manda un frame de texto
-    /// (`doorbell.go:212-223`).
     async fn write(&self, value: &Value) -> std::result::Result<(), DoorbellError> {
         let data = serde_json::to_string(value)
             .map_err(|error| DoorbellError::Write(error.to_string()))?;
@@ -243,7 +237,7 @@ impl Shared {
             .map_err(|error| DoorbellError::Write(error.to_string()))
     }
 
-    /// Go incrementa y devuelve uno más (`doorbell.go:225-230`): el join usa
+    /// El contrato incrementa y devuelve uno más: el join usa
     /// "1" y el primer latido sale "2".
     fn next_ref(&self) -> String {
         (self.refs.fetch_add(1, Ordering::Relaxed) + 2).to_string()
@@ -259,7 +253,7 @@ impl Shared {
         false
     }
 
-    /// El cierre de Go (`doorbell.go:236-250`), idempotente.
+    /// El cierre del contrato, idempotente.
     async fn close(&self) -> std::result::Result<(), DoorbellError> {
         if self.mark_closed() {
             return Ok(());
@@ -280,7 +274,7 @@ async fn wait_closed(done: &mut watch::Receiver<bool>) {
     let _ = done.wait_for(|closed| *closed).await;
 }
 
-/// Cada 25 s manda el latido de Phoenix (`doorbell.go:148-166`).
+/// Cada 25 s manda el latido de Phoenix.
 async fn heartbeat(shared: Arc<Shared>, every: Duration) {
     let mut ticker = tokio::time::interval_at(tokio::time::Instant::now() + every, every);
     ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
@@ -307,8 +301,8 @@ async fn heartbeat(shared: Arc<Shared>, every: Duration) {
     }
 }
 
-/// El bucle de lectura (`doorbell.go:168-198`). Al salir cierra, como el
-/// `defer d.Close()` de Go.
+/// El bucle de lectura. Al salir cierra, como el
+/// `defer d.Close` del contrato.
 async fn read_loop(
     shared: Arc<Shared>,
     mut stream: SocketStream,
@@ -339,9 +333,8 @@ async fn read_loop(
                 let event = value.get("event").and_then(Value::as_str).unwrap_or_default();
                 match event {
                     "broadcast" => {
-                        // Go distingue el payload ausente (nil, no parsea) del
+                        // El contrato distingue el payload ausente (nil, no parsea) del
                         // `null` explícito (cero valores y sí avisa)
-                        // (`doorbell.go:179-193`).
                         let Some(payload) = value.get("payload") else {
                             continue;
                         };
@@ -369,7 +362,7 @@ async fn read_loop(
     let _ = shared.close().await;
 }
 
-/// Prefiere `payload.kind` y cae al nombre del evento (`doorbell.go:202-210`).
+/// Prefiere `payload.kind` y cae al nombre del evento.
 fn kind_of(name: &str, payload: &Value) -> String {
     payload
         .get("kind")
@@ -379,7 +372,7 @@ fn kind_of(name: &str, payload: &Value) -> String {
         .to_owned()
 }
 
-/// El `broadcast` de Phoenix (`doorbell.go:184-187`).
+/// El `broadcast` de Phoenix.
 #[derive(Default, Deserialize)]
 struct BroadcastFrame {
     #[serde(default)]
@@ -390,8 +383,7 @@ struct BroadcastFrame {
 
 /// Manda el join y espera el `phx_reply` con `ref` "1".
 ///
-/// Los frames que no son JSON o no son esa respuesta se ignoran, como Go
-/// (`doorbell.go:120-145`).
+/// Los frames que no son JSON o no son esa respuesta se ignoran
 async fn join(
     conn: &mut Socket,
     topic: &str,
@@ -405,7 +397,7 @@ async fn join(
             .map_err(|error| DoorbellError::Write(error.to_string()))?;
         loop {
             let Some(message) = conn.next().await else {
-                // Go devuelve el `io.EOF` del `Read` (`doorbell.go:123-125`).
+                // El contrato devuelve el `io.EOF` del `Read`.
                 return Err(DoorbellError::NoReply("EOF".to_owned()));
             };
             let message = message.map_err(|error| DoorbellError::NoReply(error.to_string()))?;
@@ -429,13 +421,13 @@ async fn join(
         }
     };
 
-    // El plazo cubre la escritura y la lectura, como el contexto de Go.
+    // El plazo cubre la escritura y la lectura, como el contexto del contrato.
     tokio::time::timeout(JOIN_TIMEOUT, joined)
         .await
         .map_err(|_| DoorbellError::NoReply("context deadline exceeded".to_owned()))?
 }
 
-/// Serializa el mensaje de `phx_join` (`doorbell.go:91-115`).
+/// Serializa el mensaje de `phx_join`.
 fn join_message(
     topic: &str,
     token: &str,
@@ -465,7 +457,7 @@ fn join_message(
     serde_json::to_string(&message).map_err(|error| DoorbellError::Write(error.to_string()))
 }
 
-/// La parte del `phx_reply` que lee el join (`doorbell.go:127-134`).
+/// La parte del `phx_reply` que lee el join.
 #[derive(Deserialize)]
 struct ReplyFrame {
     #[serde(default)]
@@ -480,12 +472,12 @@ struct ReplyFrame {
 struct ReplyPayload {
     #[serde(default)]
     status: String,
-    /// Go guarda `json.RawMessage`: ausente y `null` no son lo mismo.
+    /// Ausente y `null` no son lo mismo.
     #[serde(default)]
     response: Option<Value>,
 }
 
-/// El `response` como lo imprime Go con `strings.TrimSpace`.
+/// El `response` como lo imprime el contrato con `strings.TrimSpace`.
 fn reply_text(response: &Option<Value>) -> String {
     match response {
         None => String::new(),

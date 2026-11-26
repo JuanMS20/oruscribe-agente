@@ -1,6 +1,6 @@
 //! Ventana principal con el WebView de la UI.
 //!
-//! Medidas y título son los de Go (`main.go:241-249`): 1180×760, mínimo
+//! Medidas y título son los del contrato: 1180×760, mínimo
 //! 960×620. Cerrar la ventana no destruye el WebView: la esconde, y la salida
 //! real la decide la bandeja.
 
@@ -13,15 +13,15 @@ use wry::{WebView, WebViewBuilder};
 
 use crate::bandeja::Aviso;
 
-/// Título de la ventana (`main.go:242`).
+/// Título de la ventana.
 pub const TITULO: &str = "Oruscribe Agente";
-/// Ancho inicial (`main.go:243`).
+/// Ancho inicial.
 pub const ANCHO: f64 = 1180.0;
-/// Alto inicial (`main.go:244`).
+/// Alto inicial.
 pub const ALTO: f64 = 760.0;
-/// Ancho mínimo (`main.go:245`).
+/// Ancho mínimo.
 pub const ANCHO_MINIMO: f64 = 960.0;
-/// Alto mínimo (`main.go:246`).
+/// Alto mínimo.
 pub const ALTO_MINIMO: f64 = 620.0;
 
 /// La ventana y su contenido; el WebView se conserva para que no se destruya
@@ -134,7 +134,7 @@ impl Ventana {
     }
 
     /// La muestra, la restaura si estaba minimizada y le da el foco, como el
-    /// «Abrir» de la bandeja de Go.
+    /// «Abrir» de la bandeja del contrato.
     pub fn mostrar(&self) {
         self.ventana.set_minimized(false);
         self.ventana.set_visible(true);

@@ -1,8 +1,7 @@
 //! Aprobaciones de la ventana: la cola que la persona contesta.
 //!
-//! Port de `internal/app/agent.go:135-151,712-828,830-860` y del plazo de
-//! `internal/app/app.go:197,237`. La cola va detrás de candados porque
-//! `request` espera sin bloquear a `answer`, igual que `agentMu` en Go.
+//! La cola va detrás de candados porque
+//! `request` espera sin bloquear a `answer`.
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -19,7 +18,7 @@ use crate::sync::lock;
 
 /// Cada cuánto se mira el token mientras se espera la respuesta.
 const SONDEO_CANCELACION: Duration = Duration::from_millis(50);
-/// El plazo de la ventana (`app.go:237`). Tiene que ser menor que
+/// El plazo de la ventana. Tiene que ser menor que
 /// `DURACION_TURNO` (300 s): si el turno vence primero, el error culpa al
 /// agente por lento cuando lo que venció fue la tarjeta sin respuesta (#95).
 const ESPERA_POR_DEFECTO: Duration = Duration::from_secs(240);
@@ -31,7 +30,7 @@ pub(crate) const APROBACION_VENCIDA: &str =
 
 /// Una acción que el agente quiere correr y no puede hasta que la persona
 /// diga que sí. `rule_pattern` solo viaja si la llamada admite una regla
-/// recordada (`agent.go:135-142`).
+/// recordada.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AgentApproval {
     pub id: String,
@@ -44,7 +43,7 @@ pub struct AgentApproval {
 }
 
 /// Los fallos del flujo de aprobación: la regla no se pudo guardar tras el
-/// sí (`agent.go:752-754`), o la tarjeta venció sin respuesta (#95).
+/// sí, o la tarjeta venció sin respuesta (#95).
 #[derive(Debug, thiserror::Error)]
 pub enum ApprovalError {
     #[error("la acción se aprobó, pero no se pudo recordar: {0}")]
@@ -92,7 +91,7 @@ impl ApprovalQueue {
     }
 
     /// Encola la llamada y espera. Un plazo agotado, una cancelación o un
-    /// cierre de sesión cuentan como no (`pedirPermiso`, `agent.go:767-806`).
+    /// cierre de sesión cuentan como no.
     /// El vencimiento propio se distingue de la negación con
     /// [`ApprovalError::Vencida`] para que el error del turno nombre la
     /// aprobación y no al agente (#95).
@@ -105,7 +104,7 @@ impl ApprovalQueue {
         risk: Risk,
         cancel: &CancelToken,
     ) -> Result<bool, ApprovalError> {
-        // Una ejecución cancelada no vuelve a encolar (`agent.go:769-773`).
+        // Una ejecución cancelada no vuelve a encolar.
         if cancel.esta_cancelado() {
             return Ok(false);
         }
@@ -123,7 +122,7 @@ impl ApprovalQueue {
                 id: format!("ap-{seq}"),
                 tool: call.name.clone(),
                 action: nombre_accion(&call.name),
-                // El Go guarda `string(c.Args)`, el JSON crudo; acá `args` ya
+                // El contrato guarda `string(c.Args)`, el JSON crudo; acá `args` ya
                 // es un valor JSON, así que se serializa compacto.
                 text: serde_json::to_string(&call.args).unwrap_or_default(),
                 at: Utc::now(),
@@ -168,7 +167,6 @@ impl ApprovalQueue {
 
     /// Contesta una aprobación. Un id que no existe no hace nada: la ventana
     /// puede llegar tarde y eso no puede aprobar otra acción
-    /// (`aprobarAgente`, `agent.go:726-756`).
     pub fn answer(&self, id: &str, ok: bool, remember: bool) -> Result<(), ApprovalError> {
         let pendiente = {
             let mut pendientes = lock(&self.pending);
@@ -187,7 +185,7 @@ impl ApprovalQueue {
             .map_err(ApprovalError::Recordar)
     }
 
-    /// Una copia de lo que la ventana tiene que pintar (`agent.go:712-719`).
+    /// Una copia de lo que la ventana tiene que pintar.
     pub fn pending(&self) -> Vec<AgentApproval> {
         lock(&self.pending)
             .iter()
@@ -195,8 +193,7 @@ impl ApprovalQueue {
             .collect()
     }
 
-    /// Cierre de sesión: vacía la cola y niega todo (`agentLimpiar`,
-    /// `agent.go:906-918`). No lo llama `AgentCancel`, que solo corta el turno.
+    /// Cierre de sesión: vacía la cola y niega todo. No lo llama la cancelación del turno, que solo corta el turno.
     pub fn cancel_all(&self) {
         let pendientes = std::mem::take(&mut *lock(&self.pending));
         for pendiente in pendientes {
@@ -216,7 +213,7 @@ impl Default for ApprovalQueue {
 }
 
 /// Traduce la herramienta a lo que la persona lee en la tarjeta. Una
-/// herramienta nueva se muestra por su nombre técnico (`agent.go:830-860`).
+/// herramienta nueva se muestra por su nombre técnico.
 pub fn nombre_accion(tool: &str) -> String {
     let accion = match tool {
         "create_task" => "Crear una tarea",

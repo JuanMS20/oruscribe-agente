@@ -1,5 +1,5 @@
 //! Escritura de archivos: temporal en el mismo directorio, modo conservado,
-//! rename y registro en el diario. Port de `localtools.go:225-279,456-499`.
+//! rename y registro en el diario.
 
 use std::fs::{File, Metadata, OpenOptions};
 use std::io::{self, Write};
@@ -13,14 +13,13 @@ use serde_json::Value;
 use super::lectura::{leer_args, texto_o_vacio};
 use super::{Error, Set};
 
-/// 1 MiB por escritura (`localtools.go:26`).
+/// 1 MiB por escritura.
 const MAX_CONTENIDO: usize = 1 << 20;
-/// 16 MiB de respaldo previo (`localtools.go:27`).
+/// 16 MiB de respaldo previo.
 const MAX_RESPALDO: u64 = 16 << 20;
 
 /// Cómo se aplica el modo al temporal. Se pasa por parámetro para que las
 /// pruebas simulen un chmod que falla sin tocar un global, como
-/// `chmodTemporal` en `localtools.go:456-457`.
 type Chmod = fn(&File, u32) -> io::Result<()>;
 
 /// Cómo se sincroniza el temporal antes del rename. Misma costura que
@@ -45,7 +44,6 @@ pub(super) struct Escritura<'a> {
     pub modo: u32,
 }
 
-/// `writeFile` (`localtools.go:459-499`).
 pub(super) fn write_file(set: &Set, args: Value, cancel: &CancelToken) -> Result<String, Error> {
     write_file_con(
         set,
@@ -108,8 +106,7 @@ fn write_file_con(
     ))
 }
 
-/// `leerAntes` (`localtools.go:225-242`): un archivo inexistente no se respalda
-/// (nil); una carpeta o uno de más de 16 MiB se rechazan.
+/// Un archivo inexistente no se respalda; una carpeta o uno de más de 16 MiB se rechazan.
 pub(super) fn leer_antes(real: &Path) -> Result<Option<Vec<u8>>, Error> {
     let info = match std::fs::metadata(real) {
         Ok(info) => info,
@@ -125,7 +122,7 @@ pub(super) fn leer_antes(real: &Path) -> Result<Option<Vec<u8>>, Error> {
     Ok(Some(std::fs::read(real)?))
 }
 
-/// `guardar` (`localtools.go:244-279`): respalda en el diario si hay, escribe
+/// `guardar`: respalda en el diario si hay, escribe
 /// en un temporal del mismo directorio y renombra. El diario se registra
 /// después del rename.
 pub(super) fn guardar(
@@ -351,8 +348,7 @@ fn crear_temporal(dir: &Path) -> Result<(PathBuf, File), Error> {
     .into())
 }
 
-/// El chmod aplicado al temporal. En Windows solo importa el bit de escritura,
-/// como `FileMode` de Go.
+/// El chmod aplicado al temporal. En Windows solo importa el bit de escritura.
 #[cfg(unix)]
 pub(super) fn chmod_temporal(archivo: &File, modo: u32) -> io::Result<()> {
     use std::os::unix::fs::PermissionsExt;
@@ -371,7 +367,7 @@ pub(super) fn chmod_temporal(_archivo: &File, _modo: u32) -> io::Result<()> {
     Ok(())
 }
 
-/// `Mode().Perm()` de Go: los bits de permiso en Unix, 0666/0444 en Windows.
+/// `Mode.Perm` del contrato: los bits de permiso en Unix, 0666/0444 en Windows.
 #[cfg(unix)]
 pub(super) fn modo_de(info: &Metadata) -> u32 {
     use std::os::unix::fs::PermissionsExt;
@@ -492,7 +488,7 @@ mod tests {
 
         let error = correr(&set, json!({"path": null, "content": "x"}))
             .await
-            .expect_err("path null es el cero de Go");
+            .expect_err("path null es el valor cero");
         assert_eq!(error, "falta la ruta");
 
         let error = correr(&set, json!({"path": nuevo.to_string_lossy(), "content": 1}))
@@ -521,8 +517,7 @@ mod tests {
         let set = conjunto(raiz.path());
         let ruta = raiz.path().join("sub").join("x.txt");
 
-        // Go falla en `resolve` cuando falta un directorio intermedio
-        // (`localtools.go:156-165`).
+        // El contrato falla en `resolve` cuando falta un directorio intermedio
         let error = correr(
             &set,
             json!({"path": ruta.to_string_lossy(), "content": "x"}),
@@ -535,8 +530,8 @@ mod tests {
         );
         assert!(!ruta.exists(), "no debe crear carpetas");
 
-        // El texto propio de `writeFile` aparece cuando el padre resuelve pero
-        // no es una carpeta (`localtools.go:474-481`).
+        // El texto propio de la escritura aparece cuando el padre resuelve pero
+        // no es una carpeta.
         let archivo = raiz.path().join("nota.txt");
         std::fs::write(&archivo, "x").expect("archivo");
         let ruta = archivo.join("x.txt");

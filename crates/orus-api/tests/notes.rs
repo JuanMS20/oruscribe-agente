@@ -1,4 +1,4 @@
-//! `GET`/`POST`/`DELETE /api/notes` (`notes.go`).
+//! `GET`/`POST`/`DELETE /api/notes`.
 //!
 //! Cada test que escribe corre en un proceso hijo con su propio
 //! `ORUSCRIBE_DATA_DIR`, como los de `settings.rs`: nunca se toca el
@@ -454,7 +454,7 @@ fn post_con_campos_null_los_trata_como_vacios() {
             )
             .await;
             let (status, error) = error_de(sin_id).await;
-            assert_eq!(status, 500, "null en id deja el id vacío, como Go");
+            assert_eq!(status, 500, "null en id deja el id vacío");
             assert_eq!(error, "la nota no tiene identificador");
 
             server.abort();

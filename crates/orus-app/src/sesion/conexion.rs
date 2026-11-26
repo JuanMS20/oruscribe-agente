@@ -10,11 +10,11 @@ use sha2::{Digest as ShaDigest, Sha256};
 use super::backend::{Backend, SessionError};
 use super::{App, Status, endpoint, sin_vencimiento};
 
-/// Los tres intentos de una conexión nueva (`app.go:779`).
+/// Los tres intentos de una conexión nueva.
 const CONNECT_ATTEMPTS: u32 = 3;
-/// Una restauración no espera más que esto (`app.go:253`).
+/// Una restauración no espera más que esto.
 pub(super) const RESTORE_TIMEOUT: Duration = Duration::from_secs(45);
-/// El backoff duplica mientras sea menor a un minuto (`app.go:697-702`).
+/// El backoff duplica mientras sea menor a un minuto.
 const RESTORE_BACKOFF_CAP: Duration = Duration::from_secs(60);
 
 impl App {
@@ -114,7 +114,7 @@ impl App {
         Ok(me)
     }
 
-    /// Devuelve un cliente vivo, reconectando si hace falta (`app.go:487-535`).
+    /// Devuelve un cliente vivo, reconectando si hace falta.
     ///
     /// Nada de red se queda con `refresh_mu` más de `restore_timeout`: el
     /// candado se suelta al salir, también cuando el plazo vence (#150).
@@ -152,7 +152,7 @@ impl App {
         self.estado().client.clone().ok_or(SessionError::LoggedOut)
     }
 
-    /// Restaura la sesión guardada sin bloquear la ventana (`app.go:242-259`).
+    /// Restaura la sesión guardada sin bloquear la ventana.
     pub fn boot(&self) {
         if self.store.load().is_err() {
             return;
@@ -169,7 +169,6 @@ impl App {
     }
 
     /// Importa el token que el panel ya entrega, sin pasar por OAuth
-    /// (`app.go:901-972`).
     pub async fn import_token(&self, token: &str) -> Result<(), SessionError> {
         let token = token.trim();
         if token.is_empty() {
@@ -198,7 +197,7 @@ impl App {
         }
         // El token puede ser de otra organización. El cliente manda el slug en
         // cada petición: si había uno guardado y no coincide, se vuelve a abrir
-        // con el que respondió el servidor (`app.go:920-930`).
+        // con el que respondió el servidor.
         if !fijada
             && !guardado.is_empty()
             && !me.organization.slug.is_empty()
@@ -255,7 +254,7 @@ impl App {
         self.reemplazar_flujo();
         drop(viejo);
         // El fallo de guardado no tumba la sesión: la memoria ya quedó lista,
-        // como el `logf` de Go (`app.go:963-969`).
+        // como el `logf` del contrato.
         if cambio_slug {
             self.limpiar_cambio_org();
             self.guardar_org_slug(&nuevo_slug, false);
@@ -267,7 +266,7 @@ impl App {
         Ok(())
     }
 
-    /// Cierra la sesión y borra el token (`app.go:977-1009`).
+    /// Cierra la sesión y borra el token.
     pub fn logout(&self) -> Result<(), SessionError> {
         self.detener_timbre();
         if let Some(agent) = &self.agent {
@@ -389,14 +388,13 @@ impl App {
     }
 
     /// Renueva el token si venció y reconecta, sin dos restauraciones a la vez
-    /// (`app.go:719-727`).
     async fn restore_session(&self) -> Result<(), SessionError> {
         let _guard = self.refresh_mu.lock().await;
         let token = self.fresh_token().await?;
         self.connect(&token).await
     }
 
-    /// `restoreSession` con el tope de `restore_timeout` (`app.go:253`).
+    /// Restaura la sesión con el tope de `restore_timeout`.
     async fn restore_with_timeout(&self) -> Result<(), SessionError> {
         match tokio::time::timeout(self.restore_timeout, self.restore_session()).await {
             Ok(result) => result,
@@ -419,7 +417,6 @@ impl App {
     }
 
     /// Reintenta mientras el fallo sea de red; un flag evita dos bucles
-    /// (`app.go:687-714`).
     fn retry_with_stored_session(&self) {
         {
             let mut estado = self.estado();
@@ -448,7 +445,7 @@ impl App {
         });
     }
 
-    /// Anota el fallo y dice si conviene reintentar (`app.go:751-767`).
+    /// Anota el fallo y dice si conviene reintentar.
     fn restore_failed(&self, error: &SessionError) -> bool {
         match error {
             SessionError::LoggedOut => false,
@@ -610,9 +607,9 @@ impl App {
     }
 
     /// Arranca el timbre de la sesión que acaba de subir y no hace nada si esa
-    /// misma sesión ya tiene uno (`app.go:853-876`).
+    /// misma sesión ya tiene uno.
     fn kick_watch(&self, token: &str) {
-        // Serializa dos conexiones que terminan a la vez, como `a.mu` en Go;
+        // Serializa dos conexiones que terminan a la vez, como `a.mu`;
         // no se retiene el candado de `watch_key` durante `start`/`stop`.
         let _serial = crate::sync::lock(&self.watch_mu);
         let key = session_key(token);
@@ -700,7 +697,6 @@ fn reintentar_tras(error: &SessionError) -> bool {
 }
 
 /// Nombra la sesión del timbre sin guardar otra copia del token
-/// (`app.go:878-883`).
 fn session_key(token: &str) -> String {
     let digest = Sha256::digest(token.as_bytes());
     hex::encode(&digest[..8])

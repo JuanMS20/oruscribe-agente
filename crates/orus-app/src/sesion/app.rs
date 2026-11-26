@@ -19,7 +19,7 @@ use super::backend::SessionError;
 use super::conector::{Connector, Refresh};
 use super::{App, Estado, Status, WatchSpawner, endpoint};
 
-/// Lo que la ventana pinta al abrirse (`app.go:42-54`).
+/// Lo que la ventana pinta al abrirse.
 #[derive(Debug, Clone, Serialize)]
 pub struct State {
     pub status: Status,
@@ -28,13 +28,13 @@ pub struct State {
     #[serde(skip_serializing_if = "String::is_empty")]
     pub error: String,
     pub locale: Locale,
-    /// Hay un inicio de sesión con navegador en curso (`app.go:48-50`).
+    /// Hay un inicio de sesión con navegador en curso.
     pub flow: bool,
     /// Enlace OAuth del flujo activo para mostrarlo o copiarlo si el navegador
     /// no se abrió solo o si la ventana recargó a mitad del inicio de sesión.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub login_url: String,
-    /// La sesión en disco se está restaurando en segundo plano (`app.go:51-53`).
+    /// La sesión en disco se está restaurando en segundo plano.
     pub retrying: bool,
 }
 
@@ -45,7 +45,7 @@ impl App {
         connector: Arc<dyn Connector>,
         refresher: Arc<dyn Refresh>,
     ) -> Self {
-        // `Boot` deja `connecting` si hay sesión en disco (`app.go:245-251`).
+        // `Boot` deja `connecting` si hay sesión en disco.
         let status = if store.load().is_ok() {
             Status::Connecting
         } else {
@@ -158,7 +158,7 @@ impl App {
         self.estado().me.clone()
     }
 
-    /// `avatarMap` (`app.go:291-293`): las fotos cacheadas de la organización
+    /// Las fotos cacheadas de la organización.
     /// actual, para inyectarlas donde el backend no las trae. Nunca espera a
     /// la red: si el refresco toca, corre en segundo plano.
     pub fn avatar_map(&self) -> HashMap<String, String> {
@@ -184,13 +184,13 @@ impl App {
     /// El último error crudo de la sesión, sin el flujo de login encima.
     ///
     /// `state().error` no sirve para el diagnóstico: un flujo vivo lo pisa
-    /// aunque el error real siga ahí (`app.go:277-281`, `sesion.rs:785-790`).
-    /// Go lee `a.lastErr` directo (`diagnostics.go:21`).
+    /// aunque el error real siga ahí.
+    /// El contrato lee `a.lastErr` directo.
     pub fn last_error_sesion(&self) -> String {
         self.estado().last_error.clone()
     }
 
-    /// El snapshot que pinta la ventana (`app.go:273-289`). El lock de `Estado`
+    /// El snapshot que pinta la ventana. El lock de `Estado`
     /// se suelta antes de leer ajustes y login para no cruzarlo con `logout`.
     pub fn state(&self) -> State {
         let (mut status, me, mut error, retrying) = {
@@ -202,7 +202,7 @@ impl App {
                 estado.retrying,
             )
         };
-        // `app.go:278-281`: el flujo vivo pisa `status` y `error`, aunque su
+        // el flujo vivo pisa `status` y `error`, aunque su
         // error venga vacío. El lock de `Estado` ya se soltó.
         let flow = self.login.flow_snapshot();
         let mut login_url = String::new();
@@ -212,7 +212,6 @@ impl App {
             login_url = flow_url.clone();
         }
         // La foto propia no viene del backend: sale de la caché de avatares
-        // (`app.go:282-288`).
         let mut me = me;
         if let Some(me) = me.as_mut()
             && me.avatar_url.as_deref().unwrap_or("").is_empty()
@@ -242,18 +241,17 @@ impl App {
     }
 
     /// El endpoint efectivo del panel: un ajuste vacío usa el de producción
-    /// (`settings.go:34-35`).
     pub fn endpoint(&self) -> String {
         self.endpoint_for(&self.settings_snapshot())
     }
 
     /// El endpoint de un `Settings` ya leído, para que el borde arme la vista
-    /// con un solo candado (`settings.go:34-35`).
+    /// con un solo candado.
     pub fn endpoint_for(&self, settings: &Settings) -> String {
         endpoint(settings)
     }
 
-    /// Aplica lo que manda el panel (`settings.go:53-92`). Valida antes de
+    /// Aplica lo que manda el panel. Valida antes de
     /// tocar disco y solo reemplaza la memoria si `editar` devolvió `Ok`: si
     /// el guardado falla, la memoria queda como estaba.
     pub fn telemetry(&self) -> Arc<crate::telemetria::Telemetry> {
@@ -306,7 +304,7 @@ impl App {
     }
 
     /// Guarda la copia del timbre que trajo la última conexión. La lee el
-    /// cerebro de la organización (`watch.go:151-155`).
+    /// cerebro de la organización.
     pub fn set_bell_config(&self, config: DoorbellConfig) {
         *crate::sync::lock(&self.bell_config) = Some(config);
     }
@@ -319,8 +317,7 @@ impl App {
     }
 
     /// La raíz de las funciones de Supabase que ya trae la configuración del
-    /// timbre. Vacío significa que aún no hay conexión (`cerebroBase`,
-    /// `agent.go:184-192`).
+    /// timbre. Vacío significa que aún no hay conexión.
     pub(crate) fn cerebro_base(&self) -> String {
         let config = crate::sync::lock(&self.bell_config);
         match config.as_ref() {
@@ -331,8 +328,7 @@ impl App {
         }
     }
 
-    /// El token vivo de la sesión, vacío si no hay (`tokenDeSesion`,
-    /// `agent.go:174-180`). Nunca se guarda en los ajustes del agente.
+    /// El token vivo de la sesión, vacío si no hay. Nunca se guarda en los ajustes del agente.
     pub(crate) fn token_de_sesion(&self) -> String {
         match self.load_token() {
             Ok(token) => token.access_token,

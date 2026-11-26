@@ -1,15 +1,10 @@
 //! Ejecución de herramientas, aprobación y paralelo.
 //!
-//! Port de `internal/agent/loop.go:208-368`: `paralelizable`,
-//! `ejecutarParalelo`, `ejecutar`, `permitida`, `proponerPlan`,
-//! `preguntarPlan`, `resultado` y `recortar`.
-//!
-//! Go le pasa a cada herramienta un `context.Context` con el timeout de 60 s y
-//! la cancelación. El trait [`Tool`] de Rust no recibe contexto, así que acá el
+//! El trait [`Tool`] no recibe contexto (timeout de 60 s y cancelación), así que acá el
 //! futuro se corta con `tokio::select!`: un timeout de [`TIEMPO_HERRAMIENTA`] y
 //! la espera de [`CancelToken`]. `task` corre un subagente de varios pasos y
 //! lleva un plazo más largo ([`FACTOR_TAREA`]). El texto que ve el modelo imita
-//! al de una herramienta de Go que mira su contexto: `error: context deadline
+//! al de una herramienta del contrato que mira su contexto: `error: context deadline
 //! exceeded` y `error: context canceled`.
 
 use std::collections::HashSet;
@@ -30,7 +25,7 @@ use crate::runner::{
 };
 use crate::types::Tool;
 
-/// Lo que una herramienta puede tardar. `tiempoHerramienta` (`loop.go:37`).
+/// Lo que una herramienta puede tardar.
 const TIEMPO_HERRAMIENTA: Duration = Duration::from_secs(60);
 
 /// Cuánto se multiplica el plazo base para `task`. El subagente corre hasta 8
@@ -44,17 +39,16 @@ const FACTOR_TAREA: u32 = 5;
 const HERRAMIENTA_TAREA: &str = "task";
 
 /// Bytes de la salida de una herramienta que ve el modelo.
-/// `maxResultado` (`loop.go:38`).
 const MAX_RESULTADO: usize = 16 << 10;
 
-/// Marca del recorte. `marcaRecorte` (`loop.go:39`).
+/// Marca del recorte.
 const MARCA_RECORTE: &str = "\n[recortado]";
 
-/// Cuántas herramientas corren a la vez en el camino paralelo. `loop.go:237`.
+/// Cuántas herramientas corren a la vez en el camino paralelo.
 const MAX_PARALELO: usize = 4;
 
 /// Lo que recibe una llamada que no alcanzó a entrar al paralelo porque la
-/// corrida se canceló. `ejecutarParalelo` (`loop.go:248`).
+/// corrida se canceló.
 const RESULTADO_CANCELADO: &str = "cancelado por el contexto";
 
 const PLAN_VACIO: &str = "el plan llegó vacío o roto: quiero el objeto {\"plan\":\"...\"}; vuelve a llamar propose_plan con el plan en texto";
@@ -88,7 +82,7 @@ pub(crate) struct Despachador {
 
 impl Despachador {
     /// Toma lo que el runner ya tiene. `Runner::run` lo llama una vez por
-    /// turno, igual que Go consulta los campos en cada llamada.
+    /// turno, igual que el contrato consulta los campos en cada llamada.
     pub(crate) fn desde(runner: &Runner) -> Self {
         Self {
             herramientas: runner.tools.clone(),
@@ -105,7 +99,7 @@ impl Despachador {
 
     /// Resuelve todas las llamadas de un turno y devuelve un resultado por
     /// llamada, en el orden en que llegaron, junto con el consumo que
-    /// reportaron las herramientas (el subagente). `Run` (`loop.go:148-155`).
+    /// reportaron las herramientas (el subagente). `Run`.
     pub(crate) async fn turno(
         &self,
         llamadas: &[ToolCall],
@@ -133,7 +127,7 @@ impl Despachador {
     /// dos, herramientas conocidas de riesgo `read` y con `Decide == Allow`.
     /// Una desconocida no fuerza el camino secuencial porque `ejecutar`
     /// responde "herramienta desconocida" sin pedir permiso.
-    /// `paralelizable` (`loop.go:208-229`).
+    /// `paralelizable`.
     fn paralelizable(&self, llamadas: &[ToolCall]) -> bool {
         if llamadas.len() < 2 {
             return false;
@@ -154,7 +148,7 @@ impl Despachador {
 
     /// Corre las llamadas en tareas separadas, con un tope de
     /// [`MAX_PARALELO`], y concatena los resultados en el orden de las
-    /// llamadas. `ejecutarParalelo` (`loop.go:231-259`).
+    /// llamadas.
     async fn ejecutar_paralelo(&self, llamadas: &[ToolCall], cancel: &CancelToken) -> Vec<String> {
         let semaforo = Arc::new(Semaphore::new(MAX_PARALELO));
         let mut tareas = JoinSet::new();
@@ -193,7 +187,6 @@ impl Despachador {
     }
 
     /// Corre una llamada y devuelve el texto que verá el modelo. `ejecutar`
-    /// (`loop.go:313-337`).
     async fn ejecutar(&self, llamada: &ToolCall, cancel: &CancelToken) -> String {
         if llamada.name == HERRAMIENTA_PROPOSE_PLAN {
             return self.proponer_plan(llamada);
@@ -241,7 +234,7 @@ impl Despachador {
 
     /// Resuelve `propose_plan`: valida el plan, muestra la tarjeta y, con el
     /// sí, abre lecturas y escrituras para el resto del run. Nunca deja pasar
-    /// `exec` ni amplía una `Deny`. `proponerPlan` (`loop.go:261-278`).
+    /// `exec` ni amplía una `Deny`.
     fn proponer_plan(&self, llamada: &ToolCall) -> String {
         let plan = match serde_json::from_value::<ArgumentosPlan>(llamada.args.clone()) {
             Ok(args) if !args.plan.trim().is_empty() => args.plan.trim().to_owned(),
@@ -261,7 +254,7 @@ impl Despachador {
 
     /// Decide el sí del plan. `PlanApprove` manda; si no está, el mismo
     /// callback `Approve` recibe el plan crudo. Un fallo al preguntar cuenta
-    /// como no. `preguntarPlan` (`loop.go:280-294`).
+    /// como no.
     fn preguntar_plan(&self, llamada: &ToolCall, plan: &str) -> bool {
         if let Some(aprobar) = &self.aprobar_plan {
             return matches!(aprobar(plan), Ok(true));
@@ -269,8 +262,8 @@ impl Despachador {
         let Some(aprobar) = &self.aprobar else {
             return false;
         };
-        // Go pasa `json.RawMessage(plan)`: el plan crudo, no el JSON del
-        // modelo. En Rust un `Value` no puede guardar texto que no sea JSON,
+        // Se pasa el plan crudo, no el JSON del
+        // modelo. Un `Value` no puede guardar texto que no sea JSON,
         // así que el equivalente es un `Value::String`.
         let crudo = ToolCall {
             id: llamada.id.clone(),
@@ -282,7 +275,7 @@ impl Despachador {
     }
 
     /// Aplica la política. Un fallo al preguntar cuenta como no.
-    /// `permitida` (`loop.go:339-361`).
+    /// `permitida`.
     fn permitida(&self, herramienta: &Arc<dyn Tool>, llamada: &ToolCall) -> bool {
         let riesgo = herramienta.risk();
         match decide(self.modo, riesgo) {
@@ -315,7 +308,7 @@ impl Despachador {
     }
 
     /// Recorta el texto, lo emite y lo devuelve para el modelo.
-    /// `resultado` (`loop.go:363-368`).
+    /// `resultado`.
     fn resultado(&self, herramienta: &str, texto: String) -> String {
         let texto = recortar(&texto);
         self.emitir(Step {
@@ -348,7 +341,7 @@ impl Despachador {
     }
 }
 
-/// El argumento de `propose_plan`. `loop.go:265-267`.
+/// El argumento de `propose_plan`..
 #[derive(Deserialize)]
 struct ArgumentosPlan {
     plan: String,
@@ -382,8 +375,8 @@ fn recortar(texto: &str) -> String {
 /// Deja el historial serializable: argumentos vacíos pasan a `{}` y el JSON
 /// roto se marca para no ejecutar la herramienta con datos inventados. El
 /// parseo de la respuesta ya deja `invalid_args` en `true`
-/// (`openai_stream.rs:209-214`); acá se conserva la marca y se normaliza el
-/// argumento nulo. `sanearLlamadas` (`loop.go:296-311`).
+/// (`openai_stream.rs`); acá se conserva la marca y se normaliza el
+/// argumento nulo.
 pub(crate) const MAX_LLAMADAS: usize = 64;
 
 pub(crate) fn sanear_llamadas(llamadas: &mut Option<Vec<ToolCall>>) {
@@ -411,7 +404,7 @@ pub(crate) fn sanear_llamadas(llamadas: &mut Option<Vec<ToolCall>>) {
 }
 
 /// Emite un paso con la misma serialización que usa el runner.
-/// `emitir` (`loop.go:475-481`).
+/// `emitir`.
 pub(crate) fn emitir(emitir: &Option<EmitFn>, mu: &Mutex<()>, paso: Step) {
     let Some(callback) = emitir else {
         return;
@@ -591,7 +584,7 @@ mod tests {
         }
 
         /// Riesgo desconocido: el equivalente Rust del string fuera de la
-        /// lista de Go (`policy_test.go:22`).
+        /// lista del contrato.
         fn sin_riesgo(mut self) -> Self {
             self.riesgo = None;
             self
@@ -1277,7 +1270,6 @@ mod tests {
     async fn plan_no_abre_riesgo_desconocido() {
         // `Tool::risk()` devuelve `None` para el riesgo desconocido; `Decide`
         // lo niega antes de que el plan aprobado pueda abrir nada
-        // (`loop.go:340-341`, `policy.rs:83-87`).
         let misterio =
             Arc::new(HerramientaFalsa::nueva("misterio", Risk::Read, "corrió").sin_riesgo());
         let proveedor = Arc::new(ProveedorFalso::nuevo(vec![

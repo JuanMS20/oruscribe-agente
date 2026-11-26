@@ -1,6 +1,4 @@
 //! Sesión de la app: el `Token` de OAuth y el llavero del sistema.
-//!
-//! Port de `internal/auth/store.go` y de `Token` en `internal/auth/oauth.go`.
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
@@ -69,7 +67,7 @@ pub enum Error {
     Keyring(String),
 }
 
-/// Guarda la sesión entre ejecuciones. Es el `Store` de Go.
+/// Guarda la sesión entre ejecuciones. Es el `Store` del contrato.
 pub trait Store {
     fn save(&self, token: Token) -> Result<(), Error>;
     fn load(&self) -> Result<Token, Error>;
@@ -152,7 +150,6 @@ impl SecretStore {
 }
 
 /// Interruptor manual para usar un archivo como store principal
-/// (`ORUSCRIBE_ALLOW_FILE_SECRETS=1`, `store.go:177-182`).
 pub fn file_secrets_allowed() -> bool {
     std::env::var("ORUSCRIBE_ALLOW_FILE_SECRETS").is_ok_and(|value| value == "1")
 }

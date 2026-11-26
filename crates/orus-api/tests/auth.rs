@@ -1,4 +1,4 @@
-//! Rutas de autenticación: mismo JSON, códigos y textos que Go.
+//! Rutas de autenticación: mismo JSON, códigos y textos que el contrato.
 
 mod soporte;
 

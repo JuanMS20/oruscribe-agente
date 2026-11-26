@@ -1,9 +1,7 @@
 //! Update completo sin ventana: manifiesto, firma Ed25519, descarga y swap.
 //!
-//! Port de `internal/update/update.go:19-280`, `internal/update/keys.go:11-16`,
-//! `internal/update/restart_windows.go:14-32`,
-//! `internal/update/restart_other.go:12-26` e
-//! `internal/install/update_target.go:16-29`. El cliente HTTP, la URL y el
+//! e
+//! El cliente HTTP, la URL y el
 //! destino se inyectan; este crate no elige ventana ni puerto. El estado "en
 //! curso" es [`ApplyLock`], no un global del proceso.
 
@@ -25,19 +23,19 @@ pub use keys::{Keys, TRUSTED_KEYS_B64};
 pub use manifest::Manifest;
 pub use swap::{responde_version, restart, rollback, swap};
 
-/// Manifiesto que consulta la app (`internal/update/update.go:28`).
+/// Manifiesto que consulta la app.
 pub const DEFAULT_URL: &str =
     "https://raw.githubusercontent.com/JuanMS20/oruscribe-agente-descargas/main/latest.json";
 
 /// Únicos sitios desde los que se acepta un ejecutable
-/// (`internal/update/update.go:30-32`). Loopback se acepta aparte para tests.
+/// Loopback se acepta aparte para tests.
 pub const ALLOWED_HOSTS: [&str; 2] = ["github.com", "app.oruscribe.com"];
 
 pub(crate) const LIMITE_MANIFIESTO: usize = 1 << 20;
 pub(crate) const LIMITE_FIRMA: usize = 4 << 10;
 pub(crate) const LIMITE_DESCARGA: usize = 512 << 20;
 
-/// Errores con los textos exactos de Go.
+/// Errores con los textos exactos del contrato.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("el servidor de versiones respondió {0}")]
@@ -72,7 +70,7 @@ pub enum Error {
     Io(#[from] std::io::Error),
 }
 
-/// Candado de "una actualización a la vez" (`internal/app/update.go:30-43`).
+/// Candado de "una actualización a la vez".
 ///
 /// Vive donde lo ponga el llamador: 7-04 decide si es un campo de su estado o
 /// una pieza compartida. No hay estado global en este crate.
@@ -108,7 +106,7 @@ impl Drop for ApplyGuard<'_> {
     }
 }
 
-/// Lee un cuerpo hasta `limite` bytes, como `io.LimitReader` en Go.
+/// Lee un cuerpo hasta `limite` bytes, como `io.LimitReader`.
 pub(crate) async fn leer_hasta(
     mut respuesta: reqwest::Response,
     limite: usize,

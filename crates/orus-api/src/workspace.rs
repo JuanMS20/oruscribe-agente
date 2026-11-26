@@ -1,10 +1,10 @@
 //! Lectura del espacio de trabajo: tareas, salas, mensajes, avisos, metas,
 //! periodos, actividad, decisiones y equipos.
 //!
-//! Port de `internal/app/http.go:64-230,333-414,415-504,568-635`. Los
+//! Los
 //! adaptadores solo validan la query, piden el cliente y arman la clave que la
 //! ventana espera; los contadores y el mapeo de `TaskFiles` viven aquí porque
-//! Go los compone en el handler. Las fotos que el backend no trae se
+//! El contrato los compone en el handler. Las fotos que el backend no trae se
 //! rellenan con la caché de avatares (`orus-app/src/avatares.rs`).
 
 use std::sync::Arc;
@@ -84,7 +84,7 @@ fn pagina_json<T: Serialize>(clave: &str, pagina: Pagina<T>) -> Value {
     Value::Object(cuerpo)
 }
 
-/// `GET /api/tasks` (`http.go:64-77`).
+/// `GET /api/tasks`.
 pub(crate) async fn tareas(
     AxumState(app): AxumState<Arc<App>>,
     Query(params): Query<ParamsTareas>,
@@ -94,7 +94,7 @@ pub(crate) async fn tareas(
     Ok(write_json(StatusCode::OK, &pagina_json("tasks", pagina)))
 }
 
-/// `GET /api/tasks/search` (`http.go:98-112`): el estado desconocido no filtra
+/// `GET /api/tasks/search`: el estado desconocido no filtra
 /// porque `status, _ := ParseStatus` ignora el error.
 pub(crate) async fn buscar_tareas(
     AxumState(app): AxumState<Arc<App>>,
@@ -107,7 +107,7 @@ pub(crate) async fn buscar_tareas(
     Ok(write_json(StatusCode::OK, &pagina_json("tasks", pagina)))
 }
 
-/// `GET /api/tasks/files` (`http.go:114-135`): Go mapea `update_comments` a
+/// `GET /api/tasks/files`: el contrato mapea `update_comments` a
 /// `comments`, completa `files` con `[]` y `comments` con `{}`.
 pub(crate) async fn archivos_de_tarea(
     AxumState(app): AxumState<Arc<App>>,
@@ -132,8 +132,8 @@ pub(crate) async fn archivos_de_tarea(
     ))
 }
 
-/// `GET /api/rooms` (`http.go:207-228`). La foto de la otra persona de una
-/// sala directa se rellena con la caché (`http.go:216-224`).
+/// `GET /api/rooms`. La foto de la otra persona de una
+/// sala directa se rellena con la caché.
 pub(crate) async fn salas(
     AxumState(app): AxumState<Arc<App>>,
     Query(params): Query<ParamsSalas>,
@@ -149,7 +149,7 @@ pub(crate) async fn salas(
     Ok(write_json(StatusCode::OK, &pagina_json("rooms", pagina)))
 }
 
-/// `GET /api/messages` (`http.go:230-275`): un offset inválido o negativo vale
+/// `GET /api/messages`: un offset inválido o negativo vale
 /// 0, y la página lleva `messages`, `has_more` y `next_offset`.
 pub(crate) async fn mensajes(
     AxumState(app): AxumState<Arc<App>>,
@@ -162,7 +162,7 @@ pub(crate) async fn mensajes(
     let cliente = app.client().await?;
     let mut pagina = cliente.messages(&params.room, 50, offset).await?;
     // La foto del autor y de las menciones tampoco viene del backend: se
-    // rellena igual que en salas (`http.go:246-261`).
+    // rellena igual que en salas.
     let urls = app.avatar_map();
     for mensaje in &mut pagina.messages {
         con_avatar(&mut mensaje.author, &urls);
@@ -183,7 +183,7 @@ pub(crate) async fn mensajes(
     ))
 }
 
-/// `GET /api/alerts` (`http.go:333-352`): `unread` cuenta las no leídas.
+/// `GET /api/alerts`: `unread` cuenta las no leídas.
 pub(crate) async fn alertas(AxumState(app): AxumState<Arc<App>>) -> Result<Response, ErrorRuta> {
     let cliente = app.client().await?;
     let pagina = cliente.alerts_page().await?;
@@ -193,7 +193,7 @@ pub(crate) async fn alertas(AxumState(app): AxumState<Arc<App>>) -> Result<Respo
     Ok(write_json(StatusCode::OK, &cuerpo))
 }
 
-/// `GET /api/mentions` (`http.go:374-393`): `unread` cuenta las no leídas.
+/// `GET /api/mentions`: `unread` cuenta las no leídas.
 pub(crate) async fn menciones(AxumState(app): AxumState<Arc<App>>) -> Result<Response, ErrorRuta> {
     let cliente = app.client().await?;
     let pagina = cliente.mentions_page().await?;
@@ -203,14 +203,14 @@ pub(crate) async fn menciones(AxumState(app): AxumState<Arc<App>>) -> Result<Res
     Ok(write_json(StatusCode::OK, &cuerpo))
 }
 
-/// `GET /api/goals` (`http.go:415-428`).
+/// `GET /api/goals`.
 pub(crate) async fn metas(AxumState(app): AxumState<Arc<App>>) -> Result<Response, ErrorRuta> {
     let cliente = app.client().await?;
     let metas = cliente.goals().await?;
     Ok(write_json(StatusCode::OK, &json!({"goals": metas})))
 }
 
-/// `GET /api/goals/detail` (`http.go:430-448`): responde el `GoalDetail`
+/// `GET /api/goals/detail`: responde el `GoalDetail`
 /// directo y cambia `linked_tasks: null` por `[]`.
 pub(crate) async fn detalle_de_meta(
     AxumState(app): AxumState<Arc<App>>,
@@ -229,14 +229,14 @@ pub(crate) async fn detalle_de_meta(
     Ok(write_json(StatusCode::OK, &value))
 }
 
-/// `GET /api/periods` (`http.go:469-482`).
+/// `GET /api/periods`.
 pub(crate) async fn periodos(AxumState(app): AxumState<Arc<App>>) -> Result<Response, ErrorRuta> {
     let cliente = app.client().await?;
     let periodos = cliente.periods().await?;
     Ok(write_json(StatusCode::OK, &json!({"periods": periodos})))
 }
 
-/// `days` laxo como `fmt.Sscanf("%d")` (`http.go:570-575`): espacios
+/// `days` laxo: espacios
 /// iniciales, signo opcional y dígitos hasta el primer carácter que no lo sea.
 fn dias_laxos(texto: &str) -> Option<i64> {
     let texto = texto.trim_start();
@@ -259,7 +259,7 @@ fn instante(texto: &str) -> Option<DateTime<Utc>> {
         .map(|fecha| fecha.with_timezone(&Utc))
 }
 
-/// `GET /api/activity` (`http.go:568-593`): `days` válido (1..90) manda; un
+/// `GET /api/activity`: `days` válido (1..90) manda; un
 /// `since` RFC3339 válido lo pisa; un `since` inválido no descarta `days`.
 pub(crate) async fn actividad(
     AxumState(app): AxumState<Arc<App>>,
@@ -282,7 +282,7 @@ pub(crate) async fn actividad(
     Ok(write_json(StatusCode::OK, &pagina_json("events", pagina)))
 }
 
-/// `GET /api/decisions` (`http.go:595-608`).
+/// `GET /api/decisions`.
 pub(crate) async fn decisiones(
     AxumState(app): AxumState<Arc<App>>,
     Query(params): Query<ParamsBusqueda>,
@@ -295,8 +295,8 @@ pub(crate) async fn decisiones(
     ))
 }
 
-/// `GET /api/team` (`http.go:610-634`). La foto de cada trabajador se
-/// rellena con la caché (`http.go:622-630`).
+/// `GET /api/team`. La foto de cada trabajador se
+/// rellena con la caché.
 pub(crate) async fn equipos(AxumState(app): AxumState<Arc<App>>) -> Result<Response, ErrorRuta> {
     let cliente = app.client().await?;
     let mut equipos = cliente.team_status().await?;

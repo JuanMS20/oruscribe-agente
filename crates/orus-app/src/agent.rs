@@ -1,6 +1,6 @@
 //! Estado de la conversación del agente y su turno.
 //!
-//! Port de `internal/app/agent.go:539-1001,1003-1113`: historial, pasos,
+//! Historial, pasos,
 //! tokens, costo, generación y cancelación. El turno real vive en
 //! `orus-harness`; acá solo se conecta (D80).
 
@@ -75,7 +75,7 @@ pub struct Agent {
     #[doc(hidden)]
     pub(crate) open_gap: Option<Arc<dyn Fn() + Send + Sync>>,
     /// Conversaciones borradas mientras un turno las tenía tomadas. El
-    /// guardado final no debe recrearlas (`agent.go:862-876`).
+    /// guardado final no debe recrearlas.
     pub(crate) borradas: Arc<Mutex<HashSet<String>>>,
     telemetry: Option<Arc<Telemetry>>,
 }
@@ -111,10 +111,10 @@ struct Preparado {
 }
 
 impl Agent {
-    /// `maxMensaje` (`agent.go:30`): el tope del texto de un envío.
+    /// El tope del texto de un envío.
     pub const MAX_MENSAJE: usize = 80_000;
 
-    /// Recorta y valida el texto del envío (`agent.go:545-552`). La ruta y
+    /// Recorta y valida el texto del envío. La ruta y
     /// `preparar` comparten este dueño para no repetir el tope ni el texto.
     /// Con imágenes, el texto puede ir vacío: solo-imagen es un turno válido.
     pub fn validar_mensaje_con_imagenes(
@@ -175,7 +175,7 @@ impl Agent {
         self
     }
 
-    /// El aviso de fin de turno que usa el despertar (`agent.go:995-1000`).
+    /// El aviso de fin de turno que usa el despertar.
     pub fn with_on_finish<F>(mut self, on_finish: F) -> Self
     where
         F: Fn(u64, i64, Option<String>) + Send + Sync + 'static,
@@ -214,8 +214,7 @@ impl Agent {
 
     /// Toma el agente y deja el turno listo para correr. El chequeo de
     /// `busy||setup` y la marca de ocupado ocurren bajo el mismo candado: dos
-    /// envíos simultáneos no pueden pasar los dos (`agentArrancar`,
-    /// `agent.go:927-944`).
+    /// envíos simultáneos no pueden pasar los dos.
     fn preparar(&self, texto: &str, mut turno: Turno) -> Result<Preparado, AgentError> {
         let hay_imagenes = !turno.imagenes.is_empty();
         let mensaje;
@@ -283,8 +282,7 @@ impl Agent {
         })
     }
 
-    /// Corre un turno que ya tomó el agente (`agentCorrer`,
-    /// `agent.go:949-1001`).
+    /// Corre un turno que ya tomó el agente.
     async fn correr(&self, preparado: Preparado) -> Result<(), AgentError> {
         let Preparado {
             turno,
@@ -313,7 +311,7 @@ impl Agent {
         let vencidas_antes = self.approvals.vencidas();
         // El bloque suelta el préstamo mutable de `sesion` antes de leer los
         // mensajes: `tokio::time::timeout` descartaría el futuro al vencer y
-        // con él lo parcial, como `context.WithTimeout` no hace en Go.
+        // con él lo parcial.
         let fin = {
             // #95: el pánico del runner no se traga: se vuelve error visible
             // y el guardado de abajo sigue ocurriendo con lo que haya.
@@ -449,8 +447,7 @@ impl Agent {
         }
     }
 
-    /// Manda un texto y espera el turno (`AgentSend`/`agentArrancar`/
-    /// `agentCorrer`, `agent.go:539-691,927-1001`).
+    /// Manda un texto y espera el turno.
     pub async fn send(&self, texto: &str, turno: Turno) -> Result<(), AgentError> {
         let preparado = self.preparar(texto, turno)?;
         self.correr(preparado).await
@@ -458,8 +455,7 @@ impl Agent {
 
     /// Reserva el agente y lanza el turno sin esperarlo. La ruta responde 200
     /// solo después de que `preparar` marcó `busy` bajo el candado: si otro
-    /// envío ganó, devuelve `Busy` y la ruta lo pinta 409 (`agentArrancar`,
-    /// `agent.go:927-944`).
+    /// envío ganó, devuelve `Busy` y la ruta lo pinta 409.
     pub fn empezar(self: &Arc<Self>, texto: &str, turno: Turno) -> Result<(), AgentError> {
         self.empezar_con(texto, turno, |turno| Box::pin(async move { Ok(turno) }))
     }
@@ -590,7 +586,7 @@ impl Agent {
         })
     }
 
-    /// Corta el turno en curso (`AgentCancel`, `agent.go:695-701`).
+    /// Corta el turno en curso.
     pub fn cancel(&self) {
         let cancel = lock(&self.estado).cancel.clone();
         if let Some(cancel) = cancel {
@@ -599,7 +595,6 @@ impl Agent {
     }
 
     /// Cierre de sesión: corta, sube la generación y borra todo
-    /// (`agentLimpiar`, `agent.go:889-925`).
     pub fn clear(&self) {
         {
             let mut estado = lock(&self.estado);
@@ -613,8 +608,7 @@ impl Agent {
         self.approvals.cancel_all();
     }
 
-    /// Borra la conversación sin tocar la generación (`AgentReset`,
-    /// `agent.go:878-887`).
+    /// Borra la conversación sin tocar la generación.
     pub fn reset(&self) -> Result<(), AgentError> {
         let mut estado = lock(&self.estado);
         if estado.busy {
@@ -626,7 +620,7 @@ impl Agent {
 
     /// Reinicia solo si no arrancó un turno mientras se borraba en disco. El
     /// primer chequeo de `busy` de `delete_conversation` no basta: suelta el
-    /// candado, y el timbre puede tomar el agente en ese hueco (`agent.go:862-876`).
+    /// candado, y el timbre puede tomar el agente en ese hueco.
     pub(crate) fn reset_sin_chequeo(&self) {
         let mut estado = lock(&self.estado);
         if estado.busy {
@@ -638,7 +632,6 @@ impl Agent {
     /// Reinicia solo si la conversación abierta sigue siendo `id` y ningún
     /// turno la tomó mientras se borraba. El candado se toma una vez para que
     /// un `open` o un `empezar` no se cuelen entre la comparación y el reinicio
-    /// (`conversations.go:112-116`).
     pub(crate) fn reset_if_current(&self, id: &str) {
         let mut estado = lock(&self.estado);
         if estado.busy {
@@ -650,8 +643,7 @@ impl Agent {
     }
 
     /// Toma el agente para una operación exclusiva, como deshacer. `send` la
-    /// respeta y devuelve `Busy`; el `Drop` de [`Reserva`] la suelta
-    /// (`reservarAgente`/`liberarAgente`, `agent.go:249-266`).
+    /// respeta y devuelve `Busy`; el `Drop` de [`Reserva`] la suelta.
     pub(crate) fn reservar(&self) -> Result<Reserva<'_>, AgentError> {
         let mut estado = lock(&self.estado);
         if estado.busy || estado.setup {
@@ -662,7 +654,6 @@ impl Agent {
     }
 
     /// Guarda la foto actual; sin id o historial no hay nada que guardar
-    /// (`conversations.go:191-230`).
     pub fn save(&self) -> Result<(), AgentError> {
         let mut sesion = {
             let estado = lock(&self.estado);
@@ -691,7 +682,7 @@ impl Agent {
     }
 
     /// `busy || setup`: una reserva exclusiva también cuenta como ejecución en
-    /// curso. La ruta de envío lo mira antes de pedir red (`agent.go:545-552`).
+    /// curso. La ruta de envío lo mira antes de pedir red.
     pub fn ocupado(&self) -> bool {
         let estado = lock(&self.estado);
         estado.busy || estado.setup
@@ -987,7 +978,7 @@ fn sesion_actual(estado: &EstadoAgente) -> Option<Session> {
 }
 
 /// Deja los últimos 40 mensajes; conserva el prefijo `system` y no arranca en
-/// un `tool` huérfano (`agent.go:1076-1100`).
+/// un `tool` huérfano.
 fn recortar_historial(mensajes: Vec<Message>) -> Vec<Message> {
     if mensajes.len() <= MAX_HISTORIAL {
         return mensajes;
@@ -1154,7 +1145,6 @@ mod tests {
     }
 
     /// PNG de 1x1 transparente, el archivo real más pequeño que se puede mandar
-    /// (`agent_images_test.go:13`).
     const PNG_MINIMO: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lU7c5wAAAABJRU5ErkJggg==";
 
     fn error_de_imagenes(resultado: Result<Vec<Image>, AgentError>) -> String {
@@ -1172,7 +1162,7 @@ mod tests {
         }
     }
 
-    /// `relleno(n)` del Go: la firma PNG más `n` bytes de relleno.
+    /// `relleno(n)` del contrato: la firma PNG más `n` bytes de relleno.
     fn relleno(n: usize) -> String {
         let mut datos = b"\x89PNG\r\n\x1a\n".to_vec();
         datos.resize(datos.len() + n, 0);
@@ -1341,7 +1331,6 @@ mod tests {
     }
 
     /// Solo-imagen es un turno válido y el historial guarda el archivo completo
-    /// (`agentArrancar`, `agent.go:927-946`).
     #[test]
     fn preparar_acepta_solo_imagen_y_la_deja_en_el_historial() {
         let imagen = Image {

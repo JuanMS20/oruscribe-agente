@@ -167,7 +167,7 @@ async fn messages_pide_la_pagina_que_sigue() {
         ["m1"]
     );
     assert!(!ultima.has_more);
-    assert_eq!(ultima.next_offset, 0, "sin next_offset el cero de Go");
+    assert_eq!(ultima.next_offset, 0, "sin next_offset queda en cero");
 
     let calls = fake.calls();
     assert_eq!(calls.len(), 3);

@@ -1,7 +1,6 @@
 //! Herramientas locales del agente: carpetas y programas permitidos,
-//! resolución de rutas que no escapan de la raíz, lectura y escritura. Port de
-//! `internal/localtools/localtools.go:24-97,129-223,315-499` y
-//! `canon_windows.go:14-50`.
+//! resolución de rutas que no escapan de la raíz, lectura y escritura.
+//! y
 
 mod bash;
 mod canon;

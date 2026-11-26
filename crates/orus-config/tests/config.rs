@@ -362,7 +362,7 @@ fn test_data_dir_removable() {
     );
 }
 
-// D195: paridad estricta con Go. No hay versión, no se preservan claves
+// D195: contrato estricto. No hay versión, no se preservan claves
 // desconocidas y agregar una clave nueva obliga a actualizar estos tests.
 #[test]
 #[serial]

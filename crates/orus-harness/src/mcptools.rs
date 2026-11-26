@@ -1,6 +1,6 @@
 //! Herramientas de un servidor MCP como herramientas del agente.
 //!
-//! Port de `internal/mcptools/mcptools.go`: la ventana y la terminal comparten
+//! La ventana y la terminal comparten
 //! las listas de prohibidas y de solo lectura para que no se separen.
 
 use std::collections::HashMap;
@@ -14,7 +14,7 @@ use rmcp::service::ServiceError;
 use serde_json::Value;
 
 /// Devuelven un secreto o cambian el contexto de toda la cuenta. El modelo no
-/// las ve y nunca llegan al servidor (`internal/mcptools/mcptools.go:24-32`).
+/// las ve y nunca llegan al servidor.
 fn prohibida(nombre: &str) -> bool {
     matches!(
         nombre,
@@ -28,7 +28,7 @@ fn prohibida(nombre: &str) -> bool {
     )
 }
 
-/// La lista explícita de lectura (`mcptools.go:36-55`). Una herramienta nueva
+/// La lista explícita de lectura. Una herramienta nueva
 /// cuenta como escritura hasta que alguien la revisa y la agrega acá: fallar
 /// cerrado es el default seguro.
 fn solo_lectura(nombre: &str) -> bool {
@@ -55,8 +55,8 @@ fn solo_lectura(nombre: &str) -> bool {
     )
 }
 
-/// La parte del cliente MCP que estas herramientas necesitan. En Go la
-/// satisfacen `*mcp.Client` y `*oruscribe.Client` (`mcptools.go:17-20`); acá
+/// La parte del cliente MCP que estas herramientas necesitan. En el contrato la
+/// satisfacen `*mcp.Client` y `*oruscribe.Client`; acá
 /// alcanza con [`Client`] y los tests pasan su propio doble.
 #[async_trait]
 pub trait Backend: Send + Sync {
@@ -190,8 +190,7 @@ pub struct McpTool {
 
 impl McpTool {
     /// Envuelve una herramienta. Un backend ausente deja la herramienta
-    /// visible para el modelo pero falla al ejecutarse, igual que el `nil` del
-    /// Go (`mcptools.go:63-67`).
+    /// visible para el modelo pero falla al ejecutarse.
     pub fn new(
         backend: Option<Arc<dyn Backend>>,
         info: ToolSpec,
@@ -217,7 +216,6 @@ impl Tool for McpTool {
     }
 
     /// Solo cuenta como lectura lo que está en la lista explícita
-    /// (`mcptools.go:87-92`).
     fn risk(&self) -> Option<Risk> {
         Some(if solo_lectura(&self.info.name) {
             Risk::Read
@@ -240,8 +238,7 @@ impl Tool for McpTool {
             )));
         };
         let args: JsonObject = if args.is_null() {
-            // `json.Unmarshal(null, &m)` deja el mapa nil y Go llama igual;
-            // acá un mapa vacío es el equivalente sin argumentos.
+            // Un `null` equivale a sin argumentos: mapa vacío.
             JsonObject::new()
         } else {
             serde_json::from_value(args).map_err(|error| ToolError::Message(error.to_string()))?
@@ -283,7 +280,7 @@ impl Tool for McpTool {
 }
 
 /// Devuelve las herramientas que el agente puede ver, en el orden en que las
-/// mandó el servidor y sin las prohibidas (`mcptools.go:69-79`).
+/// mandó el servidor y sin las prohibidas.
 pub fn build(
     backend: Option<Arc<dyn Backend>>,
     specs: Vec<ToolSpec>,

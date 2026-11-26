@@ -1,6 +1,6 @@
 //! Formato en disco de las conversaciones guardadas.
 //!
-//! Copia de `internal/sessions/sessions.go:1-315`. Cada frente elige su
+//! Cada frente elige su
 //! carpeta y su prefijo; la versión, la escritura atómica y la validación
 //! viven aquí una sola vez.
 
@@ -48,11 +48,11 @@ pub struct Session {
     pub cwd: String,
     #[serde(rename = "model", default, skip_serializing_if = "String::is_empty")]
     pub model: String,
-    #[serde(rename = "created", default = "go_zero_time")]
+    #[serde(rename = "created", default = "tiempo_cero")]
     pub created: DateTime<Utc>,
-    #[serde(rename = "updated", default = "go_zero_time")]
+    #[serde(rename = "updated", default = "tiempo_cero")]
     pub updated: DateTime<Utc>,
-    /// Usa `orus_core::Message`, que conserva las claves Go en mayúscula.
+    /// Usa `orus_core::Message`, que conserva las claves en mayúscula.
     /// Cambiar esa forma es un cambio incompatible y obliga a subir `VERSION`.
     #[serde(rename = "messages", default)]
     pub messages: Vec<Message>,
@@ -93,9 +93,9 @@ struct Metadatos {
     title: String,
     #[serde(default)]
     cwd: String,
-    #[serde(default = "go_zero_time")]
+    #[serde(default = "tiempo_cero")]
     created: DateTime<Utc>,
-    #[serde(default = "go_zero_time")]
+    #[serde(default = "tiempo_cero")]
     updated: DateTime<Utc>,
     #[serde(default)]
     messages: Conteo,
@@ -135,7 +135,7 @@ pub struct Store {
     pub prefix: String,
 }
 
-/// Errores del formato de sesiones. Los textos son el contrato del Go.
+/// Errores del formato de sesiones. Los textos son parte del contrato.
 #[derive(Debug, Error)]
 pub enum SessionsError {
     #[error("la sesión no tiene un id válido")]
@@ -165,7 +165,7 @@ pub enum SessionsError {
     #[error(transparent)]
     Json(#[from] serde_json::Error),
 
-    /// `os.ReadFile` de Go devuelve `*PathError` con la ruta; `fs::read` no.
+    /// `os.ReadFile` del contrato devuelve `*PathError` con la ruta; `fs::read` no.
     #[error("open {}: {source}", path.display())]
     Open {
         path: PathBuf,
@@ -251,7 +251,7 @@ impl Store {
             .get(&destino)
             .copied()
             .unwrap_or((ses.version, ses.updated));
-        // En Go una slice nil se vuelve `[]` antes de escribir. Un `Vec` de
+        // Una slice nil se vuelve `[]` antes de escribir. Un `Vec` de
         // Rust siempre se serializa como `[]`: no hace falta normalizar.
         ses.updated = Utc::now();
         if ses.title.is_empty() {
@@ -326,7 +326,7 @@ impl Store {
         let mut salida = Vec::new();
         for entrada in entradas {
             let entrada = entrada?;
-            // Igual que `DirEntry.IsDir` en Go: si el tipo no se puede leer,
+            // Igual que `DirEntry.IsDir`: si el tipo no se puede leer,
             // se trata como archivo y el `load` decide si se salta.
             if entrada.file_type().is_ok_and(|tipo| tipo.is_dir()) {
                 continue;
@@ -422,15 +422,15 @@ pub fn same_cwd(a: &str, b: &str) -> bool {
     let a = clean_path(Path::new(a));
     let b = clean_path(Path::new(b));
     if cfg!(windows) {
-        // Aproximación de `strings.EqualFold` para rutas de Windows.
+        // Aproximación de igualdad sin distinguir mayúsculas para rutas de Windows.
         a.to_string_lossy().to_lowercase() == b.to_string_lossy().to_lowercase()
     } else {
         a == b
     }
 }
 
-// El cero de time.Time en Go se escribe "0001-01-01T00:00:00Z".
-fn go_zero_time() -> DateTime<Utc> {
+// El cero de time.Time se escribe "0001-01-01T00:00:00Z".
+fn tiempo_cero() -> DateTime<Utc> {
     let naive = NaiveDate::from_ymd_opt(1, 1, 1).and_then(|fecha| fecha.and_hms_opt(0, 0, 0));
     match naive {
         Some(naive) => DateTime::from_naive_utc_and_offset(naive, Utc),
@@ -447,7 +447,7 @@ fn es_cero_f64(valor: &f64) -> bool {
 }
 
 // Crea el temporal con 0600 en Unix, el equivalente a `os.CreateTemp` con el
-// patrón del Go: `s-*.tmp` sin prefijo y `{prefix}*.tmp` con prefijo. El
+// patrón del contrato: `s-*.tmp` sin prefijo y `{prefix}*.tmp` con prefijo. El
 // sufijo mezcla reloj de pared, pid y un contador local: otro proceso que
 // reutilice el pid no deja cien restos que bloqueen el guardado (#131).
 fn crear_temporal(dir: &Path, prefix: &str) -> io::Result<(PathBuf, fs::File)> {
@@ -504,10 +504,10 @@ fn escribir_atomico(
 ) -> Result<(), SessionsError> {
     let (temporal, mut archivo) = crear_temporal(dir, prefix)?;
     // Sin el sync_all, un corte de energía puede dejar el temporal vacío y el
-    // rename lo pondría encima de la conversación buena. Go no sincroniza
-    // (`sessions.go:143-158`): esto agrega durabilidad, no cambia el formato.
+    // rename lo pondría encima de la conversación buena. El contrato no sincroniza
+    // Esto agrega durabilidad, no cambia el formato.
     let escritura = archivo.write_all(datos).and_then(|()| archivo.sync_all());
-    // Go devuelve el error de Close; Rust cierra al soltar el File y no expone
+    // El contrato devuelve el error de Close; Rust cierra al soltar el File y no expone
     // ese error. La escritura, que es la que puede fallar por datos, sí se
     // revisa, y el temporal se borra ante cualquier fallo.
     drop(archivo);
@@ -631,9 +631,9 @@ mod tests {
         assert_eq!(valor["messages"][0]["Role"], "user");
         assert_eq!(valor["messages"][0]["Content"], "hola");
 
-        // Un archivo escrito por Go: offset en la fecha, campos omitidos.
-        let de_go = r#"{"version":1,"id":"7","title":"t","cwd":"C:\\x","created":"2026-11-11T10:00:00.123-05:00","updated":"2026-11-11T10:00:00.123-05:00","messages":[],"tokens_in":1,"cost_usd":0.5}"#;
-        let ses: Session = serde_json::from_str(de_go).unwrap();
+        // Un archivo guardado por una versión anterior: offset en la fecha, campos omitidos.
+        let archivo_previo = r#"{"version":1,"id":"7","title":"t","cwd":"C:\\x","created":"2026-11-11T10:00:00.123-05:00","updated":"2026-11-11T10:00:00.123-05:00","messages":[],"tokens_in":1,"cost_usd":0.5}"#;
+        let ses: Session = serde_json::from_str(archivo_previo).unwrap();
         assert_eq!(ses.cwd, r"C:\x");
         assert_eq!(ses.tokens_in, 1);
         assert_eq!(ses.tokens_out, 0);

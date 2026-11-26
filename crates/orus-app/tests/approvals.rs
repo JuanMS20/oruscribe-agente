@@ -1,4 +1,4 @@
-//! Contrato de la cola de aprobaciones de la ventana (`agent.go:712-828`).
+//! Contrato de la cola de aprobaciones de la ventana.
 
 use std::process::Command;
 use std::thread;

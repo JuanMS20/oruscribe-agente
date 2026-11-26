@@ -1,4 +1,4 @@
-//! Contrato del callback loopback (`internal/auth/callback.go:15-135`).
+//! Contrato del callback loopback.
 //!
 //! Todo corre contra un `TcpListener` local; no hay navegador ni red real.
 

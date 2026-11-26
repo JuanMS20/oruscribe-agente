@@ -10,7 +10,7 @@ use serde_json::Value;
 use super::ApproveRiskFn;
 use crate::compactar::compactar;
 
-/// La acción que muestra el prompt según el riesgo (`accion`, `run.go:613-622`).
+/// La acción que muestra el prompt según el riesgo.
 fn accion(riesgo: Option<Risk>) -> &'static str {
     match riesgo {
         Some(Risk::Exec) => "ejecutar un programa",
@@ -19,7 +19,7 @@ fn accion(riesgo: Option<Risk>) -> &'static str {
     }
 }
 
-/// El prompt exacto de una llamada (`run.go:472-479`). El plan se lee entero
+/// El prompt exacto de una llamada. El plan se lee entero
 /// porque quien aprueba necesita ver todos los pasos.
 pub(super) fn texto_prompt_llamada(nombre: &str, args: &Value, riesgo: Option<Risk>) -> String {
     if nombre == HERRAMIENTA_PROPOSE_PLAN {
@@ -36,7 +36,7 @@ pub(super) fn texto_prompt_llamada(nombre: &str, args: &Value, riesgo: Option<Ri
     )
 }
 
-/// Acepta el sí después de recortar y pasar a minúsculas (`run.go:484-487`).
+/// Acepta el sí después de recortar y pasar a minúsculas.
 pub(super) fn interpretar_respuesta(linea: &str) -> bool {
     matches!(
         linea.trim().to_lowercase().as_str(),
@@ -45,7 +45,7 @@ pub(super) fn interpretar_respuesta(linea: &str) -> bool {
 }
 
 /// Lee una línea de la terminal. Un EOF cuenta como respuesta vacía, igual
-/// que en Go (`run.go:480-483`).
+/// que.
 fn leer_respuesta() -> std::result::Result<bool, ToolError> {
     let mut linea = String::new();
     io::stdin()
@@ -55,7 +55,7 @@ fn leer_respuesta() -> std::result::Result<bool, ToolError> {
     Ok(interpretar_respuesta(&linea))
 }
 
-/// Arma la aprobación de herramientas (`run.go:461-491`): primero las
+/// Arma la aprobación de herramientas: primero las
 /// banderas, después la terminal; sin terminal se rechaza. Solo la usan los
 /// tests de la política; el turno arma la variante con costura.
 #[cfg(test)]
@@ -103,7 +103,7 @@ pub(super) fn aprobador_con_externo(
     })
 }
 
-/// Arma la aprobación del plan (`run.go:473-479`): `--yes` lo aprueba; sin
+/// Arma la aprobación del plan: `--yes` lo aprueba; sin
 /// terminal y sin `--yes` se rechaza. Tras el sí ofrece recordar la regla.
 /// Solo la usan los tests; el turno arma la variante con costura.
 #[cfg(test)]
@@ -143,7 +143,7 @@ pub(super) fn aprobador_plan_con_externo(
     })
 }
 
-/// Tras aprobar, ofrece recordar la regla (`run.go:436-460`). Un fallo al
+/// Tras aprobar, ofrece recordar la regla. Un fallo al
 /// guardarla se avisa y el turno sigue.
 fn tras_aprobar(nombre: &str, args: &Value, riesgo: Option<Risk>, es_tty: bool) {
     if !es_tty {

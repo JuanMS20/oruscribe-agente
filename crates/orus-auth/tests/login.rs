@@ -225,8 +225,8 @@ async fn exchange_clamps_expires_in_enorme() {
     hilo.join().unwrap();
 }
 
-/// Sin `expires_in` positivo la expiración queda en el cero de Go, no en el
-/// pasado: renovar en bucle sería peor (`oauth.go:143-149`).
+/// Sin `expires_in` positivo la expiración queda en el cero, no en el
+/// pasado: renovar en bucle sería peor.
 #[tokio::test]
 async fn exchange_sin_expires_in_positivo_queda_en_cero() {
     for expires_in in [Some(0), Some(-5), None] {
@@ -240,7 +240,7 @@ async fn exchange_sin_expires_in_positivo_queda_en_cero() {
         )
         .await
         .expect("canje sin expires_in positivo");
-        assert_eq!(token.expiry.year(), 1, "cero de Go para {cuerpo}");
+        assert_eq!(token.expiry.year(), 1, "fecha cero para {cuerpo}");
         assert!(!token.expired(Utc::now().fixed_offset()));
         hilo.join().unwrap();
     }

@@ -1,6 +1,5 @@
 //! Skills del arnés: carga `SKILL.md` y expone la herramienta `skill`.
 //!
-//! Port de `internal/harness/skills.go:17-346`.
 
 use std::collections::HashMap;
 use std::ffi::OsStr;

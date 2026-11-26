@@ -1,7 +1,7 @@
 //! Tipos del servidor MCP de Oruscribe.
 //!
-//! Port de `internal/oruscribe/oruscribe.go:28-390` y `capture.go:15-72`. Cada
-//! campo conserva el tag JSON de Go; los punteros y las slices nil se modelan
+//! Cada
+//! campo conserva el tag JSON del contrato; los punteros y las slices nil se modelan
 //! con `Option`.
 
 use std::collections::BTreeMap;
@@ -12,8 +12,8 @@ use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
-/// Un `null` del servidor se lee como el cero de Go, igual que un campo ausente.
-/// `#[serde(default)]` no cubre el `null` explícito: los contadores de Go son
+/// Un `null` del servidor se lee como el cero, igual que un campo ausente.
+/// `#[serde(default)]` no cubre el `null` explícito: los contadores del contrato son
 /// punteros que pueden llegar así (`get_chat_messages` devuelve `null` en
 /// `next_offset` cuando no hay página siguiente).
 pub(crate) fn nulo_como_cero<'de, D>(deserializer: D) -> std::result::Result<i64, D::Error>
@@ -44,7 +44,7 @@ where
 /// Estado del ciclo de vida de una tarea.
 ///
 /// Es el vocabulario que acepta el servidor. Un valor fuera de él se conserva
-/// como [`Status::Unknown`] al decodificar (igual que el `string` de Go), pero
+/// como [`Status::Unknown`] al decodificar (igual que el `string` del contrato), pero
 /// [`parse_status`] lo rechaza y [`Status::valid`] devuelve falso.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Status {
@@ -80,7 +80,7 @@ impl Status {
 
 impl Default for Status {
     fn default() -> Self {
-        // El cero de Go para Status es la cadena vacía.
+        // El cero para Status es la cadena vacía.
         Status::Unknown(String::new())
     }
 }
@@ -289,7 +289,7 @@ pub struct UpdateComment {
 #[serde(default)]
 pub struct TaskFiles {
     pub files: Option<Vec<TaskFile>>,
-    /// El mapa nil de Go se lee como vacío; esta estructura solo se decodifica.
+    /// El mapa nil del contrato se lee como vacío; esta estructura solo se decodifica.
     pub update_comments: BTreeMap<String, Vec<UpdateComment>>,
     /// El servidor pagina los avances (docs/contrato-avances.md §4): con
     /// `has_more` o `truncated` la lista quedó corta y `next_offset` dice

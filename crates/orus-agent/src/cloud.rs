@@ -1,6 +1,6 @@
 //! Cerebro de la organización: el asistente de chat-agent.
 //!
-//! Port de `internal/agent/cloud.go:1-151`. El modelo lo elige la organización
+//! El modelo lo elige la organización
 //! y sus herramientas corren del lado del servidor, así que aquí no viajan ni
 //! modelo ni herramientas locales: solo la conversación. El token de la sesión
 //! llega por función y nunca se guarda en el agente.
@@ -20,7 +20,7 @@ use crate::openai::{
 use crate::types::{ChatReply, ChatRequest, Provider, ToolSpec};
 
 /// Devuelve el token de la sesión en el momento de la llamada. Vacío significa
-/// sin sesión. Copia de `Token func() string` (`cloud.go:25`).
+/// sin sesión.
 pub type TokenFn = Box<dyn Fn() -> String + Send + Sync>;
 
 /// Habla con el asistente de la organización (`/functions/v1/chat-agent`).
@@ -776,7 +776,7 @@ fn convertir_con_tools(msgs: &[Message]) -> Vec<MensajeCerebro> {
 }
 
 /// Deja la conversación en el formato clásico que chat-agent conoce (user y
-/// assistant). `convertirParaCerebro` (`cloud.go:121-148`).
+/// assistant).
 fn convertir_para_cerebro(msgs: &[Message]) -> Vec<MensajeCerebro> {
     let mut out = Vec::with_capacity(msgs.len());
     for mensaje in msgs {
@@ -860,7 +860,7 @@ fn convertir_para_cerebro(msgs: &[Message]) -> Vec<MensajeCerebro> {
 }
 
 /// Recorta el cuerpo de un error a `max` bytes y borra de él el token de la
-/// sesión, por si el servidor lo repite. `cuerpoSinToken` (`cloud.go:152-160`).
+/// sesión, por si el servidor lo repite.
 fn cuerpo_sin_token(max: usize, texto: &[u8], token: &str) -> String {
     let recortado = if texto.len() > max {
         let mut bytes = texto[..max].to_vec();
@@ -941,7 +941,6 @@ mod tests {
         }
     }
 
-    /// `TestCloudBrainAnswersWithoutModelOrTools` (`cloud_test.go:17-79`).
     #[tokio::test]
     async fn answers_without_model_or_tools() {
         let visto = Arc::new(Mutex::new((String::new(), String::new(), String::new())));
@@ -1064,7 +1063,6 @@ mod tests {
         );
     }
 
-    /// `TestCloudBrainTurnsToolHistoryIntoNotes` (`cloud_test.go:84-112`).
     #[tokio::test]
     async fn turns_tool_history_into_notes() {
         let cuerpo = Arc::new(Mutex::new(String::new()));
@@ -1134,7 +1132,6 @@ mod tests {
         );
     }
 
-    /// `TestCloudBrainErrorsHideTheToken` (`cloud_test.go:116-131`).
     #[tokio::test]
     async fn errors_hide_the_token() {
         let servidor_url = servidor(|_peticion: Request| async {
@@ -1157,9 +1154,9 @@ mod tests {
         );
     }
 
-    /// `cuerpoSinToken` (`cloud.go:152-160`) corta a 300 bytes antes de
-    /// sustituir el token. El marcador de Go es `"…"` (U+2026), no un punto:
-    /// el byte en `cloud.go:155` es `E2 80 A6`.
+    /// El cuerpo se corta a 300 bytes antes de
+    /// sustituir el token. El marcador del contrato es `"…"` (U+2026), no un punto:
+    /// el byte es `E2 80 A6`.
     #[tokio::test]
     async fn recorta_el_cuerpo_a_300_bytes() {
         let cuerpo = format!("tok-secreto{}", "x".repeat(350));
@@ -1182,7 +1179,6 @@ mod tests {
         );
     }
 
-    /// `TestCloudBrainNeedsASession` (`cloud_test.go:135-146`).
     #[tokio::test]
     async fn needs_a_session() {
         let llamadas = Arc::new(AtomicUsize::new(0));
@@ -1211,7 +1207,6 @@ mod tests {
         );
     }
 
-    /// `TestCloudBrainRejectsInsecureBase` (`cloud_test.go:149-155`).
     #[tokio::test]
     async fn rejects_insecure_base() {
         let error = cerebro("http://ejemplo.com/functions/v1", Some("t"))

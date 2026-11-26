@@ -1,6 +1,6 @@
 //! Catálogo de proveedores.
 //!
-//! Port de `internal/agent/catalog.go:1-165`. El catálogo es la fuente de
+//! El catálogo es la fuente de
 //! verdad: dice a dónde ir y qué protocolo habla cada proveedor. `supported` se
 //! calcula del protocolo, no se escribe en la entrada, así que agregar un
 //! adaptador enciende la lista entera sin tocar el catálogo.
@@ -10,7 +10,7 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Protocolos que este arnés habla hoy. `catalog.go:20-36`.
+/// Protocolos que este arnés habla hoy.
 pub const PROTOCOLO_OPENAI_CHAT: &str = "openai-completions";
 pub const PROTOCOLO_ANTHROPIC_MESSAGES: &str = "anthropic-messages";
 pub const PROTOCOLO_OPENAI_RESPONSES: &str = "openai-responses";
@@ -24,15 +24,15 @@ pub const PROTOCOLO_TYPESAFE_SYSTEM_ONE: &str = "typesafe-system-one";
 pub const PROTOCOLO_COPILOT: &str = "github-copilot";
 pub const PROTOCOLO_CONFIGURADO: &str = "configurable";
 
-/// Lo que este arnés sabe hablar. `implementados` (`catalog.go:41-44`).
+/// Lo que este arnés sabe hablar. `implementados`.
 pub(crate) fn esta_implementado(protocolo: &str) -> bool {
     protocolo == PROTOCOLO_OPENAI_CHAT || protocolo == PROTOCOLO_ANTHROPIC_MESSAGES
 }
 
 /// Una entrada del catálogo de proveedores.
 ///
-/// Copia de `ProviderPreset` (`catalog.go:47-64`). Los nombres de las claves
-/// JSON son contrato y conservan los tags de Go.
+/// Los nombres de las claves
+/// JSON son contrato y conservan sus tags.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct ProviderPreset {
     /// Identificador estable, el que guardan los ajustes.
@@ -117,8 +117,8 @@ const fn entrada_sin_adaptador(
 }
 
 /// La fuente de verdad, sin calcular y con `supported` en cero.
-/// `catalogo` (`catalog.go:98-165`). Es una tabla de datos: una entrada por
-/// línea se lee y se compara contra Go mejor que el envoltorio de rustfmt.
+/// `catalogo`. Es una tabla de datos: una entrada por
+/// línea se lee y se compara contra el contrato mejor que el envoltorio de rustfmt.
 #[rustfmt::skip]
 const CATALOGO: &[Entrada] = &[
     entrada("ant-ling", "Ant Ling", "https://api.ant-ling.com/v1", PROTOCOLO_OPENAI_CHAT),
@@ -167,7 +167,6 @@ const CATALOGO: &[Entrada] = &[
 ];
 
 /// Decide `supported` a partir del protocolo y explica lo que no se puede usar.
-/// `conResultado` (`catalog.go:89-95`).
 fn con_resultado(entrada: &Entrada) -> ProviderPreset {
     let supported = esta_implementado(entrada.protocol);
     ProviderPreset {
@@ -185,15 +184,14 @@ fn con_resultado(entrada: &Entrada) -> ProviderPreset {
     }
 }
 
-/// El catálogo completo, ordenado por nombre. `ProviderPresets`
-/// (`catalog.go:67-74`).
+/// El catálogo completo, ordenado por nombre.
 pub fn presets_de_proveedores() -> Vec<ProviderPreset> {
     let mut out: Vec<ProviderPreset> = CATALOGO.iter().map(con_resultado).collect();
     out.sort_by(|a, b| a.name.cmp(&b.name));
     out
 }
 
-/// Busca una entrada por su id. `FindProviderPreset` (`catalog.go:77-84`).
+/// Busca una entrada por su id.
 pub fn buscar_preset_proveedor(id: &str) -> Option<ProviderPreset> {
     CATALOGO
         .iter()
@@ -201,8 +199,7 @@ pub fn buscar_preset_proveedor(id: &str) -> Option<ProviderPreset> {
         .map(con_resultado)
 }
 
-/// Busca por dirección ya validada y sin diagonal final. `buscarPorBase`
-/// (`proveedor.go:47-54`).
+/// Busca por dirección ya validada y sin diagonal final.
 pub(crate) fn buscar_por_base(normalizada: &str) -> Option<ProviderPreset> {
     CATALOGO
         .iter()
@@ -210,8 +207,7 @@ pub(crate) fn buscar_por_base(normalizada: &str) -> Option<ProviderPreset> {
         .map(con_resultado)
 }
 
-/// Motivo de no disponibilidad en palabras normales. `razonDelCatalogo`
-/// (`proveedor.go:56-62`).
+/// Motivo de no disponibilidad en palabras normales.
 pub(crate) fn razon_del_catalogo(preset: &ProviderPreset) -> String {
     let razon = preset.reason.trim();
     if razon.is_empty() {
@@ -285,7 +281,6 @@ mod tests {
 
     /// El catálogo tiene que ser usable tal cual: ids únicos, nombres y
     /// direcciones que pasan la misma validación que usa quien configura.
-    /// `TestCatalogoIntegridad` (`catalog_test.go:13-55`).
     #[test]
     fn integridad() {
         let mut vistos = HashSet::new();
@@ -338,7 +333,6 @@ mod tests {
     }
 
     /// `supported` se calcula del protocolo, no de la entrada.
-    /// `TestCatalogoSupportedSigueAlProtocolo` (`catalog_test.go:59-66`).
     #[test]
     fn supported_sigue_al_protocolo() {
         for p in presets_de_proveedores() {
@@ -351,7 +345,6 @@ mod tests {
         }
     }
 
-    /// `TestCatalogoBuscaPorId` (`catalog_test.go:68-82`).
     #[test]
     fn busca_por_id() {
         let p = buscar_preset_proveedor("opencode-go").expect("no encontré opencode-go");
@@ -367,7 +360,6 @@ mod tests {
         );
     }
 
-    /// `TestCatalogoCoincideConPi` (`catalog_test.go:86-106`).
     #[test]
     fn coincide_con_pi() {
         let esperado = [
@@ -392,8 +384,8 @@ mod tests {
     }
 
     /// Cada proveedor disponible arma la petición en su ruta, con su clave y
-    /// sin rutas ni parámetros de más. `TestCatalogoSoportadoArmaLaPeticion`
-    /// (`catalog_test.go:112-163`); acá la dirección del catálogo se cambia por
+    /// sin rutas ni parámetros de más.
+    /// Acá la dirección del catálogo se cambia por
     /// el servidor loopback, porque reqwest no permite sustituir el transporte.
     #[tokio::test]
     async fn soportado_arma_la_peticion() {
@@ -486,7 +478,6 @@ mod tests {
     }
 
     /// OpenAI y xAI hablan chat completions en la dirección del catálogo.
-    /// `TestCatalogoOfreceOpenAIYxAI` (`catalog_test.go:193-207`).
     #[test]
     fn ofrece_openai_y_xai() {
         for id in ["openai", "xai"] {
@@ -502,7 +493,6 @@ mod tests {
     }
 
     /// La lista que pinta la ventana va ordenada y sin perder entradas.
-    /// `TestCatalogoOrdenado` (`catalog_test.go:210-220`).
     #[test]
     fn ordenado() {
         let lista = presets_de_proveedores();
@@ -524,8 +514,7 @@ mod tests {
     }
 
     /// Una entrada soportada manda la clave a https, nunca a una dirección sin
-    /// esquema. `TestCatalogoSoportadosMandanLlaveASitioSeguro`
-    /// (`catalog_test.go:224-233`).
+    /// esquema.
     #[test]
     fn soportados_mandan_llave_a_sitio_seguro() {
         for p in presets_de_proveedores().into_iter().filter(|p| p.supported) {

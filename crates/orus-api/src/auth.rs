@@ -1,4 +1,4 @@
-//! Rutas de autenticación (`http.go:28-62`).
+//! Rutas de autenticación.
 
 use std::sync::Arc;
 
@@ -17,9 +17,8 @@ struct ImportBody {
     token: String,
 }
 
-/// `POST /api/auth/start`: no lee cuerpo (`http.go:28-35`). El login bloquea
-/// esperando el descubrimiento, así que va a un hilo aparte como el goroutine
-/// que Go dedica a la petición.
+/// `POST /api/auth/start`: no lee cuerpo. El login bloquea
+/// esperando el descubrimiento, así que va a un hilo aparte.
 pub(crate) async fn start(AxumState(app): AxumState<Arc<App>>) -> Response {
     match tokio::task::spawn_blocking(move || app.start_login()).await {
         Ok(Ok(url)) => write_json(StatusCode::OK, &serde_json::json!({"url": url})),
@@ -28,7 +27,7 @@ pub(crate) async fn start(AxumState(app): AxumState<Arc<App>>) -> Response {
     }
 }
 
-/// `POST /api/auth/import`: cuerpo `{token}` y responde el `State` (`http.go:41-54`).
+/// `POST /api/auth/import`: cuerpo `{token}` y responde el `State`.
 pub(crate) async fn import(AxumState(app): AxumState<Arc<App>>, body: Body) -> Response {
     let cuerpo: ImportBody = match decode(body).await {
         Ok(cuerpo) => cuerpo,
@@ -44,7 +43,7 @@ pub(crate) async fn import(AxumState(app): AxumState<Arc<App>>, body: Body) -> R
     }
 }
 
-/// `POST /api/auth/logout` (`http.go:56-62`).
+/// `POST /api/auth/logout`.
 pub(crate) async fn logout(AxumState(app): AxumState<Arc<App>>) -> Response {
     match app.logout() {
         Ok(()) => write_json(StatusCode::OK, &serde_json::json!({"ok": true})),

@@ -3,7 +3,7 @@ use serde_json::{Value, json};
 
 /// Una imagen que viaja con un mensaje de la persona.
 ///
-/// Copia de `internal/agent/types.go:11-16`. El struct Go no tiene tags JSON:
+/// El struct no tiene tags JSON:
 /// las claves en disco son los nombres de los campos, en mayúscula.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Image {
@@ -20,14 +20,13 @@ pub struct Image {
 
 /// Una petición del modelo para correr una herramienta.
 ///
-/// Copia de `internal/agent/types.go:28-36`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct ToolCall {
     #[serde(rename = "ID")]
     pub id: String,
     #[serde(rename = "Name")]
     pub name: String,
-    /// Argumentos arbitrarios. En Go es `json.RawMessage`; acá es un valor
+    /// Argumentos arbitrarios. Es un valor
     /// JSON, así que se conserva la estructura pero no el orden de las claves.
     #[serde(rename = "Args")]
     pub args: Value,
@@ -83,10 +82,10 @@ fn id_de_respaldo(id: &str, indice: usize) -> String {
 
 /// Un mensaje del chat, con el formato de OpenAI.
 ///
-/// Copia de `internal/agent/types.go:19-25`. El formato en disco es contrato
-/// (`internal/sessions/sessions.go:33-36`): no se renombran las claves.
+/// El formato en disco es contrato
+/// No se renombran las claves.
 ///
-/// `Images` y `ToolCalls` son `Option<Vec<_>>` porque Go distingue una slice
+/// `Images` y `ToolCalls` son `Option<Vec<_>>` porque el contrato distingue una slice
 /// nil (`null`) de una vacía (`[]`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Message {
@@ -112,11 +111,11 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    /// Deserializa la línea tal como la escribió Go y exige que vuelva a salir
-    /// byte a byte igual. Es el contrato de `internal/sessions/sessions.go:33-36`.
+    /// Deserializa la línea tal como está guardada y exige que vuelva a salir
+    /// byte a byte igual.
     fn ida_y_vuelta(esperada: &str) -> Message {
         let mensaje: Message =
-            serde_json::from_str(esperada).expect("el JSON de Go debe deserializar");
+            serde_json::from_str(esperada).expect("el JSON guardado debe deserializar");
         let texto = serde_json::to_string(&mensaje).expect("el mensaje debe serializar");
         assert_eq!(texto, esperada);
         mensaje

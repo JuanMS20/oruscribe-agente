@@ -1,7 +1,7 @@
 //! Proveedor falso: responde `chat completions` con un guion, sin red externa.
 //!
 //! Sirve para dos cosas:
-//! 1. Grabar un turno del binario Go sin pagar tokens.
+//! 1. Grabar un turno del binario sin pagar tokens.
 //! 2. Reproducir ese mismo turno contra el arnés en Rust.
 //!
 //! El guion se lee de `--guion <ruta>` o de `ORUSCRIBE_FAKE_PROVIDER_GUION`.
@@ -305,7 +305,7 @@ fn argumentos_cadena(herramienta: &Herramienta) -> String {
 }
 
 /// Cuerpo SSE con el formato que lee `OpenAICompat.leerStream`
-/// (`internal/agent/openai.go:235-305`): `data: {...}` por evento, un chunk de
+/// `data: {...}` por evento, un chunk de
 /// texto por trozo, la herramienta partida en nombre y argumentos (el cliente
 /// los concatena por índice), un chunk de cierre, uno de uso y `data: [DONE]`.
 fn cuerpo_stream(respuesta: &Respuesta, uso: Uso, modelo: &str, id: &str) -> String {
@@ -378,7 +378,7 @@ fn cuerpo_stream(respuesta: &Respuesta, uso: Uso, modelo: &str, id: &str) -> Str
     });
     cuerpo.push_str(&sse(&cierre));
     // Con `stream_options.include_usage` el uso llega en un chunk propio y
-    // `choices` va vacío (openai.go:279-282).
+    // `choices` va vacío.
     let uso_evento = json!({
         "id": id,
         "object": "chat.completion.chunk",
@@ -400,8 +400,7 @@ fn sse(evento: &Value) -> String {
     format!("data: {evento}\n\n")
 }
 
-/// Completion sin streaming, en el formato de `oaiRespuesta`
-/// (`internal/agent/openai.go:93-105`).
+/// Completion sin streaming, en el formato de.
 fn cuerpo_json(respuesta: &Respuesta, uso: Uso, modelo: &str, id: &str) -> Value {
     let texto: String = respuesta.texto.concat();
     let mut mensaje = json!({ "role": "assistant", "content": texto });

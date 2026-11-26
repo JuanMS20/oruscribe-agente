@@ -1,7 +1,6 @@
 //! Rutas del instalador por usuario.
 //!
-//! Port de `internal/install/install_windows.go:32-77` y de
-//! `internal/install/install_other.go:19-70`. La carpeta base y el binario que
+//! La carpeta base y el binario que
 //! corre se inyectan: los tests no leen `LOCALAPPDATA`, `XDG_DATA_HOME` ni el
 //! registro. El único camino que consulta el entorno es [`Rutas::system`].
 
@@ -20,7 +19,7 @@ const UNIX_EXE: &str = "oruscribe-agente";
 
 /// Plataforma que decide la forma de las rutas.
 ///
-/// `Linux` cubre las demás plataformas Unix, igual que `install_other.go`
+/// `Linux` cubre las demás plataformas Unix, igual que
 /// cubre todo lo que no es Windows. El campo `platform` de `/api/setup` no usa
 /// este enum: usa el nombre real del sistema ([`crate::platform`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,7 +46,7 @@ impl Platform {
 ///
 /// La base puede quedar vacía cuando el sistema no da ninguna de esas
 /// variables; ahí [`Rutas::dir`] y [`Rutas::exe`] devuelven una ruta vacía,
-/// como el `""` de Go.
+/// como el `""` del contrato.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Rutas {
     platform: Platform,
@@ -79,8 +78,8 @@ impl Rutas {
             Platform::Windows => self.base.join(WINDOWS_PROGRAMS_DIR).join(WINDOWS_APP_DIR),
             Platform::Linux | Platform::Macos => self.base.join(UNIX_APP_DIR),
         };
-        // `filepath.Join` limpia; Path::join no. La limpieza es léxica, igual
-        // que Go, y no toca el disco.
+        // `Path::join` no limpia: la limpieza léxica se hace aparte y no toca el
+        // disco.
         clean_path(&dir)
     }
 
@@ -97,12 +96,11 @@ impl Rutas {
     /// existe en la carpeta de instalación.
     ///
     /// En Linux, un paquete nativo deja el binario en `/usr` o `/opt`: ahí
-    /// también cuenta como instalado, como en `install_other.go:43-51`.
+    /// también cuenta como instalado.
     pub fn installed(&self, current_exe: &Path) -> bool {
-        // Go Windows: sin `Exe()` no hay instalación. Go Unix, en cambio,
-        // siempre cae en `RunningFromInstall`, que dice true cuando no hay
-        // destino con el que comparar (`install_windows.go:67-78`,
-        // `install_other.go:43-51`).
+        // En Windows, sin `Exe` no hay instalación. En el resto de plataformas,
+        // `running_from_install` dice true cuando no hay destino con el que
+        // comparar.
         match self.platform {
             Platform::Windows if self.exe().as_os_str().is_empty() => false,
             _ => self.running_from_install(current_exe),
@@ -111,9 +109,8 @@ impl Rutas {
 
     /// Dice si el proceso que corre es la copia instalada.
     ///
-    /// Windows compara sin distinguir mayúsculas (`EqualFold`). Linux suma
+    /// Windows compara sin distinguir mayúsculas. Linux suma
     /// `/usr` y `/opt`, que es donde deja el binario un paquete del sistema
-    /// (`install_other.go:55-70`).
     pub fn running_from_install(&self, current_exe: &Path) -> bool {
         let casa = env_non_empty("HOME").map(PathBuf::from);
         self.running_from_install_con_casa(current_exe, casa.as_deref())
@@ -152,7 +149,6 @@ impl Rutas {
     }
 
     /// Lo contrario de [`Rutas::running_from_install`]; es el `portable` de
-    /// `internal/app/setup.go:32`.
     pub fn portable(&self, current_exe: &Path) -> bool {
         !self.running_from_install(current_exe)
     }

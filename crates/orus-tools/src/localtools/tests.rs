@@ -330,7 +330,7 @@ async fn bash_ejecuta_echo_en_la_carpeta_permitida() {
     let set = conjunto_pi(base.path());
     let pi = set.tools_pi();
     let bash = herramienta(&pi, "bash");
-    // Sin `cwd`: la primera carpeta permitida, como `runCommand`.
+    // Sin `cwd`: la primera carpeta permitida, como.
     let salida = bash
         .run(json!({"command": "echo hola"}))
         .await

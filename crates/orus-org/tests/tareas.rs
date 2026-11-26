@@ -332,7 +332,7 @@ async fn create_task_arma_los_argumentos_completos() {
         &fake,
         &orus_org::TaskInput {
             title: "  Portar  ".to_owned(),
-            description: "  Desde Go  ".to_owned(),
+            description: "  Desde la app  ".to_owned(),
             priority: "high".to_owned(),
             status: "pending".to_owned(),
             due_date: "2026-12-01".to_owned(),
@@ -353,7 +353,7 @@ async fn create_task_arma_los_argumentos_completos() {
         "create_task",
         json!({
             "title": "Portar",
-            "description": "Desde Go",
+            "description": "Desde la app",
             "priority": "high",
             "status": "pending",
             "due_date": "2026-12-01",

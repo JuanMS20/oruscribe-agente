@@ -1,8 +1,7 @@
 //! `POST /api/agent/send`: arranca un turno con texto e imágenes y contesta
-//! antes de que termine. Port de `AgentSendWithImages` (`agent.go:544-691`) y
-//! su handler (`http.go:869-885`).
+//! antes de que termine.
 //!
-//! El orden de los errores es el de Go: decode, ocupado, imágenes, texto, tope,
+//! El orden de los errores es el del contrato: decode, ocupado, imágenes, texto, tope,
 //! cerebro de la organización, configuración y arranque.
 
 use std::sync::Arc;
@@ -16,7 +15,7 @@ use serde::Deserialize;
 
 use crate::{ErrorRuta, agent::de_agente, decode_con_limite, write_err, write_json};
 
-/// `maxCuerpoAgente` (`agent_images.go:19`): el texto sobra, las imágenes en
+/// El texto sobra, las imágenes en.
 /// base64 necesitan aire.
 const TOPE_ENVIAR: usize = 24 << 20;
 
@@ -37,7 +36,7 @@ pub(crate) async fn enviar(AxumState(app): AxumState<Arc<App>>, body: Body) -> R
         return write_err(SessionError::Tool("el agente no está disponible".to_owned()).into());
     };
     // El 409 gana a las validaciones del cuerpo y llega antes de pedir red
-    // (`agent.go:545-552`). `send` vuelve a mirar bajo su candado.
+    // `send` vuelve a mirar bajo su candado.
     if agente.ocupado() {
         return write_err(ErrorRuta::Ocupado(AgentError::Busy.to_string()));
     }
@@ -46,7 +45,7 @@ pub(crate) async fn enviar(AxumState(app): AxumState<Arc<App>>, body: Body) -> R
         Err(error) => return write_err(de_agente(error)),
     };
     // `Agent::send` vuelve a validar bajo su candado; la ruta lo comprueba
-    // antes de armar el turno (`agent.go:553-563`). Sin imágenes, el texto
+    // antes de armar el turno. Sin imágenes, el texto
     // vacío sigue siendo un 400.
     let texto = match Agent::validar_mensaje_con_imagenes(&cuerpo.text, !imagenes.is_empty()) {
         Ok(texto) => texto,
@@ -63,9 +62,9 @@ pub(crate) async fn enviar(AxumState(app): AxumState<Arc<App>>, body: Body) -> R
     };
     turno.imagenes = imagenes;
     // `empezar` reserva el agente antes de responder: si otro envío ganó la
-    // carrera, devuelve `Busy` y la ruta lo pinta 409 (`agent.go:649-657`).
+    // carrera, devuelve `Busy` y la ruta lo pinta 409.
     // La corrida sigue aparte: su error queda en `Agent::error()`/`last_error`,
-    // no en un 500 tardío (`agent.go:688-690`).
+    // no en un 500 tardío.
     let app_org = Arc::clone(&app);
     match agente.empezar_con(texto, turno, move |turno| {
         let app = Arc::clone(&app_org);

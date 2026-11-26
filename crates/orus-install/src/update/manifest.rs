@@ -1,4 +1,4 @@
-//! Manifiesto de versiones (`internal/update/update.go:34-42`).
+//! Manifiesto de versiones.
 
 use serde::{Deserialize, Serialize};
 

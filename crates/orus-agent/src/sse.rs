@@ -6,7 +6,7 @@
 use crate::error::ProviderError;
 use crate::openai::MAX_RESPUESTA;
 
-/// El escáner de Go arranca con 64 KiB y crece hasta [`MAX_RESPUESTA`].
+/// El escáner del contrato arranca con 64 KiB y crece hasta [`MAX_RESPUESTA`].
 const BUFFER_INICIAL: usize = 64 << 10;
 
 /// Lee el cuerpo de `respuesta` y llama a `procesar` con cada evento completo,

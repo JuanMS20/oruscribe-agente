@@ -5,7 +5,7 @@ use thiserror::Error;
 
 /// Error de `orus-org`.
 ///
-/// Los textos conservan los del Go: los lee una persona y algunos tests los
+/// Los textos conservan los del contrato: los lee una persona y algunos tests los
 /// comparan.
 #[derive(Debug, Error)]
 pub enum OrgError {
@@ -72,7 +72,7 @@ pub enum OrgError {
     UnknownStatus(String),
 
     /// Una entrada que la persona todavía puede corregir: un nombre vacío, una
-    /// fecha que falta. El texto es el mismo que muestra el Go.
+    /// fecha que falta. El texto lo lee la persona tal cual.
     #[error("{0}")]
     InvalidInput(String),
 
@@ -106,7 +106,7 @@ pub enum OrgError {
     InsecureUploadUrl,
 
     /// Contexto de la herramienta sobre un error de subida, como el `%s: %w`
-    /// del Go.
+    /// del contrato.
     #[error("{tool}: {source}")]
     ToolContext {
         tool: String,

@@ -3,13 +3,13 @@ use serde::{Deserialize, Serialize};
 /// Un evento del turno. Es el contrato con el cliente: una línea JSON por
 /// evento.
 ///
-/// Reproduce el struct `output` de `internal/harness/run.go:642-658`, no una
+/// Reproduce el struct `output`, no una
 /// versión "más limpia". Tres cosas que no se tocan:
-/// - `args` viaja como texto JSON, no como objeto (`run.go:652`).
+/// - `args` viaja como texto JSON, no como objeto.
 /// - `tool_result` no lleva `ok`: el éxito o el fallo van dentro de `text`.
 /// - `denied` reemplaza a `tool_result`; una llamada negada no emite resultado.
 ///
-/// Los campos opcionales son los que el Go omite con `omitempty`.
+/// Los campos opcionales son los que el contrato omite con `omitempty`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Event {
@@ -82,7 +82,7 @@ pub enum Event {
     },
 }
 
-/// El Go usa `omitempty` en todos los campos de texto (`run.go:642-658`).
+/// El contrato usa `omitempty` en todos los campos de texto.
 fn texto_vacio(texto: &str) -> bool {
     texto.is_empty()
 }

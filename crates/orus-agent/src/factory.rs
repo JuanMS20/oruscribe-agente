@@ -1,7 +1,7 @@
 //! Fábrica de proveedores a partir del catálogo o de una dirección escrita a
 //! mano.
 //!
-//! Port de `internal/agent/proveedor.go:1-62`. Un protocolo sin adaptador es un
+//! Un protocolo sin adaptador es un
 //! error con la razón del catálogo; nunca se degrada a `OpenAICompat` contra
 //! una dirección que habla otro idioma.
 
@@ -16,7 +16,7 @@ use crate::error::ProviderError;
 use crate::openai::{OpenAICompat, cliente_http, validar_base};
 use crate::types::{ChatReply, ChatRequest, Provider};
 
-/// El proveedor que armó la fábrica. Go devuelve la interfaz `Provider`; el
+/// El proveedor que armó la fábrica. El contrato devuelve la interfaz `Provider`; el
 /// enum conserva el tipo concreto para que la prueba de ruteo lo pueda mirar.
 #[derive(Debug)]
 pub enum Proveedor {
@@ -42,7 +42,7 @@ fn cliente_o_defecto(cliente: Option<reqwest::Client>) -> Result<reqwest::Client
 }
 
 /// Construye el proveedor de una entrada del catálogo según su protocolo.
-/// `NuevoProveedor` (`proveedor.go:12-29`).
+/// `NuevoProveedor`.
 pub fn nuevo_proveedor(
     preset: &ProviderPreset,
     api_key: impl Into<String>,
@@ -76,7 +76,7 @@ pub fn nuevo_proveedor(
 /// Construye un proveedor para una dirección escrita a mano. Si coincide con el
 /// catálogo, usa el protocolo que el catálogo declara; si no, cae en
 /// `OpenAICompat` (compatibilidad hacia atrás con direcciones propias).
-/// `NuevoProveedorPorURL` (`proveedor.go:34-43`).
+/// `NuevoProveedorPorURL`.
 pub fn nuevo_proveedor_por_url(
     base_url: &str,
     api_key: impl Into<String>,
@@ -108,7 +108,6 @@ mod tests {
         }
     }
 
-    /// `TestNuevoProveedorEnrutaPorProtocolo` (`anthropic_test.go:394-413`).
     #[test]
     fn enruta_por_protocolo() {
         let anthropic = nuevo_proveedor(
@@ -138,8 +137,6 @@ mod tests {
         );
     }
 
-    /// `TestNuevoProveedorSinDireccionUsaLaRazonDelCatalogo`
-    /// (`anthropic_test.go:415-420`).
     #[test]
     fn sin_direccion_usa_la_razon_del_catalogo() {
         let mut preset = preset("azure", "", PROTOCOLO_CONFIGURADO);
@@ -152,8 +149,6 @@ mod tests {
         );
     }
 
-    /// `TestNuevoProveedorRechazaProtocoloSinAdaptador`
-    /// (`anthropic_test.go:422-431`).
     #[test]
     fn rechaza_protocolo_sin_adaptador() {
         let preset =
@@ -166,8 +161,6 @@ mod tests {
         );
     }
 
-    /// `TestNuevoProveedorPorURLReconoceElCatalogoYLoEscritoAMano`
-    /// (`anthropic_test.go:433-451`).
     #[test]
     fn por_url_reconoce_el_catalogo_y_lo_escrito_a_mano() {
         let anthropic = nuevo_proveedor_por_url("https://api.anthropic.com", "sk-ant-test", None)

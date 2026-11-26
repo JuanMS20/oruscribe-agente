@@ -39,7 +39,7 @@ fn token_expires_with_one_minute_slack() {
     candidato.expiry = now + Duration::seconds(90);
     assert!(!candidato.expired(now));
 
-    candidato.expiry = DateTime::parse_from_rfc3339("0001-01-01T00:00:00Z").expect("cero de Go");
+    candidato.expiry = DateTime::parse_from_rfc3339("0001-01-01T00:00:00Z").expect("fecha cero");
     assert!(!candidato.expired(now));
 }
 

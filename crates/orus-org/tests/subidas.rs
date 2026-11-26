@@ -873,6 +873,7 @@ async fn servidor_lento(respuesta: Vec<u8>) -> (String, tokio::task::JoinHandle<
 }
 
 #[tokio::test]
+#[ignore = "tarda ~125 s reales; antes de un release: cargo test -p orus-org --test subidas -- --ignored"]
 async fn la_subida_de_25_mib_en_conexion_lenta_no_se_corta() {
     // #84: el plazo total fijo de 120 s no alcanza para el archivo máximo del
     // contrato (25 MiB, docs/contrato-avances.md §1) en una conexión lenta.

@@ -1,7 +1,6 @@
 //! Inicio de sesión OAuth 2.1: URL de autorización, registro y canje de código.
 //!
-//! Puerto de `AuthorizeURL` y `Exchange` (`oauth.go:84-157`) y de `Register`
-//! (`register.go:18-58`). El callback loopback vive en `orus-app`.
+//! El callback loopback vive en `orus-app`.
 
 use reqwest::header::{ACCEPT, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
@@ -9,15 +8,15 @@ use serde::{Deserialize, Serialize};
 use crate::oauth::{expiracion_acotada, leer_cuerpo};
 use crate::{Config, Error, Metadata, Token};
 
-/// Ruta del callback loopback (`callback.go:15-135`).
+/// Ruta del callback loopback.
 pub const CALLBACK_PATH: &str = "/oauth_callback";
 
-/// La dirección que abre el navegador (`oauth.go:86`). El verificador nunca
+/// La dirección que abre el navegador. El verificador nunca
 /// viaja aquí, solo su reto.
 pub fn authorize_url(config: &Config, state: &str, challenge: &str) -> Result<String, Error> {
     let mut url = reqwest::Url::parse(&config.metadata.authorization_endpoint)
         .map_err(|error| Error::InvalidUrl(error.to_string()))?;
-    // Go conserva la query que ya traiga el endpoint y la reordena en
+    // El contrato conserva la query que ya traiga el endpoint y la reordena en
     // `Values.Encode()`, que ordena claves (y valores) alfabéticamente.
     let mut pares: Vec<(String, String)> = url
         .query_pairs()
@@ -59,7 +58,7 @@ struct Registro<'a> {
     token_endpoint_auth_method: &'a str,
 }
 
-/// Registra un cliente público (`register.go:18`).
+/// Registra un cliente público.
 pub async fn register(
     http: &reqwest::Client,
     metadata: &Metadata,
@@ -101,7 +100,7 @@ pub async fn register(
     Ok(salida.client_id)
 }
 
-/// Canjea el código por tokens (`oauth.go:107`). El `redirect_uri` y el
+/// Canjea el código por tokens. El `redirect_uri` y el
 /// verificador se envían otra vez porque el servidor ata el código a ambos.
 pub async fn exchange(
     http: &reqwest::Client,
@@ -137,7 +136,7 @@ pub async fn exchange(
         return Err(Error::ExchangeNoAccessToken);
     }
     // Sin `expires_in` la expiración queda en cero, no en el pasado
-    // (`oauth.go:143-149`): renovar en bucle sería peor. El tope evita el
+    // Renovar en bucle sería peor. El tope evita el
     // panic con un valor enorme del servidor (#74).
     let token = Token {
         access_token: payload.access_token,

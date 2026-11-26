@@ -1,6 +1,6 @@
 //! Subidas multipart de archivos para tareas y chat.
 //!
-//! Port de `internal/app/http.go:137-158,690-712,1065-1114`. `subida` limita la
+//! `subida` limita la
 //! petición a 26 MB y el archivo a 25 MB; los dos excesos son 400 con
 //! `archivo_grande`, nunca 413. El formulario se recorre completo antes de
 //! validar, así que el orden de los campos no importa.
@@ -17,16 +17,15 @@ use serde_json::json;
 
 use crate::{ErrorRuta, write_json};
 
-/// `http.MaxBytesReader(w, r.Body, 26<<20)` (`http.go:1084`).
+/// `http.MaxBytesReader(w, r.Body, 26<<20)`.
 const TOPE_PETICION: usize = 26 * 1024 * 1024;
-/// `25*1024*1024` (`http.go:1095,1104`).
+/// `25*1024*1024`.
 const TOPE_ARCHIVO: usize = 25 * 1024 * 1024;
 /// `subida` rellena el tipo cuando la parte no trae `Content-Type`.
 const TIPO_POR_DEFECTO: &str = "application/octet-stream";
 
-/// Un error del parser multipart: el 400/413 de multer es `archivo_grande`
-/// (Go mapea todo `ParseMultipartForm` a ese texto); un fallo de transporte
-/// real es 500, como el `writeErr(err)` de Go.
+/// Un error del parser multipart: el 400/413 de multer es `archivo_grande`;
+/// un fallo de transporte real es 500.
 fn error_multipart(error: axum::extract::multipart::MultipartError) -> ErrorRuta {
     match error.status() {
         StatusCode::BAD_REQUEST | StatusCode::PAYLOAD_TOO_LARGE => ErrorRuta::ArchivoGrande,
@@ -34,8 +33,7 @@ fn error_multipart(error: axum::extract::multipart::MultipartError) -> ErrorRuta
     }
 }
 
-/// Go guarda `FileHeader.Filename` después de `filepath.Base`
-/// (`mime/multipart.Part.FileName`); en Windows eso también quita las barras
+/// Se guarda solo el nombre base del archivo; en Windows eso también quita las barras
 /// invertidas. `Path::file_name` usa la misma regla del sistema.
 fn nombre_base(nombre: &str) -> String {
     std::path::Path::new(nombre)
@@ -51,7 +49,7 @@ struct Archivo {
 }
 
 /// Solo las claves que leen las dos rutas. Gana la primera aparición de cada
-/// campo, igual que `FormValue` dentro de un mismo formulario.
+/// campo dentro de un mismo formulario.
 #[derive(Default)]
 struct Formulario {
     archivo: Option<Archivo>,
@@ -61,10 +59,9 @@ struct Formulario {
     body: Option<String>,
 }
 
-/// Port de `subida` (`http.go:1081-1114`): lee el cuerpo entero con el tope de
+/// Lee el cuerpo entero con el tope de
 /// la petición y después parsea el multipart. Solo el exceso y el multipart mal
-/// formado son `ArchivoGrande`; un fallo real de lectura es 500, como
-/// `writeErr(err)` con el `io.ReadAll` de Go.
+/// formado son `ArchivoGrande`; un fallo real de lectura es 500.
 async fn leer_formulario(request: Request) -> Result<Formulario, ErrorRuta> {
     let (partes, cuerpo) = request.into_parts();
     let bytes = match to_bytes(cuerpo, TOPE_PETICION.saturating_add(1)).await {
@@ -113,7 +110,7 @@ async fn leer_formulario(request: Request) -> Result<Formulario, ErrorRuta> {
             datos.extend_from_slice(&trozo);
         }
 
-        // Go separa por `filename`: con nombre va al mapa de archivos y sin
+        // El contrato separa por `filename`: con nombre va al mapa de archivos y sin
         // nombre al de valores. `FormFile("file")` exige nombre.
         if nombre == "file" && !nombre_archivo.is_empty() {
             if formulario.archivo.is_none() {
@@ -142,7 +139,7 @@ async fn leer_formulario(request: Request) -> Result<Formulario, ErrorRuta> {
     Ok(formulario)
 }
 
-/// `POST /api/tasks/files` (`http.go:137-156`): la tarea y la nota no se
+/// `POST /api/tasks/files`: la tarea y la nota no se
 /// validan en el adaptador; el backend recibe la cadena tal cual.
 pub(crate) async fn tarea(
     AxumState(app): AxumState<Arc<App>>,
@@ -165,7 +162,7 @@ pub(crate) async fn tarea(
     Ok(write_json(StatusCode::OK, &json!({"update_id": update_id})))
 }
 
-/// `POST /api/chat/files` (`http.go:690-711`): el archivo se lee antes de
+/// `POST /api/chat/files`: el archivo se lee antes de
 /// mirar la sala; sin archivo la respuesta es `falta el archivo`.
 pub(crate) async fn chat(
     AxumState(app): AxumState<Arc<App>>,

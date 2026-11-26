@@ -100,7 +100,7 @@ pub fn data_dir_removable() -> bool {
     true
 }
 
-// Limpieza léxica como filepath.Clean: quita `.`, resuelve `..` sin tocar el
+// Limpieza léxica: quita `.`, resuelve `..` sin tocar el
 // disco y conserva el prefijo y la raíz de Windows.
 pub fn clean_path(path: &Path) -> PathBuf {
     let mut prefix = None;

@@ -1,5 +1,5 @@
-//! Tests portados de `internal/install/install_windows_test.go:12-23,67-78` y
-//! del contrato de `internal/app/setup.go:13-40`.
+//! Tests portados y
+//! del contrato.
 //!
 //! La carpeta base y el binario que corre se inyectan: ningún test lee
 //! `LOCALAPPDATA`, `XDG_DATA_HOME` ni el registro.
@@ -15,7 +15,7 @@ fn base_temporal() -> tempfile::TempDir {
     tempfile::tempdir().expect("carpeta temporal")
 }
 
-// Port de `TestDirStaysUnderTheUserProfile`: la carpeta cuelga de Programas y
+// La carpeta cuelga de Programas y
 // el ejecutable cuelga de la carpeta.
 #[test]
 fn dir_de_windows_queda_bajo_el_perfil() {
@@ -43,7 +43,7 @@ fn dir_de_linux_respeta_su_carpeta_de_datos() {
     );
 }
 
-// Port de `TestRunningFromInstallIsFalseForTheTestBinary`: el binario que se
+// El binario que se
 // descargó no se cree instalado; el que está en su carpeta, sí.
 #[test]
 fn el_binario_de_prueba_no_se_cree_instalado() {
@@ -83,7 +83,7 @@ fn portable_con_instalacion_previa_no_se_cree_instalada() {
     assert!(rutas.installed(&gritado));
 }
 
-// Go compara con `strings.EqualFold`; una ruta gritada sigue siendo la misma.
+// Una ruta en mayúsculas sigue siendo la misma.
 #[test]
 fn windows_compara_la_ruta_sin_distinguir_mayusculas() {
     let base = base_temporal();
@@ -95,7 +95,7 @@ fn windows_compara_la_ruta_sin_distinguir_mayusculas() {
     assert!(rutas.running_from_install(&gritado));
 }
 
-// `install_other.go:43-70`: el paquete del sistema ya cuenta como instalado.
+// el paquete del sistema ya cuenta como instalado.
 #[test]
 fn linux_reconoce_el_paquete_del_sistema() {
     let rutas = Rutas::new(Platform::Linux, Path::new("/home/ana/.local/share"));
@@ -122,8 +122,8 @@ fn linux_reconoce_la_instalacion_de_install_sh() {
     ));
 }
 
-// Sin carpeta base, Go devuelve `""` en Dir y Exe, y RunningFromInstall dice
-// true porque no hay destino con el que comparar (`install_windows.go:33-77`).
+// Sin carpeta base, el contrato devuelve `""` en Dir y Exe, y RunningFromInstall dice
+// true porque no hay destino con el que comparar.
 #[test]
 fn sin_carpeta_base_no_hay_destino_ni_instalacion() {
     let rutas = Rutas::new(Platform::Windows, PathBuf::new());
@@ -135,8 +135,8 @@ fn sin_carpeta_base_no_hay_destino_ni_instalacion() {
     assert!(!rutas.portable(Path::new("descarga.exe")));
 }
 
-// En Unix, sin carpeta base Go no corta en `Installed`: cae en
-// `RunningFromInstall`, que dice true porque no hay destino (`install_other.go:43-51,55-70`).
+// En Unix, sin carpeta base no se corta en `installed`: cae en
+// `running_from_install`, que dice true porque no hay destino.
 #[test]
 fn linux_sin_carpeta_base_cuenta_como_instalado() {
     let rutas = Rutas::new(Platform::Linux, PathBuf::new());
@@ -147,9 +147,9 @@ fn linux_sin_carpeta_base_cuenta_como_instalado() {
     assert!(rutas.running_from_install(Path::new("descarga")));
 }
 
-// `setup.go:14-23`: ocho claves, sin omitir ninguna y con los nombres de Go.
+// ocho claves, sin omitir ninguna y con los nombres del contrato.
 #[test]
-fn setup_lleva_las_ocho_claves_de_go() {
+fn setup_lleva_las_ocho_claves() {
     let base = base_temporal();
     let rutas = Rutas::new(Platform::Windows, base.path());
     let descarga = base.path().join("Descargas").join("Oruscribe Agente.exe");
@@ -184,10 +184,10 @@ fn setup_lleva_las_ocho_claves_de_go() {
     assert_eq!(objeto["platform"], platform());
 }
 
-// El orden de la struct de Go se conserva: `encoding/json` y serde escriben en
+// El orden de la struct del contrato se conserva: `encoding/json` y serde escriben en
 // el orden de declaración.
 #[test]
-fn setup_conserva_el_orden_de_la_struct_de_go() {
+fn setup_conserva_el_orden_de_la_struct() {
     let base = base_temporal();
     let rutas = Rutas::new(Platform::Windows, base.path());
     let json = setup_json(&rutas, &base.path().join("x.exe"), "").expect("json de setup");
@@ -213,7 +213,7 @@ fn setup_info_copia_la_aceptacion_guardada() {
     assert_eq!(info.platform, platform());
 }
 
-// La desinstalación usa la misma regla que `internal/config`; aquí solo se
+// La desinstalación usa la misma regla de rutas; aquí solo se
 // fija que el símbolo existe con su firma. El comportamiento lo prueba su crate.
 #[test]
 fn data_dir_removable_se_reexporta() {

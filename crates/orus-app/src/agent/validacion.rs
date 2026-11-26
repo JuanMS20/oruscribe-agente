@@ -16,7 +16,6 @@ pub(crate) fn tope(valor: i64, defecto: i64) -> i64 {
 }
 
 /// El 400 del cerebro cuando todavía no hay timbre, base o token
-/// (`agent.go:572-575`).
 pub(crate) fn sin_conexion() -> AgentError {
     AgentError::Invalid(
         "aún no hay conexión con Oruscribe: espera a estar en línea y vuelve a intentar".to_owned(),
@@ -24,9 +23,8 @@ pub(crate) fn sin_conexion() -> AgentError {
 }
 
 /// La raíz de `AGENTS.md` y skills: la primera carpeta permitida, o el hogar
-/// cuando todavía no hay ninguna (`carpetaDeInstrucciones`,
-/// `agent.go:1035-1047`). Si el hogar no se puede resolver, la carpeta de
-/// datos, como el Go.
+/// cuando todavía no hay ninguna. Si el hogar no se puede resolver, la carpeta de
+/// datos.
 pub(crate) fn carpeta_de_instrucciones(folders: &[String]) -> String {
     if let Some(primera) = folders.iter().find(|folder| Path::new(folder).is_dir()) {
         return primera.clone();
@@ -37,7 +35,6 @@ pub(crate) fn carpeta_de_instrucciones(folders: &[String]) -> String {
 }
 
 /// Los últimos cuatro si la clave mide más de ocho; una corta no se muestra
-/// (`pistaClave`, `agent.go:1115-1121`).
 pub(crate) fn pista_clave(clave: &str) -> String {
     let total = clave.chars().count();
     if total <= 8 {
@@ -75,7 +72,7 @@ where
 }
 
 /// Host con su puerto, en minúsculas; vacío si la dirección no se puede leer
-/// (`HostDe`, `internal/agent/openai.go:189-197`). El host sale del parser:
+/// El host sale del parser:
 /// interpretar la autoridad a mano deja pasar una `\` que `url` trata como
 /// barra y que esconde el host real detrás de un usuario aparente.
 pub(crate) fn host_de(raw: &str) -> String {
@@ -93,7 +90,6 @@ pub(crate) fn host_de(raw: &str) -> String {
 }
 
 /// Voz apagada o una base válida; se guarda la dirección normalizada
-/// (`validarVozURL`, `agent_voice.go:33-43`).
 pub(crate) fn validar_voz_url(raw: &str) -> Result<String, AgentError> {
     let raw = raw.trim();
     if raw.is_empty() {
@@ -104,7 +100,6 @@ pub(crate) fn validar_voz_url(raw: &str) -> Result<String, AgentError> {
 }
 
 /// Recorta el texto de voz y aplica el tope de 120 caracteres
-/// (`textoDeVoz`, `agent_voice.go:45-51`).
 pub(crate) fn texto_de_voz(raw: &str, nombre: &str) -> Result<String, AgentError> {
     let raw = raw.trim();
     if raw.chars().count() > MAX_TEXTO_VOZ {
@@ -116,8 +111,7 @@ pub(crate) fn texto_de_voz(raw: &str, nombre: &str) -> Result<String, AgentError
 }
 
 /// Rutas absolutas que existen y son carpetas; sin carpetas no hay
-/// herramientas locales y eso es válido (`carpetasPermitidas`,
-/// `agent.go:483-506`).
+/// herramientas locales y eso es válido.
 pub(crate) fn carpetas_permitidas(entrada: &[String]) -> Result<Vec<String>, AgentError> {
     let mut salida = Vec::with_capacity(entrada.len());
     for carpeta in entrada {
@@ -145,7 +139,6 @@ pub(crate) fn carpetas_permitidas(entrada: &[String]) -> Result<Vec<String>, Age
 
 /// Programas permitidos: un nombre suelto se acepta tal cual; una ruta se
 /// resuelve, tiene que ser absoluta y un archivo regular
-/// (`programasPermitidos`, `agent.go:508-534`).
 pub(crate) fn programas_permitidos(entrada: &[String]) -> Result<Vec<String>, AgentError> {
     use std::collections::HashSet;
 

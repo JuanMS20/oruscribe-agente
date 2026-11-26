@@ -1,5 +1,4 @@
-//! Constantes y espera del reintento HTTP. Port de
-//! `internal/agent/reintentar.go:14-17,87-110`.
+//! Constantes y espera del reintento HTTP.
 
 use std::time::Duration;
 
@@ -13,8 +12,8 @@ pub const ESPERA_MAXIMA: Duration = Duration::from_secs(5);
 /// espera medio segundo, uno, dos... con tope. El tope evita que un mensaje se
 /// quede media hora esperando a un proveedor caído.
 ///
-/// Port de `esperaReintento` (`internal/agent/reintentar.go:90-110`). `intento`
-/// empieza en 1, como el bucle de Go.
+/// `intento`
+/// empieza en 1, como el bucle del contrato.
 pub fn espera_reintento(intento: u32, retry_after: Option<&str>) -> Duration {
     if let Some(valor) = retry_after
         && let Ok(segundos) = valor.parse::<u64>()
@@ -34,15 +33,13 @@ mod tests {
 
     use super::*;
 
-    /// Port de `TestEsperaReintentoRespetaRetryAfterYTope`
-    /// (`internal/agent/openai_test.go:428-438`).
     #[test]
     fn espera_reintento_respeta_retry_after_y_tope() {
         assert_eq!(espera_reintento(1, Some("2")), Duration::from_secs(2));
         assert_eq!(espera_reintento(1, Some("3600")), ESPERA_MAXIMA);
     }
 
-    /// La espera por defecto de `internal/agent/reintentar.go:105-108`.
+    /// La espera por defecto.
     #[test]
     fn espera_reintento_crece_y_se_corta() {
         assert_eq!(espera_reintento(1, None), Duration::from_millis(500));
@@ -57,7 +54,7 @@ mod tests {
         );
     }
 
-    /// Las constantes de `internal/agent/reintentar.go:14-17`.
+    /// Las constantes.
     #[test]
     fn constantes_de_reintento() {
         assert_eq!(MAX_INTENTOS, 3);

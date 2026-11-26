@@ -1,4 +1,4 @@
-//! Política de permisos. Port de `internal/agent/policy.go:3-55`.
+//! Política de permisos.
 
 /// Qué puede hacer una herramienta si se corre.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -17,7 +17,7 @@ impl Risk {
         }
     }
 
-    /// El string de Go. `None` es el valor desconocido que la política niega.
+    /// El string del contrato. `None` es el valor desconocido que la política niega.
     pub fn parse(texto: &str) -> Option<Self> {
         match texto {
             "read" => Some(Self::Read),
@@ -45,7 +45,7 @@ impl Mode {
         }
     }
 
-    /// El string de Go. `None` es el valor desconocido que la política niega.
+    /// El string del contrato. `None` es el valor desconocido que la política niega.
     pub fn parse(texto: &str) -> Option<Self> {
         match texto {
             "autonomous" => Some(Self::Autonomous),
@@ -76,8 +76,8 @@ impl Decision {
 
 /// Dice si una llamada corre, pide confirmación o se niega.
 ///
-/// Port de `internal/agent/policy.go:31-55`. En Go `Mode` y `Risk` son strings
-/// y un valor fuera de la lista se niega (`policy.go:32-34,53-54`); en Rust el
+/// `Mode` y `Risk` son strings
+/// y un valor fuera de la lista se niega; en Rust el
 /// enum no admite esos valores, así que el borde de parseo devuelve `None` y
 /// `decide` lo trata como desconocido.
 pub fn decide(mode: Option<Mode>, risk: Option<Risk>) -> Decision {
@@ -106,7 +106,7 @@ pub fn decide(mode: Option<Mode>, risk: Option<Risk>) -> Decision {
 mod tests {
     use super::*;
 
-    /// Los 11 casos de `internal/agent/policy_test.go:5-23`.
+    /// Los 11 casos.
     #[test]
     fn decide_allow_ask_deny() {
         let casos = [
@@ -183,9 +183,9 @@ mod tests {
         }
     }
 
-    /// Los strings son contrato con Go (`internal/agent/policy.go:6-28`).
+    /// Los strings son parte del contrato.
     #[test]
-    fn strings_de_go() {
+    fn strings_del_contrato() {
         assert_eq!(Risk::Read.as_str(), "read");
         assert_eq!(Risk::Write.as_str(), "write");
         assert_eq!(Risk::Exec.as_str(), "exec");

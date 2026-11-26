@@ -4,7 +4,7 @@
 
 ## Pruebas
 
-- [ ] `cargo test -j 1 -p orus-api -p orus-app -p orus-server -p orus-shell`
+- [ ] `cargo test -j 4 --workspace --locked`
 - [ ] `cargo fmt --check`
 - [ ] `cargo clippy --workspace --all-targets -- -D warnings`
 - [ ] Probado en la ventana (o explicado por qué no aplica)

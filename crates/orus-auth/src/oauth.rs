@@ -1,4 +1,4 @@
-//! Puerto de `internal/auth/oauth.go:14-80` y `internal/auth/register.go:60-125`.
+//! Puerto.
 
 use chrono::{DateTime, FixedOffset, Utc};
 use reqwest::header::{ACCEPT, CONTENT_TYPE};
@@ -6,10 +6,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Token, token::zero_expiry};
 
-/// El servidor de OAuth de la app (`oauth.go:18`).
+/// El servidor de OAuth de la app.
 pub const ISSUER: &str = "https://cfamprdygpngrjtaxzes.supabase.co/auth/v1";
 
-/// Lo que el servidor publica de sí mismo (`oauth.go:21-32`).
+/// Lo que el servidor publica de sí mismo.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Metadata {
@@ -25,7 +25,7 @@ pub struct Metadata {
     pub response_types_supported: Vec<String>,
 }
 
-/// Lo que necesita un inicio de sesión (`oauth.go:36-41`).
+/// Lo que necesita un inicio de sesión.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -43,8 +43,8 @@ const LIMITE_CUERPO: usize = 1 << 20;
 const TOPE_EXPIRES_IN: i64 = 365 * 24 * 60 * 60;
 
 /// Expiración a partir de `expires_in`, acotada a un máximo razonable.
-/// Sin valor positivo queda el cero de Go («sin vencimiento»): renovar en
-/// bucle sería peor (`oauth.go:143-149`, `register.go:107-113`).
+/// Sin valor positivo queda el cero («sin vencimiento»): renovar en
+/// bucle sería peor.
 pub(crate) fn expiracion_acotada(expires_in: i64) -> DateTime<FixedOffset> {
     if expires_in <= 0 {
         return zero_expiry();
@@ -52,7 +52,7 @@ pub(crate) fn expiracion_acotada(expires_in: i64) -> DateTime<FixedOffset> {
     (Utc::now() + chrono::Duration::seconds(expires_in.min(TOPE_EXPIRES_IN))).fixed_offset()
 }
 
-/// Lee la metadata desde su ubicación conocida (`oauth.go:59-80`).
+/// Lee la metadata desde su ubicación conocida.
 pub async fn discover(http: &reqwest::Client, issuer: &str) -> Result<Metadata, Error> {
     let endpoint = format!(
         "{}/.well-known/oauth-authorization-server",
@@ -75,7 +75,7 @@ pub async fn discover(http: &reqwest::Client, issuer: &str) -> Result<Metadata, 
     Ok(metadata)
 }
 
-/// Cambia el token de refresco por uno de acceso (`register.go:67-125`).
+/// Cambia el token de refresco por uno de acceso.
 pub async fn refresh(
     http: &reqwest::Client,
     config: Config,
@@ -113,7 +113,7 @@ pub async fn refresh(
         return Err(Error::NoAccessToken);
     }
     // Sin `expires_in` la expiración queda en cero, no en el pasado
-    // (`register.go:107-113`): renovar en bucle sería peor. El tope evita
+    // Renovar en bucle sería peor. El tope evita
     // el panic con un valor enorme del servidor.
     let mut next = Token {
         access_token: payload.access_token,

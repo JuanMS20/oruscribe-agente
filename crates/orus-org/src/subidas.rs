@@ -1,6 +1,6 @@
 //! Subidas de archivos, cuota, alertas y estado de tareas.
 //!
-//! Port de `internal/oruscribe/oruscribe.go:509-707`. La subida tiene tres
+//! La subida tiene tres
 //! pasos: pedir la URL firmada a una herramienta MCP, subir los bytes a esa URL
 //! y, según el caso, crear el mensaje o el avance. La cuota agotada se reconoce
 //! por el texto del servidor y por el estado 507.

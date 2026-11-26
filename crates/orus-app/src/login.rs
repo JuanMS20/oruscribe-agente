@@ -1,7 +1,6 @@
 //! Flujo de inicio de sesión OAuth de la app.
 //!
-//! Port de `internal/app/app.go:540-666` (`LoginPort`, `StartLogin`,
-//! `finishLogin`, `endFlow`). Las primitivas PKCE, registro y canje viven en
+//! Las primitivas PKCE, registro y canje viven en
 //! `orus-auth`; acá solo se orquesta el listener, el flujo y la conexión.
 
 use std::io;
@@ -16,7 +15,7 @@ use orus_config::Settings;
 use crate::callback::wait;
 use crate::sesion::{App, SessionError, Status};
 
-/// El puerto fijo del callback (`app.go:546-550`). El servidor compara el
+/// El puerto fijo del callback. El servidor compara el
 /// redirect byte a byte; cambiarlo obligaría a registrar un cliente nuevo.
 pub const LOGIN_PORT: u16 = 47823;
 
@@ -24,12 +23,12 @@ const HOST: &str = "127.0.0.1";
 const CLIENT_NAME: &str = "Oruscribe Agente";
 const SCOPES: [&str; 3] = ["openid", "email", "offline_access"];
 const LOGIN_TIMEOUT: Duration = Duration::from_secs(5 * 60);
-/// El cliente HTTP de Go usa 30 s (`app.go:226`).
+/// El cliente HTTP del contrato usa 30 s.
 const HTTP_TIMEOUT: Duration = Duration::from_secs(30);
 const TEXTO_TIMEOUT: &str = "el inicio de sesión venció; vuelve a intentarlo";
 const TEXTO_HILO: &str = "no se pudo lanzar el inicio de sesión";
 
-/// El flujo que la ventana pinta (`app.go:100-103`).
+/// El flujo que la ventana pinta.
 pub struct LoginFlow {
     pub state: String,
     pub url: String,
@@ -69,7 +68,7 @@ impl LoginState {
         crate::sync::lock(&self.flow)
     }
 
-    /// Suelta el flujo vivo, como `a.flow = nil` (`app.go:990`). Si había un
+    /// Suelta el flujo vivo, como `a.flow = nil`. Si había un
     /// login esperando el callback, se cancela: sin esto el canje sigue y
     /// guarda una sesión después de cerrar sesión.
     pub(crate) fn clear_flow(&self) {
@@ -79,7 +78,7 @@ impl LoginState {
     }
 
     /// Copia `status`, `error` y `url` del flujo vivo en un solo lock, sin
-    /// sacarlo (`app.go:278-281`). Un flujo sin error devuelve la cadena vacía.
+    /// sacarlo. Un flujo sin error devuelve la cadena vacía.
     pub(crate) fn flow_snapshot(&self) -> Option<(Status, String, String)> {
         self.lock().as_ref().map(|flow| {
             (
@@ -138,13 +137,13 @@ struct LoginJob {
 }
 
 impl App {
-    /// El estado del flujo de login, o `None` si no hay ninguno (`app.go:654-666`).
+    /// El estado del flujo de login, o `None` si no hay ninguno.
     pub fn login_status(&self) -> Option<Status> {
         self.login.lock().as_ref().map(|flow| flow.status)
     }
 
     /// Costura del borde: sin ella, quien llama abre la URL que devuelve
-    /// `start_login` (`app.go:609-611`).
+    /// `start_login`.
     pub fn set_open_url(&mut self, open: impl Fn(&str) + Send + Sync + 'static) {
         self.login.open_url = Some(Arc::new(open));
     }
@@ -171,7 +170,7 @@ impl App {
     }
 
     /// Descubre el servidor, registra el cliente si hace falta y devuelve la URL
-    /// que abre el navegador (`app.go:555-611`).
+    /// que abre el navegador.
     pub fn start_login(&self) -> Result<String, SessionError> {
         self.reemplazar_flujo();
         let state =
@@ -219,7 +218,7 @@ impl App {
         Ok(aviso.url)
     }
 
-    /// Cancela el flujo anterior y lo borra (`app.go:558-565`).
+    /// Cancela el flujo anterior y lo borra.
     pub(crate) fn reemplazar_flujo(&self) {
         if let Some(anterior) = self.login.lock().take() {
             anterior.cancel.store(true, Ordering::SeqCst);
@@ -258,8 +257,7 @@ impl App {
             if cancel.load(Ordering::SeqCst) {
                 return Err(SessionError::LoggedOut);
             }
-            // `guardarCampos` de Go ignora el fallo de guardado y, si falla,
-            // deja la memoria como estaba (`settings.go:94-110`).
+            // Si falla el guardado, la memoria queda como estaba.
             if let Ok(settings) = (self.login.save_client)(id.clone(), redirect.clone()) {
                 self.replace_settings(settings.clone());
                 settings_guardados = Some(settings);
@@ -312,7 +310,7 @@ impl App {
         })
     }
 
-    /// Espera el código, lo canjea, guarda la sesión y conecta (`app.go:613-641`).
+    /// Espera el código, lo canjea, guarda la sesión y conecta.
     async fn finish_login(&self, job: LoginJob) {
         let inicio = Instant::now();
         let LoginJob {
@@ -339,7 +337,7 @@ impl App {
             return;
         }
 
-        // El contexto de Go cubre todo el flujo con 5 min (`app.go:606-607`).
+        // El contexto del contrato cubre todo el flujo con 5 min.
         let restante = LOGIN_TIMEOUT.saturating_sub(inicio.elapsed());
         let resultado = tokio::time::timeout(restante, async {
             let token = orus_auth::exchange(&http, &config, &codigo, &verifier)
@@ -407,7 +405,7 @@ impl App {
         }
     }
 
-    /// Cierra el flujo con ese `state` (`app.go:643-666`). Un flujo viejo que
+    /// Cierra el flujo con ese `state`. Un flujo viejo que
     /// termina tarde no toca al actual.
     pub(crate) fn end_flow(&self, state: &str, status: Status, error: Option<String>) {
         let mut flujo = self.login.lock();
@@ -463,7 +461,7 @@ fn hilo_login(
     }
 }
 
-/// El listener fijo, con el puerto efímero como respaldo (`app.go:588-598`).
+/// El listener fijo, con el puerto efímero como respaldo.
 pub fn login_listener() -> io::Result<(TcpListener, String)> {
     login_listener_on(LOGIN_PORT)
 }
@@ -486,8 +484,7 @@ fn escuchar(port: u16) -> io::Result<(TcpListener, String)> {
     ))
 }
 
-/// `guardarCampos` de Go: lee lo que hay en disco, aplica el cambio y guarda
-/// (`settings.go:94-110`).
+/// Lee lo que hay en disco, aplica el cambio y guarda.
 fn guardar_cliente(id: String, redirect: String) -> Result<Settings, String> {
     let mut resultado = Settings::default();
     orus_config::editar(|settings| {

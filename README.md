@@ -38,7 +38,7 @@ cargo run -p orus-server -- --addr 127.0.0.1:8099 --data $env:TEMP\oru-dev
 ```powershell
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
-cargo test -j 1 --workspace --locked
+cargo test -j 4 --workspace --locked
 Get-ChildItem frontend\dist\js -Recurse -Filter *.js | ForEach-Object { Get-Content $_.FullName -Raw | node --input-type=module --check }
 ```
 

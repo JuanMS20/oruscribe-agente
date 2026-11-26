@@ -2,7 +2,6 @@
 //! volver a preguntar por ese patrón. Viven en `settings.json` (0600) y nunca
 //! amplían lo que la política ya niega: solo responden la pregunta.
 //!
-//! Port de `internal/permissions/permissions.go:1-159`.
 
 use chrono::{DateTime, Utc};
 use orus_agent::Risk;
@@ -10,15 +9,13 @@ use orus_config::{AllowRule, editar, load};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-/// Errores del paquete. En Go son `errors.New`; acá son variantes para que
+/// Errores del paquete. Son variantes para que
 /// quien llama pueda distinguirlos sin comparar textos (R8).
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// `permissions.go:92`.
     #[error("la regla necesita herramienta y patrón")]
     ReglaIncompleta,
 
-    /// `permissions.go:128`.
     #[error("falta el id de la regla")]
     FaltaId,
 
@@ -26,7 +23,7 @@ pub enum Error {
     Config(#[from] orus_config::Error),
 }
 
-// Go usa `strings.EqualFold`; acá se comparan las dos cadenas en minúsculas
+// Se comparan las dos cadenas en minúsculas
 // Unicode, que cubre los nombres de herramienta y los patrones reales.
 fn igual(a: &str, b: &str) -> bool {
     a.to_lowercase() == b.to_lowercase()
@@ -58,7 +55,7 @@ pub fn eligible(nombre: &str, args: &Value, risk: Risk) -> Option<String> {
 }
 
 /// Identidad estable de una regla: mismo tool y patrón, mismo id. Evita
-/// duplicados sin guardar estado aparte. `permissions.go:58-61`.
+/// duplicados sin guardar estado aparte.
 fn id_de_rule(tool: &str, pattern: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(tool.to_lowercase().as_bytes());
@@ -67,7 +64,7 @@ fn id_de_rule(tool: &str, pattern: &str) -> String {
     hex::encode(hasher.finalize())[..12].to_owned()
 }
 
-/// Devuelve la regla que aplica, si existe. `permissions.go:66-73`.
+/// Devuelve la regla que aplica, si existe.
 pub fn find<'a>(rules: &'a [AllowRule], tool: &str, pattern: &str) -> Option<&'a AllowRule> {
     rules
         .iter()
@@ -76,7 +73,7 @@ pub fn find<'a>(rules: &'a [AllowRule], tool: &str, pattern: &str) -> Option<&'a
 
 /// Dice si una llamada ya tiene permiso recordado. Se llama solo cuando la
 /// política pediría confirmación; un `Allow` o `Deny` previos no pasan por
-/// aquí. `permissions.go:77-84`.
+/// aquí.
 pub fn check(tool: &str, args: &Value, risk: Risk) -> bool {
     let Some(pattern) = eligible(tool, args, risk) else {
         return false;
@@ -85,7 +82,7 @@ pub fn check(tool: &str, args: &Value, risk: Risk) -> bool {
 }
 
 /// Guarda una regla. Si ya existe una igual, no cambia nada: la operación es
-/// idempotente. `permissions.go:88-122`.
+/// idempotente.
 pub fn remember(tool: &str, pattern: &str, note: &str) -> Result<AllowRule, Error> {
     let tool = tool.trim();
     let pattern = pattern.trim();
@@ -111,8 +108,8 @@ pub fn remember(tool: &str, pattern: &str, note: &str) -> Result<AllowRule, Erro
     })?;
     match creada {
         Some(regla) => Ok(regla),
-        // Ya existía: Go devuelve solo id, herramienta y patrón, con la fecha
-        // cero (`permissions.go:118-120`). `MIN_UTC` es ese cero.
+        // Ya existía: el contrato devuelve solo id, herramienta y patrón, con la fecha
+        // cero. `MIN_UTC` es ese cero.
         None => Ok(AllowRule {
             id: id_de_rule(tool, pattern),
             tool: tool.to_owned(),
@@ -124,7 +121,6 @@ pub fn remember(tool: &str, pattern: &str, note: &str) -> Result<AllowRule, Erro
 }
 
 /// Quita la regla con ese id. Devuelve `false` si no existía.
-/// `permissions.go:125-150`.
 pub fn revoke(id: &str) -> Result<bool, Error> {
     let id = id.trim();
     if id.is_empty() {
@@ -142,7 +138,7 @@ pub fn revoke(id: &str) -> Result<bool, Error> {
     Ok(borrada)
 }
 
-/// Devuelve las reglas, de la más vieja a la más nueva. `permissions.go:153-158`.
+/// Devuelve las reglas, de la más vieja a la más nueva.
 pub fn list() -> Vec<AllowRule> {
     let mut reglas = load().agent.allow_rules;
     reglas.sort_by_key(|a| a.created_at);
@@ -316,7 +312,7 @@ mod tests {
             orus_config::save(ajustes).expect("guardar el modo");
 
             let r1 = remember("local_run_command", "program:git", "").expect("recordar");
-            assert_eq!(r1.id, "4ed073f77c0b", "id de 12 hex igual al de Go");
+            assert_eq!(r1.id, "4ed073f77c0b", "id de 12 hex estable");
             let r2 = remember("local_run_command", "program:git", "").expect("recordar de nuevo");
             assert_eq!(r1.id, r2.id);
             let reglas = list();

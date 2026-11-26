@@ -197,7 +197,7 @@ mod escritorio {
         });
     }
 
-    /// Atiende `--uninstall` antes de pedir el mutex (`main.go:79-88`).
+    /// Atiende `--uninstall` antes de pedir el mutex.
     ///
     /// Primero se confirma que se puede desinstalar; solo después se borran
     /// la sesión y las conversaciones. Agregar o quitar programas usa este

@@ -1,6 +1,6 @@
 //! Binario headless: sirve la UI actual y `/api/*` sin ventana ni bandeja.
 //!
-//! Port de `cmd/immuneserver/main.go:18-55`. Solo acepta direcciones
+//! Solo acepta direcciones
 //! loopback; `--data` existe para no tocar el perfil real en desarrollo.
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .build()?;
     runtime.block_on(async move {
         let api = orus_server::api(selector)?;
-        // El `Boot()` de Go restaura la sesión guardada; sin esto el borde
+        // El `Boot` del contrato restaura la sesión guardada; sin esto el borde
         // headless también se queda en `connecting`.
         api.boot();
         let destino: std::net::SocketAddr = direccion.parse().map_err(|_| {

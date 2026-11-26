@@ -1,7 +1,7 @@
 //! Servidor headless de Oruscribe: el `App` real, el router de `orus-api` y
 //! los archivos de `frontend/dist` (UI y fuente) embebidos.
 //!
-//! Port de `cmd/immuneserver/main.go:18-55` y de `main.go:28-32`. El Go monta
+//! Monta
 //! `a.Handler()` en `/api/` y `http.FileServer(http.Dir("frontend/dist"))` en
 //! `/`; aquí el router de `orus-api` se fusiona con un fallback que sirve los
 //! estáticos y responde 404 como `http.FileServer`, sin fallback de SPA.
@@ -149,8 +149,7 @@ pub fn api_con_apertura(
     Ok(api)
 }
 
-/// El selector que cablea `--pick-folder`; la limpieza la hace el borde,
-/// como el `filepath.Clean` de `immune_fake.go:591`.
+/// El selector que cablea `--pick-folder`; la limpieza la hace el borde.
 struct SelectorCarpeta(String);
 
 impl orus_api::PickFolder for SelectorCarpeta {
@@ -176,7 +175,7 @@ pub async fn servir(
     axum::serve(listener, proteger(router(&api), guardia)).await
 }
 
-/// Los archivos del `go:embed` (UI y fuente), con las rutas exactas del Go.
+/// Los archivos del `go:embed` (UI y fuente), con las rutas exactas del contrato.
 async fn estatico(uri: Uri) -> Response {
     let ruta = uri.path();
     if let Some((_, cuerpo)) = JS_MODULOS.iter().find(|(path, _)| *path == ruta) {

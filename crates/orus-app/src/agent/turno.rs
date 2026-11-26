@@ -30,7 +30,7 @@ pub trait TurnRunner: Send + Sync {
 }
 
 /// El turno real, con la cola de aprobaciones de la ventana como único
-/// `Approve` (`internal/app/agent.go:673-687`).
+/// `Approve`.
 pub struct HarnessRunner {
     approvals: Arc<ApprovalQueue>,
 }
@@ -82,7 +82,7 @@ impl TurnRunner for HarnessRunner {
 }
 
 /// El puente entre el `Backend` de la app y el que espera el arnés
-/// (`mcptools.go:17-20`). El arnés no conoce `SessionError`: el texto viaja en
+/// El arnés no conoce `SessionError`: el texto viaja en
 /// `OrgError::Tool`, salvo los errores de transporte, que conservan su
 /// variante para que `mcptools` devuelva el cupo (#113, #148). No se duplica
 /// el puente en `orus-api`.

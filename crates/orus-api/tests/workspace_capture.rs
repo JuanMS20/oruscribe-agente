@@ -1,6 +1,6 @@
 //! Rutas de metas, periodos, captura, avisos, reacciones y contexto.
 //!
-//! Port de `internal/app/http.go:450-565,636-733`. El backend de prueba anota
+//! El backend de prueba anota
 //! cada llamada y la costura `GitLog` se inyecta: no hay red real, repos
 //! reales, llavero ni variables de entorno.
 
@@ -410,7 +410,7 @@ async fn captura_aplicar_sin_aceptados_da_500() {
     assert_eq!(cuerpo["error"], "no hay nada seleccionado");
 }
 
-/// La fecha explícita se parsea como Go: medianoche UTC del día indicado.
+/// La fecha explícita se parsea: medianoche UTC del día indicado.
 #[test]
 fn fecha_parseada_es_medianoche_utc() {
     let fecha = NaiveDate::parse_from_str("2026-11-01", "%Y-%m-%d").expect("fecha");

@@ -1,7 +1,7 @@
 //! Lectura de la respuesta en streaming (SSE) de un proveedor compatible con
 //! OpenAI.
 //!
-//! Port de `OpenAICompat.leerStream` (`internal/agent/openai.go:220-335`). El
+//! El
 //! reintento HTTP ya ocurrió antes de entrar acá: una vez que el cuerpo empezó
 //! a leerse no se repite la petición, para no duplicar texto en la ventana.
 
@@ -213,7 +213,7 @@ impl Estado {
     fn terminar(self) -> ChatReply {
         let mut llamadas = Vec::with_capacity(self.llamadas.len());
         for llamada in &self.llamadas {
-            // Go guarda los argumentos crudos y el bucle marca `invalidArgs`;
+            // El contrato guarda los argumentos crudos y el bucle marca `invalidArgs`;
             // acá `Args` ya es un `Value`, así que la marca se pone al entrar.
             // El id de respaldo sale del `index` del proveedor, no de la
             // posición del vector (issue #126).
@@ -229,8 +229,8 @@ impl Estado {
                 role: "assistant".to_owned(),
                 content: self.texto,
                 images: None,
-                // Go crea `calls` con `make`, así que una respuesta sin
-                // llamadas queda `[]` y no `null` (`openai.go:315`).
+                // El contrato crea `calls` con `make`, así que una respuesta sin
+                // llamadas queda `[]` y no `null`.
                 tool_calls: Some(llamadas),
                 tool_call_id: String::new(),
             },
@@ -403,8 +403,6 @@ mod tests {
         panic!("la bandera no se encendió");
     }
 
-    /// Port de `TestStreamAcumulaElTextoYEmiteCadaFragmento`
-    /// (`stream_test.go:29-47`).
     #[tokio::test]
     async fn stream_acumula_el_texto_y_emite_cada_fragmento() {
         let servidor_url = servidor(|_peticion: Request| async {
@@ -431,11 +429,10 @@ mod tests {
         assert_eq!(
             respuesta.message.tool_calls,
             Some(Vec::new()),
-            "Go deja una lista vacía, no null"
+            "queda una lista vacía, no null"
         );
     }
 
-    /// Port de `TestStreamPideStreamVerdadero` (`stream_test.go:49-67`).
     #[tokio::test]
     async fn stream_pide_stream_verdadero() {
         let visto = Arc::new(Mutex::new(None::<Value>));
@@ -469,8 +466,7 @@ mod tests {
         assert_eq!(visto["stream"], json!(true));
     }
 
-    /// Port de `TestStreamJuntaUnaLetraPartidaEntreDosEventos`
-    /// (`stream_test.go:69-97`). El servidor corta la ñ justo entre sus dos
+    /// El servidor corta la ñ justo entre sus dos
     /// bytes, como haría la red.
     #[tokio::test]
     async fn stream_junta_una_letra_partida_entre_dos_eventos() {
@@ -512,8 +508,6 @@ mod tests {
         tarea.await.expect("el servidor termina");
     }
 
-    /// Port de `TestStreamJuntaLlamadasARepartidasEnVariosEventos`
-    /// (`stream_test.go:99-117`).
     #[tokio::test]
     async fn stream_junta_llamadas_partidas_en_varios_eventos() {
         let servidor_url = servidor(|_peticion: Request| async {
@@ -542,8 +536,6 @@ mod tests {
         assert!(!llamadas[0].invalid_args);
     }
 
-    /// Port de `TestStreamAvisaCuandoLaRespuestaSeCorta`
-    /// (`stream_test.go:119-133`).
     #[tokio::test]
     async fn stream_avisa_cuando_la_respuesta_se_corta() {
         let servidor_url = servidor(|_peticion: Request| async {
@@ -592,7 +584,7 @@ mod tests {
         assert_eq!(respuesta.message.content, "hola");
     }
 
-    /// Port de `TestStreamSeCortaAlCancelar` (`stream_test.go:135-164`). En
+    /// En
     /// Rust la cancelación es dejar caer el futuro: se aborta la tarea y el
     /// servidor ve cerrarse la conexión.
     #[tokio::test]
@@ -646,8 +638,6 @@ mod tests {
             .expect("la tarea del servidor termina");
     }
 
-    /// Port de `TestStreamNoMuestraLaClaveEnElError`
-    /// (`stream_test.go:166-179`).
     #[tokio::test]
     async fn stream_no_muestra_la_clave_en_el_error() {
         const CLAVE: &str = "sk-secreta-123456";
@@ -673,8 +663,7 @@ mod tests {
         assert_eq!(error.status, 401);
     }
 
-    /// Port de `TestOpenAICompatReintentaElStreamSinDuplicarTexto`
-    /// (`openai_test.go:392-426`): el 429 se reintenta antes de leer el cuerpo.
+    /// El 429 se reintenta antes de leer el cuerpo.
     #[tokio::test]
     async fn reintenta_el_stream_sin_duplicar_texto() {
         let llamadas = Arc::new(AtomicUsize::new(0));
@@ -705,8 +694,6 @@ mod tests {
         assert_eq!(llamadas.load(Ordering::SeqCst), 2);
     }
 
-    /// Port de `TestOpenAICompatNoPresentaComoCompletoUnStreamCortado`
-    /// (`openai_test.go:462-483`).
     #[tokio::test]
     async fn no_presenta_como_completo_un_stream_cortado() {
         let servidor_url = servidor(|_peticion: Request| async {
@@ -730,8 +717,6 @@ mod tests {
         assert_eq!(parcial.message.content, "a medias");
     }
 
-    /// Port de `TestOpenAICompatPideElUsoEnStreaming`
-    /// (`openai_test.go:485-524`).
     #[tokio::test]
     async fn pide_el_uso_en_streaming() {
         let visto = Arc::new(Mutex::new(None::<Value>));
@@ -773,7 +758,6 @@ mod tests {
     }
 
     /// Un evento sin `usage` después del bloque final no borra el uso recibido
-    /// (`openai.go:277-282`).
     #[tokio::test]
     async fn stream_conserva_el_uso_si_un_evento_posterior_no_lo_trae() {
         let servidor_url = servidor(|_peticion: Request| async {
@@ -797,7 +781,7 @@ mod tests {
     }
 
     /// Un evento con `error.message` se muestra como error del proveedor, con
-    /// la clave redactada y el resumen de 300 runas (`openai.go:274-276`).
+    /// la clave redactada y el resumen de 300 runas.
     #[tokio::test]
     async fn stream_redacta_el_error_del_evento() {
         const CLAVE: &str = "sk-secreta-123456";

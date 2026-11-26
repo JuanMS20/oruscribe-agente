@@ -1,6 +1,6 @@
-//! Cliente de la organización. Port de `internal/oruscribe` y `internal/mcp`.
+//! Cliente de la organización.
 //!
-//! Habla MCP Streamable HTTP con `rmcp`; cada método del Go llama una
+//! Habla MCP Streamable HTTP con `rmcp`; cada método llama una
 //! herramienta del servidor. Este crate expone los tipos, los errores, la
 //! apertura de sesión y la llamada genérica a herramientas.
 
@@ -23,7 +23,7 @@ pub use error::{OrgError, Result};
 pub use mensajes::{MessagesPage, ToolCaller};
 pub use types::*;
 
-/// Marca de tiempo con segundos y `Z`, como la manda el Go.
+/// Marca de tiempo con segundos y `Z`, el formato que espera el servidor.
 pub(crate) fn rfc3339(value: DateTime<Utc>) -> String {
     value.to_rfc3339_opts(SecondsFormat::Secs, true)
 }

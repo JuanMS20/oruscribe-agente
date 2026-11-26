@@ -1,6 +1,5 @@
-//! `runCommand`: un programa permitido, sin shell, con argumentos sueltos,
-//! entorno limpio, tope de salida y timeout que mata el árbol. Port de
-//! `internal/localtools/command.go:17-179`.
+//! Un programa permitido, sin shell, con argumentos sueltos,
+//! entorno limpio, tope de salida y timeout que mata el árbol.
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -51,7 +50,7 @@ pub(super) fn comprobar_lista(set: &Set, programa: &str, cwd: &Path) -> Result<(
     Err(Error::ProgramaNoPermitido)
 }
 
-/// Tope de salida (`command.go:17`).
+/// Tope de salida.
 const MAX_SALIDA: usize = 64 << 10;
 
 #[derive(Default, Deserialize)]
@@ -64,7 +63,6 @@ struct ArgsComando {
     cwd: String,
 }
 
-/// `runCommand` (`command.go:22-95`).
 pub(super) fn run_command(set: &Set, args: Value, cancel: &CancelToken) -> Result<String, Error> {
     run_command_con(set, args, cancel, || {})
 }
@@ -96,12 +94,12 @@ fn run_command_con(
         cmd.args(args);
     }
     cmd.current_dir(&cwd);
-    // Go deja Stdin en nil: el hijo lee del dispositivo nulo.
+    // El contrato deja Stdin en nil: el hijo lee del dispositivo nulo.
     cmd.stdin(Stdio::null());
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
     // Ni la clave del proveedor ni la carpeta de datos de la app llegan al
-    // comando (`command.go:49`).
+    // comando.
     cmd.env_clear();
     #[cfg(windows)]
     {
@@ -212,7 +210,7 @@ fn ejecutar_con_arbol(
             let _ = hijo.wait();
             cerrar(lectores, arbol, hijo.id());
             return Err(Error::ComandoTimeout {
-                duracion: duracion_go(timeout),
+                duracion: duracion_texto(timeout),
                 salida: texto(&acumulada),
             });
         }
@@ -222,7 +220,7 @@ fn ejecutar_con_arbol(
     let salida = texto(&acumulada);
     if !estado.success() {
         return Err(Error::ComandoFallo {
-            error: estado_go(estado),
+            error: estado_texto(estado),
             salida,
         });
     }
@@ -329,7 +327,7 @@ fn reanudar_hijo(pid: u32) -> bool {
     }
 }
 
-/// `cmd.Env` de Go es una lista de "NOMBRE=valor"; `Command` de Rust pide
+/// `cmd.Env` del contrato es una lista de "NOMBRE=valor"; `Command` de Rust pide
 /// pares. Se parte por el primer `=`, igual que el entorno del sistema.
 pub(super) fn aplicar_entorno(cmd: &mut Command, entorno: &[String]) {
     for variable in entorno {
@@ -339,7 +337,7 @@ pub(super) fn aplicar_entorno(cmd: &mut Command, entorno: &[String]) {
     }
 }
 
-/// `allowedProgram` (`command.go:99-126`): un nombre de la lista se busca en el
+/// Un nombre de la lista se busca en el.
 /// PATH del sistema; una ruta se canonicaliza y se compara sin mayúsculas con
 /// las rutas permitidas. Un programa relativo se resuelve contra el `cwd`
 /// pedido, no contra el CWD de la app (#94).
@@ -418,9 +416,9 @@ pub(super) fn reenviar_variables(
     }
 }
 
-/// `entornoUnix` (`command.go:128-131`): cada comando tiene su propio HOME
+/// Cada comando tiene su propio HOME.
 /// porque `/tmp` lo puede escribir cualquiera del equipo. En Windows solo la
-/// usan las pruebas, como la tabla de variables de Go.
+/// usan las pruebas, como la tabla de variables del contrato.
 #[cfg_attr(not(unix), allow(dead_code))]
 pub(super) fn entorno_unix(home: &str) -> Vec<String> {
     vec![
@@ -430,7 +428,7 @@ pub(super) fn entorno_unix(home: &str) -> Vec<String> {
     ]
 }
 
-/// `entornoWindows` (`command.go:133-143`): solo lo mínimo para que un programa
+/// Solo lo mínimo para que un programa.
 /// normal arranque. En Unix solo la usan las pruebas.
 #[cfg_attr(not(windows), allow(dead_code))]
 pub(super) fn entorno_windows(system: &str, temp: &str) -> Vec<String> {
@@ -477,7 +475,7 @@ impl Drop for HomeTemporal {
 }
 
 /// Guarda hasta `max` bytes sin bloquear al proceso que escribe
-/// (`command.go:145-179`). Si se pasa, conserva el inicio y el final y marca el
+/// Si se pasa, conserva el inicio y el final y marca el
 /// hueco: el error de un `cargo build` o un `pytest` está en la cola.
 struct Limitado {
     max: usize,
@@ -524,7 +522,7 @@ impl Limitado {
     }
 }
 
-/// Un hilo por tubería; los dos escriben en el mismo colector, como en Go.
+/// Un hilo por tubería; los dos escriben en el mismo colector
 fn drenar<R: Read + Send + 'static>(
     mut origen: R,
     acumulada: Arc<Mutex<Limitado>>,
@@ -545,8 +543,8 @@ fn drenar<R: Read + Send + 'static>(
     })
 }
 
-/// `time.Duration.String()` de Go: "1m0s" para 60 s, "300ms" para 300 ms.
-fn duracion_go(duracion: Duration) -> String {
+/// `time.Duration.String` del contrato: "1m0s" para 60 s, "300ms" para 300 ms.
+fn duracion_texto(duracion: Duration) -> String {
     let nanos = duracion.as_nanos();
     if nanos < 1_000 {
         return format!("{nanos}ns");
@@ -587,9 +585,9 @@ fn fraccion(resto: u64, ancho: usize) -> String {
     format!(".{texto}")
 }
 
-/// Texto del error de `cmd.Wait()`: Go imprime "exit status N" o
-/// "signal: killed" (`command.go:91-93`).
-fn estado_go(estado: ExitStatus) -> String {
+/// Texto del error de `cmd.Wait`: el contrato imprime "exit status N" o
+/// "signal: killed".
+fn estado_texto(estado: ExitStatus) -> String {
     #[cfg(unix)]
     {
         use std::os::unix::process::ExitStatusExt;
@@ -976,7 +974,7 @@ mod tests {
     }
 
     /// Programa externo de los tests. Solo actúa cuando recibe `--` y un
-    /// `mode=`, como `TestHelperProcess` en Go (`localtools_test.go:284-324`).
+    /// `mode=`, como.
     #[test]
     fn ayudante_proceso() {
         let argumentos: Vec<String> = std::env::args().collect();

@@ -37,18 +37,18 @@ use prompt::{agregar_skills, agregar_subagente, config_local, sistema_del_turno}
 use serde_json::Value;
 use sessions::{Session, Store};
 
-/// El Go omite los contadores en cero (`internal/harness/run.go:653-654`).
+/// El contrato omite los contadores en cero.
 fn distinto_de_cero(n: u64) -> Option<u64> {
     if n == 0 { None } else { Some(n) }
 }
 
-/// El aviso del `start` cuando no hay sesión de Oruscribe. Es el texto de
-/// `mensajeOrg` para `auth.ErrNoSession` (`internal/harness/org.go:90`).
+/// El aviso del `start` cuando no hay sesión de Oruscribe. Es el texto que se muestra
+/// cuando falta la sesión.
 pub const ORG_NOTE_SIN_SESION: &str = "sin sesión de Oruscribe; uso solo las herramientas locales. Abre la app e inicia sesión para usar tareas, chat y metas.";
 
 /// Aprobación externa de una herramienta con su riesgo. La ventana la usa como
-/// único `Approve` (`internal/app/agent.go:681`); `None` es una herramienta sin
-/// riesgo declarado (`run.go:462`). La costura es síncrona porque `ApproveFn`
+/// único `Approve`; `None` es una herramienta sin
+/// riesgo declarado. La costura es síncrona porque `ApproveFn`
 /// lo es (`orus-agent/src/runner.rs:85`).
 pub type ApproveRiskFn =
     Arc<dyn Fn(&ToolCall, Option<Risk>) -> std::result::Result<bool, ToolError> + Send + Sync>;
@@ -62,8 +62,7 @@ pub struct TurnoReal<'a> {
     /// contesta ella aunque no haya terminal; sin costura, la CLI se comporta
     /// como siempre.
     pub approve: Option<ApproveRiskFn>,
-    /// Token con el que el borde corta el turno en curso (`AgentCancel`,
-    /// `internal/app/agent.go:695-701`). Sin token, el turno corre como antes.
+    /// Token con el que el borde corta el turno en curso. Sin token, el turno corre como antes.
     pub cancel: Option<CancelToken>,
 }
 
@@ -88,14 +87,14 @@ pub enum ErrorTurno {
     Turno(#[from] orus_agent::RunnerError),
     #[error(transparent)]
     Instrucciones(#[from] instructions::InstructionsError),
-    /// `journal.Open` falla antes de armar las herramientas (`run.go:366-369`).
+    /// `journal.Open` falla antes de armar las herramientas.
     #[error("no se pudo abrir el diario de deshacer: {0}")]
     Diario(#[from] journal::Error),
-    /// La respuesta llegó pero la sesión no se pudo escribir (`run.go:554-556`).
+    /// La respuesta llegó pero la sesión no se pudo escribir.
     #[error("la respuesta llegó pero no se pudo guardar la sesión: {0}")]
     Sesiones(#[from] sessions::SessionsError),
 
-    /// Fallaron el turno y el guardado. Go los unía con `errors.Join`; acá se
+    /// Fallaron el turno y el guardado. Se
     /// conservan las dos fuentes para no perder el aviso de historial perdido.
     #[error("el turno falló ({turno}) y no se pudo guardar la sesión ({sesiones})")]
     TurnoYSesiones {
@@ -105,7 +104,7 @@ pub enum ErrorTurno {
 }
 
 /// El `start` del turno real. `org` viaja solo si hay herramientas de la
-/// organización y `org_note` solo si hay algo que avisar (`run.go:428,648-649`).
+/// organización y `org_note` solo si hay algo que avisar.
 pub fn inicio(turno: &TurnoReal<'_>, sesion: &str) -> Event {
     Event::Start {
         session: sesion.to_owned(),
@@ -117,13 +116,12 @@ pub fn inicio(turno: &TurnoReal<'_>, sesion: &str) -> Event {
     }
 }
 
-/// Corre el turno con el proveedor real. Port de `runWithOptions`
-/// (`internal/harness/run.go:340-559`) en lo que toca a este camino: un turno,
+/// Corre el turno con el proveedor real: un turno,
 /// un proveedor, las herramientas locales y los eventos del contrato.
 ///
 /// `sesion` llega cargada o nueva desde la CLI; acá se le agrega el mensaje,
 /// se reanuda su historial y se guarda aunque el turno falle
-/// (`run.go:424-534`). `guardar` es `None` cuando el borde no persiste.
+/// `guardar` es `None` cuando el borde no persiste.
 ///
 /// `emitir` recibe cada evento en orden; los deltas llegan mientras el
 /// proveedor transmite.
@@ -170,8 +168,8 @@ where
     let modo = Mode::parse(&turno.modo)
         .ok_or_else(|| ErrorTurno::ModoDesconocido(turno.modo.to_owned()))?;
     // El cerebro de la organización trae su prompt y sus herramientas del
-    // servidor: Go no arma locales, instrucciones ni skills (`agent.go:595-634`).
-    // Go descubre instrucciones antes de abrir el diario (`run.go:361-369`).
+    // servidor: el contrato no arma locales, instrucciones ni skills.
+    // El contrato descubre instrucciones antes de abrir el diario.
     let sistema = if turno.cerebro {
         String::new()
     } else {
@@ -186,7 +184,7 @@ where
         Some(skills::load(Path::new(&turno.cwd), true))
     };
     // Sin carpetas permitidas no hay herramientas locales, y el diario no se
-    // abre (`agent.go:609-619`). Con carpetas permitidas, tanto `Mi clave`
+    // abre. Con carpetas permitidas, tanto `Mi clave`
     // como `IA de Oruscribe` pueden usar las herramientas Pi (`read`, `write`,
     // `edit`, `bash`) confinadas a esas carpetas y sujetas a permisos/aprobación.
     let locales = if turno.folders.is_empty() {
@@ -216,14 +214,14 @@ where
             .entry(herramienta.spec().name)
             .or_insert_with(|| herramienta.risk());
     }
-    // El plan se aprueba con la misma puerta que una escritura (`run.go:386`).
+    // El plan se aprueba con la misma puerta que una escritura.
     riesgos.insert(HERRAMIENTA_PROPOSE_PLAN.to_owned(), Some(Risk::Write));
 
     if let Some(skills) = &skills {
         agregar_skills(&mut herramientas, &mut riesgos, skills);
     }
     // El subagente se arma con la lista ya filtrada: `task` no está en ella, así
-    // que no se delega a sí mismo (`run.go:398-407`). El cerebro no lo lleva.
+    // que no se delega a sí mismo. El cerebro no lo lleva.
     if !turno.cerebro {
         let _ = agregar_subagente(
             &mut herramientas,
@@ -234,7 +232,7 @@ where
         );
     }
     // La memoria va después del subagente para que `task` no la vea
-    // (`run.go:408-418`). Si el índice no abrió, la CLI no pasa nada.
+    // Si el índice no abrió, la CLI no pasa nada.
     if let Some(memoria) = &turno.memoria {
         riesgos.insert(memoria.spec().name.clone(), memoria.risk());
         herramientas.push(Arc::clone(memoria));
@@ -265,7 +263,7 @@ where
                     text: paso.text,
                 },
                 StepKind::Denied => Event::Denied { tool: paso.tool },
-                // Go no pinta el paso `plan` (`run.go:678-708`): no está en
+                // El contrato no pinta el paso `plan`: no está en
                 // el contrato de eventos.
                 StepKind::Plan => return,
             };
@@ -280,7 +278,7 @@ where
         turno.es_tty,
     );
     let aprobar_plan = aprobador_plan_con_externo(turno.approve.clone(), turno.yes, turno.es_tty);
-    // Las reglas recordadas se aplican antes de preguntar (`run.go:430-435`):
+    // Las reglas recordadas se aplican antes de preguntar:
     // el runner no llama a `approve` cuando `allow_rule` responde que sí.
     let regla_permitida: AllowRuleFn = Arc::new(|llamada: &ToolCall, riesgo: Risk| {
         permissions::check(&llamada.name, &llamada.args, riesgo)
@@ -290,7 +288,7 @@ where
     runner.system = sistema;
     runner.tools = herramientas;
     runner.mode = Some(modo);
-    // El valor por defecto de Go (`run.go:95`).
+    // El valor por defecto del contrato.
     runner.chat_retries = 1;
     runner.max_steps = turno.max_steps;
     // La ventana del modelo llega al runner para que la compactación y la
@@ -326,7 +324,7 @@ where
     sesion.tokens_out += uso.completion;
     sesion.model = turno.modelo.to_owned();
 
-    // Go guarda si hay historial aunque el turno falle (`run.go:531-534`).
+    // El contrato guarda si hay historial aunque el turno falle.
     let guardado = match guardar {
         Some(store) if !sesion.messages.is_empty() => {
             store.save(Some(sesion)).map_err(ErrorTurno::Sesiones)
@@ -343,7 +341,7 @@ where
 
     match (resultado, guardado) {
         (Err(turno), Err(ErrorTurno::Sesiones(sesiones))) => {
-            // Go los unía con `errors.Join`: ninguno se traga al otro.
+            // Ninguno se traga al otro.
             Err(ErrorTurno::TurnoYSesiones { turno, sesiones })
         }
         (Err(turno), _) => Err(turno.into()),
@@ -355,8 +353,8 @@ where
     }
 }
 
-/// Los contadores son `i64` en el runner y `u64` en el evento; el Go omite el
-/// cero (`run.go:653-654`).
+/// Los contadores son `i64` en el runner y `u64` en el evento; el contrato omite el
+/// cero.
 fn tokens(n: i64) -> Option<u64> {
     u64::try_from(n).ok().and_then(distinto_de_cero)
 }
@@ -1430,7 +1428,7 @@ mod tests {
     }
 
     /// El mensaje que arma `correr_turno_real` lleva la imagen completa a la
-    /// sesión y al proveedor (`agent.go:927-946`).
+    /// sesión y al proveedor.
     #[tokio::test]
     async fn la_imagen_del_turno_llega_al_proveedor_y_a_la_sesion() {
         let tmp = tempfile::tempdir().expect("tmp");
@@ -1739,7 +1737,7 @@ mod tests {
     }
 
     /// Dos carpetas permitidas: una escritura en la segunda y una lectura de la
-    /// primera; el `cwd` sigue siendo la primera (`agent.go:609-627`).
+    /// primera; el `cwd` sigue siendo la primera.
     #[tokio::test]
     async fn folders_escriben_en_la_segunda_y_leen_la_primera() {
         let tmp = tempfile::tempdir().expect("tmp");

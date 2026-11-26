@@ -1,6 +1,6 @@
 //! Conversaciones de la ventana: listar, abrir, borrar y migrar.
 //!
-//! Port de `internal/app/conversations.go:17-230`. El formato en disco, la
+//! El formato en disco, la
 //! escritura atómica y la validación viven en `orus_harness::sessions`; aquí
 //! solo se eligen la carpeta y el prefijo histórico `c-` de la ventana.
 
@@ -18,7 +18,6 @@ use serde_json::Value;
 use crate::sync::lock;
 
 /// Lo que la lista de la ventana necesita, sin los mensajes
-/// (`conversations.go:18-23`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConversationInfo {
     #[serde(rename = "id")]
@@ -31,13 +30,13 @@ pub struct ConversationInfo {
     pub messages: usize,
 }
 
-/// `config.DataDir()/conversations` (`conversations.go:36`).
+/// `config.DataDir/conversations`.
 pub fn conversations_dir() -> PathBuf {
     orus_config::data_dir().join("conversations")
 }
 
 /// El mismo almacén del arnés con la carpeta y el prefijo que la ventana ya
-/// tenía (`conversations.go:38-47`). El prefijo conserva `c-<id>.json`.
+/// tenía. El prefijo conserva `c-<id>.json`.
 pub fn conversation_store() -> Store {
     Store {
         dir: conversations_dir(),
@@ -131,7 +130,7 @@ impl Conversations {
         }
     }
 
-    /// Lista de la más reciente a la más vieja (`conversations.go:49-61`).
+    /// Lista de la más reciente a la más vieja.
     /// Con el directorio sin cambios la lista sale del cache: no se relee ni
     /// se reparsea el contenido de cada archivo en cada llamada (#95).
     pub fn list(&self) -> Result<Vec<ConversationInfo>, SessionsError> {
@@ -193,14 +192,13 @@ impl Conversations {
         Ok(salida)
     }
 
-    /// Carga una conversación para que el borde la aplique
-    /// (`conversations.go:63-85`, sin el estado de pantalla).
+    /// Carga una conversación para que el borde la aplique, sin el estado de pantalla.
     pub fn load(&self, id: &str) -> Result<Session, SessionsError> {
         self.migrate();
         self.store.load(id)
     }
 
-    /// Borra una; con id vacío borra todas (`conversations.go:87-118`). El
+    /// Borra una; con id vacío borra todas. El
     /// reinicio de la conversación abierta lo decide O5-06.
     pub fn delete(&self, id: &str) -> Result<(), SessionsError> {
         if id.is_empty() {
@@ -211,18 +209,16 @@ impl Conversations {
     }
 
     /// Borra solo los archivos de conversación de la ventana
-    /// (`conversations.go:120-123`).
     pub fn clear(&self) -> Result<(), SessionsError> {
         self.store.clear()
     }
 
-    /// Guarda la foto completa (`conversations.go:223-230`).
+    /// Guarda la foto completa.
     pub fn save(&self, session: &mut Session) -> Result<(), SessionsError> {
         self.store.save(Some(session))
     }
 
     /// Id del reloj en nanosegundos; si el reloj no los da, micros
-    /// (`conversations.go:214-218`).
     pub fn new_id(&self) -> String {
         let ahora = Utc::now();
         match ahora.timestamp_nanos_opt() {
@@ -232,7 +228,7 @@ impl Conversations {
     }
 
     /// Convierte los archivos del formato viejo al compartido
-    /// (`conversations.go:125-174`). Es idempotente. Solo lee el contenido de
+    /// Es idempotente. Solo lee el contenido de
     /// los archivos cuya huella no fue revisada todavía: un archivo ya
     /// migrado (o ya en el formato nuevo) no se reparsea en cada llamada
     /// (#95).
@@ -296,7 +292,7 @@ impl Conversations {
                 continue;
             };
             sesion.id = id;
-            // Igual que el Go: un archivo que no se puede guardar no corta la
+            // Un archivo que no se puede guardar no corta la
             // migración de los demás. Si el guardado falla, la huella no se
             // marca: el próximo intento vuelve a leerlo.
             if self.store.save(Some(&mut sesion)).is_ok() {
@@ -331,7 +327,6 @@ fn conversacion(info: Info) -> ConversationInfo {
 }
 
 /// Los mensajes vacíos y el título vacío no son una conversación
-/// (`conversations.go:185-187`).
 fn legacy_vacia(objeto: &serde_json::Map<String, Value>) -> bool {
     let sin_mensajes = objeto
         .get("messages")

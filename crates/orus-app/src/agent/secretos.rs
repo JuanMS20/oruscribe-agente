@@ -5,7 +5,7 @@ use std::path::Path;
 use crate::wake::WakeEntry;
 
 /// La clave del proveedor: solo su pista, nunca la clave entera
-/// (`agent.go:99-129`). Sin proveedor no hay clave.
+/// Sin proveedor no hay clave.
 pub trait Secrets: Send + Sync {
     fn get(&self) -> Result<Option<String>, String>;
     fn set(&self, value: &str) -> Result<(), String>;
@@ -31,8 +31,7 @@ impl Secrets for NoSecrets {
 }
 
 /// La clave del proveedor en el llavero del sistema: servicio
-/// `oruscribe-agent`, nombre `agente-clave` (`secret.go:25-40`,
-/// `store.go:32`).
+/// `oruscribe-agent`, nombre `agente-clave`.
 ///
 /// El borde HTTP construye la `App` con
 /// `with_secrets(Arc::new(AgentSecrets::new()))`; sin ese cableado, guardar una

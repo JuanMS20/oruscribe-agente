@@ -1,6 +1,6 @@
 //! La herramienta `task`: un subagente de solo lectura con contexto limpio.
 //!
-//! Port de `internal/subagent/subagent.go:16-104`. El subagente reutiliza el
+//! El subagente reutiliza el
 //! [`Runner`] en [`Mode::ReadOnly`]: no escribe, no ejecuta programas y no
 //! puede delegar otra tarea.
 
@@ -16,22 +16,20 @@ use crate::runner::{CancelToken, Runner, Usage};
 use crate::types::{Provider, Tool, ToolError, ToolSpec};
 
 /// El prompt más grande que el padre puede entregar al subagente.
-/// `MaxPrompt` (`subagent.go:17-18`).
 pub const MAX_PROMPT: usize = 8 << 10;
 
 /// El tope de pasos cuando quien construye la herramienta no fija uno.
-/// `DefaultSteps` (`subagent.go:19-20`).
 pub const DEFAULT_STEPS: i64 = 8;
 
-/// La descripción que ve el modelo. `Spec` (`subagent.go:32-40`).
+/// La descripción que ve el modelo. `Spec`.
 const DESCRIPCION: &str = "Delega una exploración de solo lectura a un subagente con contexto limpio. Úsalo cuando haya que revisar varios archivos o hacer una búsqueda larga sin llenar la conversación principal. El subagente no puede escribir, ejecutar programas ni delegar otra tarea.";
 
-/// Lo que se agrega al sistema del padre. `Run` (`subagent.go:65-68`).
+/// Lo que se agrega al sistema del padre. `Run`.
 const INSTRUCCION_SUBAGENTE: &str = "\n\nEres un subagente de exploración. Trabajas con contexto limpio: no ves la conversación principal. Lee lo que haga falta y devuelve un resumen con las rutas y los datos que encontraste. No cambies archivos, no ejecutes programas y no inventes resultados.";
 
 /// La herramienta `task`.
 ///
-/// Port de `Tool` (`subagent.go:23-30`). El padre arma `tools` con
+/// El padre arma `tools` con
 /// [`read_tools`] y no incluye esta misma herramienta: así el subagente no se
 /// delega.
 pub struct Subagent {
@@ -46,7 +44,7 @@ pub struct Subagent {
 }
 
 impl Subagent {
-    /// Arma la herramienta con los valores cero de Go. El proveedor y el
+    /// Arma la herramienta con los valores cero. El proveedor y el
     /// modelo son lo único obligatorio.
     pub fn new(provider: Arc<dyn Provider>, model: impl Into<String>) -> Self {
         Self {
@@ -60,9 +58,9 @@ impl Subagent {
     }
 }
 
-/// Los argumentos de `task`. `Run` (`subagent.go:44-53`).
+/// Los argumentos de `task`. `Run`.
 ///
-/// Los campos son `Option` porque `encoding/json` de Go deja el valor cero
+/// Los campos son `Option` porque `encoding/json` del contrato deja el valor cero
 /// cuando el campo falta o llega `null`, y solo falla con otro tipo.
 #[derive(Debug, Default, Deserialize)]
 struct Entrada {
@@ -100,8 +98,8 @@ impl Tool for Subagent {
     }
 
     async fn run(&self, args: Value) -> Result<String, ToolError> {
-        // Go solo parsea cuando hay argumentos; `null` también deja la
-        // estructura en cero (`subagent.go:49-53`).
+        // El contrato solo parsea cuando hay argumentos; `null` también deja la
+        // estructura en cero.
         let entrada = if args.is_null() {
             Entrada::default()
         } else {
@@ -114,7 +112,7 @@ impl Tool for Subagent {
                 "falta el prompt del subagente".to_owned(),
             ));
         }
-        // Go mide bytes (`len`), no runas.
+        // El contrato mide bytes (`len`), no runas.
         if prompt.len() > MAX_PROMPT {
             return Err(ToolError::Message(format!(
                 "el prompt del subagente pasa el tope de {MAX_PROMPT} bytes"
@@ -173,8 +171,6 @@ impl Tool for Subagent {
 
 /// Deja solo las herramientas que no cambian nada. `task` no está en la lista
 /// de entrada, así que un subagente no se delega.
-///
-/// `ReadTools` (`subagent.go:94-104`).
 pub fn read_tools(todas: &[Arc<dyn Tool>]) -> Vec<Arc<dyn Tool>> {
     todas
         .iter()

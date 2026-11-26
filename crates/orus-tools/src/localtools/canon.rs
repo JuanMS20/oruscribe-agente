@@ -1,8 +1,8 @@
 //! Ruta real de un objeto del disco.
 //!
-//! Port de `canon_windows.go:14-50`: `std::fs::canonicalize` usa
+//! `std::fs::canonicalize` usa
 //! `GetFinalPathNameByHandle`, así que resuelve enlaces, junctions y puntos de
-//! unión. Fuera de Windows equivale a `EvalSymlinks` (`canon_other.go:7`).
+//! unión. Fuera de Windows resuelve los enlaces simbólicos.
 
 use std::io;
 use std::path::{Path, PathBuf};

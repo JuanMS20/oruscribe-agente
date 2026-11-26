@@ -1,6 +1,6 @@
 //! Instancia única del agente en Windows.
 //!
-//! Port de `single_windows.go:21-51`: un mutex con nombre en el espacio
+//! Un mutex con nombre en el espacio
 //! `Local\` mantiene dos copias del programa lejos una de otra. El handle se
 //! guarda durante toda la vida del proceso y Windows lo libera cuando el
 //! proceso termina, sin importar cómo termine.
@@ -11,13 +11,13 @@
 
 use std::time::Duration;
 
-/// Nombre exacto de Go (`single_windows.go:21`).
+/// Nombre exacto del contrato.
 pub const MUTEX: &str = r"Local\OruscribeAgente";
 
-/// Tope de espera de una copia relanzada (`single_windows.go:35`).
+/// Tope de espera de una copia relanzada.
 pub const ESPERA_RELANZAMIENTO: Duration = Duration::from_secs(15);
 
-/// Reintento entre intentos (`single_windows.go:49`).
+/// Reintento entre intentos.
 pub const REINTENTO: Duration = Duration::from_millis(200);
 
 /// La copia anterior todavía tiene el mutex.
@@ -88,7 +88,7 @@ pub fn adquirir(
         use windows_sys::Win32::Foundation::{ERROR_ALREADY_EXISTS, GetLastError, SetLastError};
         use windows_sys::Win32::System::Threading::CreateMutexW;
 
-        // Go no puede convertir un nombre con NUL y deja arrancar; aquí se
+        // El contrato no puede convertir un nombre con NUL y deja arrancar; aquí se
         // corta igual antes de llamar a Windows.
         if nombre.contains('\0') {
             return Ok(InstanciaUnica {
@@ -180,7 +180,7 @@ pub fn adquirir(
 /// Igual que [`adquirir`], leyendo `--relaunch` de la línea de comandos.
 ///
 /// `args` es la lista completa; el primer elemento es el ejecutable y se
-/// ignora, como `os.Args[1:]` en `single_windows.go:56`.
+/// ignora.
 pub fn adquirir_del_sistema(args: &[String]) -> Result<InstanciaUnica, InstanciaOcupada> {
     let relanzar = args.iter().skip(1).any(|arg| arg == "--relaunch");
     adquirir(MUTEX, relanzar, ESPERA_RELANZAMIENTO, REINTENTO)
@@ -191,15 +191,15 @@ mod constantes {
     use super::*;
 
     #[test]
-    fn coinciden_con_go() {
+    fn coinciden_con_el_contrato() {
         assert_eq!(MUTEX, r"Local\OruscribeAgente");
         assert_eq!(ESPERA_RELANZAMIENTO, std::time::Duration::from_secs(15));
         assert_eq!(REINTENTO, std::time::Duration::from_millis(200));
     }
 
-    // Hallazgo 5: el aviso incluye la segunda línea de `main.go:90`.
+    // Hallazgo 5: el aviso incluye la segunda línea.
     #[test]
-    fn el_texto_de_segunda_instancia_coincide_con_go() {
+    fn el_texto_de_segunda_instancia_es_el_esperado() {
         assert_eq!(
             InstanciaOcupada.to_string(),
             "Oruscribe Agente ya está abierto.\n\nBúscalo en la bandeja del sistema, junto al reloj."
@@ -266,7 +266,7 @@ mod tests {
         drop(primera);
     }
 
-    // Port de `single_windows_test.go:14-50`: la primera copia entra, la
+    // La primera copia entra, la
     // segunda sin `--relaunch` no, y una relanzada espera a que la primera
     // suelte el mutex.
     #[test]

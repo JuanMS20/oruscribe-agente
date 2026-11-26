@@ -152,7 +152,7 @@ pub(crate) fn redactar(texto: &str) -> String {
     }
 }
 
-/// `GET /api/diagnostics` (`http.go:956-958`).
+/// `GET /api/diagnostics`.
 pub(crate) async fn diagnostico(
     AxumState(app): AxumState<Arc<App>>,
     Extension(version): Extension<String>,
@@ -164,14 +164,14 @@ pub(crate) async fn diagnostico(
     )
 }
 
-/// El texto completo, en el orden de `diagnostics.go:39-72`.
+/// El texto completo, en el orden.
 fn texto(app: &App, version: &str, timbre: &dyn BellStatus) -> String {
     let mut texto = String::new();
     texto.push_str(&format!("Oruscribe Agente {version}\n"));
     texto.push_str(&format!(
         "Sistema: {}/{}\n",
         std::env::consts::OS,
-        arquitectura_go(std::env::consts::ARCH)
+        nombre_de_arquitectura(std::env::consts::ARCH)
     ));
     texto.push_str("Motor: Rust\n");
     texto.push_str(&format!(
@@ -272,9 +272,9 @@ fn texto(app: &App, version: &str, timbre: &dyn BellStatus) -> String {
     redactar(&texto)
 }
 
-/// Go imprime `runtime.GOARCH` (`amd64`); Rust usa `x86_64`. Sin el mapeo la
-/// línea no es paridad.
-fn arquitectura_go(arch: &str) -> &str {
+/// El diagnóstico imprime `amd64`, no `x86_64`: sin el mapeo la
+/// línea no coincide.
+fn nombre_de_arquitectura(arch: &str) -> &str {
     match arch {
         "x86_64" => "amd64",
         "aarch64" => "arm64",
@@ -298,16 +298,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn arquitectura_go_traduce_los_nombres_de_rust() {
-        assert_eq!(arquitectura_go("x86_64"), "amd64");
-        assert_eq!(arquitectura_go("aarch64"), "arm64");
-        assert_eq!(arquitectura_go("x86"), "386");
-        assert_eq!(arquitectura_go("arm"), "arm");
-        assert_eq!(arquitectura_go("riscv64"), "riscv64");
+    fn nombre_de_arquitectura_traduce_los_nombres_de_rust() {
+        assert_eq!(nombre_de_arquitectura("x86_64"), "amd64");
+        assert_eq!(nombre_de_arquitectura("aarch64"), "arm64");
+        assert_eq!(nombre_de_arquitectura("x86"), "386");
+        assert_eq!(nombre_de_arquitectura("arm"), "arm");
+        assert_eq!(nombre_de_arquitectura("riscv64"), "riscv64");
     }
 
     #[test]
-    fn nombre_de_estado_usa_los_cuatro_valores_de_go() {
+    fn nombre_de_estado_usa_los_cuatro_valores() {
         assert_eq!(nombre_de_estado(Status::LoggedOut), "logged_out");
         assert_eq!(nombre_de_estado(Status::Connecting), "connecting");
         assert_eq!(nombre_de_estado(Status::Ready), "ready");

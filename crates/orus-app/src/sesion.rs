@@ -1,6 +1,5 @@
 //! Sesión de la app: token, refresco y cliente MCP.
 //!
-//! Port de `internal/app/app.go:33-40,487-535,680,730-800`.
 
 mod app;
 mod backend;
@@ -32,7 +31,7 @@ use crate::conversations::Conversations;
 use crate::login::LoginState;
 use crate::watch::ClientProvider;
 
-/// El estado que pinta la ventana. Cuatro valores, ni uno más (`app.go:33-40`).
+/// El estado que pinta la ventana. Cuatro valores, ni uno más.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Status {
@@ -43,7 +42,7 @@ pub enum Status {
     Failed,
 }
 
-/// Lee los commits de una carpeta local (`capture.go:148-180`). Es la materia
+/// Lee los commits de una carpeta local. Es la materia
 /// prima de la captura y corre en la máquina, nunca contra el servidor.
 pub fn git_log(dir: &str, since: Option<DateTime<Utc>>) -> Result<DigestSource, SessionError> {
     orus_org::captura::git_log(dir, since).map_err(org_error)
@@ -70,13 +69,13 @@ struct Estado {
 }
 
 /// La costura del timbre: el borde es dueño del `Watch` y de sus sinks
-/// (`app.go:853-876`). `App` solo decide cuándo arrancarlo y detenerlo.
+/// `App` solo decide cuándo arrancarlo y detenerlo.
 pub trait WatchSpawner: Send + Sync {
     fn start(&self, generation: u64, client: Arc<dyn ClientProvider>);
     fn stop(&self);
 }
 
-/// La sesión de la app (`app.go:96-160`, sin pantalla ni avatares).
+/// La sesión de la app, sin pantalla ni avatares.
 #[derive(Clone)]
 pub struct App {
     pub(crate) store: Arc<dyn Store + Send + Sync>,
@@ -101,14 +100,14 @@ pub struct App {
     pub(crate) secrets: Option<Arc<dyn Secrets>>,
     pub(crate) wake_log: Option<Arc<dyn WakeLog>>,
     /// La última configuración del timbre que trajo el servidor; de acá sale
-    /// la base del cerebro de la organización (`watch.go:151-155`).
+    /// la base del cerebro de la organización.
     pub(crate) bell_config: Arc<Mutex<Option<DoorbellConfig>>>,
     /// La costura del proveedor para probar el agente; sin ella se usa la
     /// fábrica real.
     pub(crate) proveedor: Option<ProveedorFn>,
     /// Tope de lecturas MCP compartido por todos los turnos de esta sesión.
     pub(crate) registro_lecturas: Arc<RegistroLecturas>,
-    /// Caché de fotos de perfil por organización (`app.go:282-303`).
+    /// Caché de fotos de perfil por organización.
     pub(crate) avatares: Arc<crate::avatares::Avatares>,
     /// Colector de telemetría de errores (Sentry + anillo local redactado).
     pub(crate) telemetry: Arc<crate::telemetria::Telemetry>,
@@ -144,7 +143,7 @@ fn endpoint(settings: &Settings) -> String {
     }
 }
 
-/// El cero de Go (`0001-01-01T00:00:00Z`) significa "sin vencimiento"
+/// El cero (`0001-01-01T00:00:00Z`) significa "sin vencimiento"
 /// (`orus_auth/src/token.rs:27-32`).
 fn sin_vencimiento() -> DateTime<FixedOffset> {
     let naive = chrono::NaiveDate::from_ymd_opt(1, 1, 1)

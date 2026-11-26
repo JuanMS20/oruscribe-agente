@@ -1,7 +1,7 @@
-//! Hub de eventos y long poll de `GET /api/events` (`watch.go:25-74`).
+//! Hub de eventos y long poll de `GET /api/events`.
 //!
-//! Go reparte cada evento a un canal por ventana y descarta el que no cabe
-//! (`watch.go:48-57`). Aquí cada suscriptor es un `mpsc` con id, para poder
+//! El contrato reparte cada evento a un canal por ventana y descarta el que no cabe
+//! Aquí cada suscriptor es un `mpsc` con id, para poder
 //! darlo de baja cuando la petición termina, incluso si el cliente corta.
 
 use std::collections::HashMap;
@@ -18,7 +18,7 @@ use tokio::sync::mpsc;
 
 use crate::write_json;
 
-/// La capacidad de cada suscriptor: `make(chan Event, 8)` (`watch.go:35`).
+/// La capacidad de cada suscriptor: `make(chan Event, 8)`.
 const CAPACIDAD_SUSCRIPTOR: usize = 8;
 
 /// Reparte cada evento a todos los que escuchan. Clonarlo comparte el estado.
@@ -38,7 +38,7 @@ impl Hub {
         Self::default()
     }
 
-    /// Abre un canal de 8 y devuelve su id para la baja (`watch.go:34-40`).
+    /// Abre un canal de 8 y devuelve su id para la baja.
     pub fn subscribe(&self) -> (u64, mpsc::Receiver<Event>) {
         let (tx, rx) = mpsc::channel(CAPACIDAD_SUSCRIPTOR);
         let id = self.interior.siguiente_id.fetch_add(1, Ordering::Relaxed);
@@ -46,12 +46,12 @@ impl Hub {
         (id, rx)
     }
 
-    /// Quita el suscriptor (`watch.go:42-46`).
+    /// Quita el suscriptor.
     pub fn unsubscribe(&self, id: u64) {
         self.suscriptores().remove(&id);
     }
 
-    /// Manda a todos y descarta el que no cabe (`watch.go:48-57`): nunca
+    /// Manda a todos y descarta el que no cabe: nunca
     /// bloquea y nunca cierra el canal de un suscriptor lento.
     pub fn publish(&self, event: Event) {
         let suscriptores = self.suscriptores();
@@ -74,8 +74,8 @@ impl Hub {
     }
 }
 
-/// El silencio de Go es `Event{Kind:"silencio"}` con el tiempo cero
-/// (`watch.go:68,70`), no un `Event::new`, que pondría `at` en ahora.
+/// El silencio del contrato es `Event{Kind:"silencio"}` con el tiempo cero
+/// No un `Event::new`, que pondría `at` en ahora.
 #[derive(Serialize)]
 struct Silencio {
     kind: &'static str,
@@ -94,7 +94,7 @@ fn silencio() -> Silencio {
 }
 
 /// Da de baja al suscriptor al salir del handler, también si el cliente corta
-/// y el futuro se descarta (`defer a.hub.drop(c)`, `watch.go:65`).
+/// y el futuro se descarta.
 #[allow(dead_code)] // se leen en Drop; clippy no lo ve
 struct Baja {
     hub: Arc<Hub>,
@@ -107,7 +107,7 @@ impl Drop for Baja {
     }
 }
 
-/// `GET /api/events`: long poll de un evento o del silencio (`watch.go:63-74`).
+/// `GET /api/events`: long poll de un evento o del silencio.
 pub(crate) async fn handle_events(
     Extension(hub): Extension<Arc<Hub>>,
     Extension(wait): Extension<Duration>,

@@ -1,9 +1,9 @@
-//! Caché de avatares por organización: port de `app.go:277-303,405-484`.
+//! Caché de avatares por organización: port.
 //!
-//! Las fotos de perfil no vienen en las respuestas del backend MCP. Go las
+//! Las fotos de perfil no vienen en las respuestas del backend MCP. El contrato las
 //! pedía a Supabase REST con el JWT de la sesión, las cacheaba en
 //! `avatars.json` por organización y las inyectaba en salas, mensajes, equipo
-//! y estado (`http.go:207-275,610-634`). Este módulo es esa caché y su
+//! y estado. Este módulo es esa caché y su
 //! refresco; la inyección vive en `state()` y en el borde HTTP.
 
 use std::collections::HashMap;
@@ -17,15 +17,14 @@ use serde::{Deserialize, Serialize};
 use crate::sync::lock;
 
 /// Cinco minutos de caché y un minuto de espera tras un intento fallido
-/// (`app.go:277-283`).
 const REFRESCAR_CADA: Duration = Duration::from_secs(5 * 60);
 const REINTENTAR_TRAS: Duration = Duration::from_secs(60);
 const TIMEOUT_PETICION: Duration = Duration::from_secs(10);
-/// La lista de perfiles no puede pasar de un mebibyte (`app.go:435`).
+/// La lista de perfiles no puede pasar de un mebibyte.
 const MAX_LISTA: usize = 1 << 20;
 
 /// La copia en disco: `id -> dirección de foto`, por organización
-/// (`app.go:446-451`). Una cuenta distinta en el mismo equipo no debe ver
+/// Una cuenta distinta en el mismo equipo no debe ver
 /// las caras de la anterior.
 #[derive(Serialize, Deserialize)]
 struct CopiaDisco {
@@ -61,7 +60,7 @@ impl Avatares {
         }
     }
 
-    /// `avatarMap`: la copia vigente para inyectar, sin esperar a la red. Si
+    /// La copia vigente para inyectar, sin esperar a la red. Si.
     /// toca, arranca el refresco en segundo plano.
     pub(crate) fn mapa(
         self: &Arc<Self>,
@@ -100,7 +99,7 @@ impl Avatares {
         }
         // Un token del MCP (`syn_...`) no es un JWT de Supabase: la consulta
         // de perfiles devuelve PGRST301 y la ventana se queda con las
-        // iniciales sin decir por qué (`app.go:408-411`).
+        // iniciales sin decir por qué.
         if org.is_empty() || base.is_empty() || token.matches('.').count() != 2 {
             return interior.urls.clone();
         }
@@ -129,7 +128,6 @@ impl Avatares {
 
     /// Aplica lo que trajo la red. Una organización distinta mientras se
     /// pedían las fotos no se mezcla: el intento quedó contado igual
-    /// (`app.go:324-337`).
     fn aplicar(&self, org: &str, urls: HashMap<String, String>) {
         let mut interior = lock(&self.interior);
         interior.ocupado = false;
@@ -142,7 +140,7 @@ impl Avatares {
         let _ = guardar_disco(org, &urls);
     }
 
-    /// Un fallo de red conserva las caras que ya estaban (`app.go:331-335`).
+    /// Un fallo de red conserva las caras que ya estaban.
     fn liberar(&self) {
         lock(&self.interior).ocupado = false;
     }
@@ -180,7 +178,6 @@ impl ConFoto for MemberInfo {
 }
 
 /// Rellena la foto que el backend MCP no trae con la de la caché de avatares
-/// (`http.go:216-224,246-261,622-630`).
 pub fn con_avatar<T: ConFoto + ?Sized>(quien: &mut T, urls: &HashMap<String, String>) {
     if quien.sin_foto()
         && let Some(url) = urls.get(quien.id())
@@ -190,7 +187,7 @@ pub fn con_avatar<T: ConFoto + ?Sized>(quien: &mut T, urls: &HashMap<String, Str
 }
 
 /// `GET {base}/rest/v1/users?select=id,avatar_url&organization_id=eq.<org>`
-/// con el JWT de la sesión y la llave anónima (`app.go:413-443`).
+/// con el JWT de la sesión y la llave anónima.
 async fn pedir(
     base: &str,
     anon: &str,
@@ -243,7 +240,7 @@ async fn pedir(
         .collect())
 }
 
-/// `avatars.json` en la carpeta de datos (`app.go:453-455`).
+/// `avatars.json` en la carpeta de datos.
 fn ruta_disco() -> PathBuf {
     orus_config::data_dir().join("avatars.json")
 }
@@ -257,7 +254,7 @@ fn leer_disco(org: &str) -> Option<(String, HashMap<String, String>)> {
     Some((copia.org, copia.urls))
 }
 
-/// Escritura atómica con `tmp` y renombrado (`app.go:472-484`).
+/// Escritura atómica con `tmp` y renombrado.
 fn guardar_disco(org: &str, urls: &HashMap<String, String>) -> std::io::Result<()> {
     if org.is_empty() || urls.is_empty() {
         return Ok(());

@@ -1,7 +1,7 @@
 //! Diario de escrituras: respalda un archivo antes de que el agente lo pise y
 //! guarda lo necesario para deshacer las últimas operaciones.
 //!
-//! Port de `internal/journal` (Go). El diario vive en `DataDir/journal`: un
+//! El diario vive en `DataDir/journal`: un
 //! archivo `journal.jsonl` con las entradas y un respaldo `.bak` por escritura.
 //! Guarda las últimas [`MAX_ENTRADAS`].
 
@@ -315,7 +315,7 @@ impl Journal {
     /// Deshace las últimas `n` operaciones, de la más reciente a la más vieja.
     /// `guard` decide si una ruta se puede tocar. Sin `force`, si el archivo
     /// cambió desde la escritura del agente la operación se niega entera antes
-    /// de tocar nada. Devuelve cuántas quedaron hechas y el error, como el Go.
+    /// de tocar nada. Devuelve cuántas quedaron hechas y el error
     pub fn undo(&self, n: i64, guard: Option<Guard<'_>>, force: bool) -> (usize, Option<Error>) {
         let n = if n <= 0 {
             1

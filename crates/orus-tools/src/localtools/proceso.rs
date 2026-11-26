@@ -1,12 +1,11 @@
 //! Árbol de procesos de un comando: Job Object en Windows y grupo de procesos
-//! en Unix. Port de `internal/localtools/process_windows.go:13-59` y
-//! `process_other.go:10-25`.
+//! en Unix.
 //!
 //! Se usa desde `comando.rs`: `prepare_process` corre antes de arrancar (solo
 //! Unix), `attach_tree` junta al hijo recién creado con sus descendientes,
 //! `kill_tree` mata todo el árbol al vencer el timeout o al cancelar, y
 //! `close` libera el Job Object después de esperar al proceso, como el
-//! `defer tree.close()` de Go.
+//! `defer tree.close` del contrato.
 
 use std::process::Command;
 
@@ -31,17 +30,17 @@ pub(super) struct Arbol {
 }
 
 /// En Unix el grupo de procesos ya lo fija `prepare_process`: no hay objeto
-/// que conservar (`process_other.go:10`).
+/// que conservar.
 #[cfg(unix)]
 pub(super) struct Arbol;
 
 /// En Windows no hace nada: el proceso tiene que existir para asignarlo al
-/// objeto de trabajo (`process_windows.go:16-18`).
+/// objeto de trabajo.
 #[cfg(windows)]
 pub(super) fn prepare_process(_cmd: &mut Command) {}
 
 /// Pone al programa en su propio grupo para poder matar a todos sus hijos de
-/// una vez (`process_other.go:12-16`). `CommandExt::process_group` es la forma
+/// una vez. `CommandExt::process_group` es la forma
 /// segura de `setpgid` en la biblioteca estándar.
 #[cfg(unix)]
 pub(super) fn prepare_process(cmd: &mut Command) {
@@ -50,8 +49,8 @@ pub(super) fn prepare_process(cmd: &mut Command) {
 }
 
 /// Crea el Job Object con `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` y asigna el
-/// proceso (`process_windows.go:20-42`). Si algo falla devuelve `None`, como el
-/// error que Go ignora en `command.go:70`: `kill_tree` cae a `taskkill`.
+/// proceso. Si algo falla devuelve `None`, como el
+/// error que el contrato ignora: `kill_tree` cae a `taskkill`.
 #[cfg(windows)]
 pub(super) fn attach_tree(pid: u32) -> Option<Arbol> {
     // SAFETY: los dos atributos van nulos; CreateJobObjectW no desreferencia
@@ -105,7 +104,6 @@ pub(super) fn attach_tree(_pid: u32) -> Option<Arbol> {
 
 /// Mata el árbol completo. En Windows termina el Job Object; si no se pudo
 /// asignar, pide a Windows que mate el árbol por el id
-/// (`process_windows.go:44-53`).
 #[cfg(windows)]
 pub(super) fn kill_tree(arbol: Option<&Arbol>, pid: u32) {
     if let Some(arbol) = arbol {
@@ -121,18 +119,18 @@ pub(super) fn kill_tree(arbol: Option<&Arbol>, pid: u32) {
 }
 
 /// Mata el grupo entero, no solo al padre; el negativo es la convención de
-/// Unix (`process_other.go:20-23`).
+/// Unix.
 #[cfg(unix)]
 pub(super) fn kill_tree(_arbol: Option<&Arbol>, pid: u32) {
     // SAFETY: `kill` con un pid negativo envía la señal a ese grupo. Si el
-    // grupo ya no existe devuelve ESRCH, que se ignora como el `_ =` de Go.
+    // grupo ya no existe devuelve ESRCH, que se ignora como el `_ =` del contrato.
     unsafe { libc::kill(-(pid as i32), libc::SIGKILL) };
 }
 
 #[cfg(windows)]
 impl Arbol {
     /// Cierra el handle. Con `KILL_ON_JOB_CLOSE`, cualquier hijo que siguiera
-    /// vivo muere aquí (`process_windows.go:55-59`).
+    /// vivo muere aquí.
     pub(super) fn close(self) {
         // SAFETY: `self` es el único dueño del handle y se consume al llamar.
         unsafe { CloseHandle(self.job) };

@@ -1,6 +1,6 @@
 //! Compactación de la conversación: resume lo viejo cuando ya no cabe.
 //!
-//! Port de `compactar`, `largo` y `corteSeguro` (`internal/agent/loop.go:370-427`).
+//! `largo` y.
 //! Con ventana declarada dispara al 80 % del último pedido; sin ventana usa el
 //! presupuesto de caracteres. Nunca deja un mensaje `tool` sin la llamada que
 //! lo pidió.
@@ -11,19 +11,18 @@ use crate::runner::CancelToken;
 use crate::types::{ChatRequest, Provider};
 
 /// Presupuesto de caracteres cuando no hay ventana ni `max_chars`.
-/// `presupuestoChars` (`loop.go:102`).
 const PRESUPUESTO_CHARS: usize = 24_000;
 
-/// Turnos que sobreviven a la compactación. `turnosQueSeQuedan` (`loop.go:103`).
+/// Turnos que sobreviven a la compactación.
 const TURNOS_QUE_SE_QUEDAN: usize = 12;
 
-/// Lo que se le pide al modelo para resumir. `promptResumen` (`loop.go:104`).
+/// Lo que se le pide al modelo para resumir.
 const PROMPT_RESUMEN: &str = "Resume la conversación anterior en pocas líneas. Conserva decisiones, nombres, tareas y datos que hagan falta para seguir hablando. No agregues instrucciones nuevas.";
 
-/// Aviso cuando no hubo resumen y solo se recortó. `loop.go:397`.
+/// Aviso cuando no hubo resumen y solo se recortó.
 const MARCA_OMISION: &str = "[se omitieron los turnos más viejos porque no cupieron]";
 
-/// Prefijo del resumen que entra al historial. `loop.go:402`.
+/// Prefijo del resumen que entra al historial.
 const PREFIJO_RESUMEN: &str = "Resumen de lo anterior:\n";
 
 /// Lo que la compactación necesita del runner.
@@ -46,7 +45,7 @@ pub(crate) struct Compactacion {
 }
 
 /// Compacta `msgs` si la conversación ya no cabe. Nunca parte un grupo de
-/// llamada y resultado. `compactar` (`loop.go:375-403`).
+/// llamada y resultado. `compactar`.
 pub(crate) async fn compactar(peticion: Peticion<'_>, msgs: Vec<Message>) -> Compactacion {
     if !hace_falta(&peticion, &msgs) {
         return Compactacion::intacta(msgs);
@@ -102,14 +101,14 @@ pub(crate) async fn compactar(peticion: Peticion<'_>, msgs: Vec<Message>) -> Com
     }
 }
 
-/// Dice si la conversación pasó el umbral. `compactar` (`loop.go:376-388`).
+/// Dice si la conversación pasó el umbral. `compactar`.
 /// El presupuesto se mira aunque haya 13 mensajes o menos: dos resultados de
 /// herramienta grandes lo superan sin pasar de 13 mensajes (issue #93). Con
 /// 12 o menos no hay turnos viejos que cortar y `compactar` deja el historial
 /// intacto.
 fn hace_falta(peticion: &Peticion<'_>, msgs: &[Message]) -> bool {
     if peticion.window_tokens > 0 {
-        // Go trunca el umbral a entero: `int(0.8*float64(WindowTokens))`.
+        // El contrato trunca el umbral a entero: `int(0.8*float64(WindowTokens))`.
         let umbral = (0.8 * peticion.window_tokens as f64) as i64;
         return peticion.ultimo_prompt >= umbral
             || (peticion.ultimo_prompt == 0 && largo(msgs) > presupuesto(peticion.max_chars));
@@ -118,7 +117,6 @@ fn hace_falta(peticion: &Peticion<'_>, msgs: &[Message]) -> bool {
 }
 
 /// El tope por caracteres: `max_chars` si se declaró, si no el de siempre.
-/// `loop.go:381-384`.
 fn presupuesto(max_chars: i64) -> usize {
     if max_chars > 0 {
         usize::try_from(max_chars).unwrap_or(usize::MAX)
@@ -128,7 +126,7 @@ fn presupuesto(max_chars: i64) -> usize {
 }
 
 /// Estima el tamaño de la conversación: bytes de `Content` más los argumentos
-/// de las llamadas. `largo` (`loop.go:405-416`).
+/// de las llamadas. `largo`.
 fn largo(msgs: &[Message]) -> usize {
     msgs.iter()
         .map(|mensaje| {
@@ -144,7 +142,6 @@ fn largo(msgs: &[Message]) -> usize {
 }
 
 /// Mueve el corte para que no parta un grupo de llamada y resultado.
-/// `corteSeguro` (`loop.go:418-427`).
 fn corte_seguro(msgs: &[Message], corte: usize) -> usize {
     let mut corte = corte;
     while corte < msgs.len() && msgs[corte].role == "tool" {
@@ -164,7 +161,6 @@ impl Compactacion {
     }
 
     /// Avisa que se omitieron los turnos viejos y conserva el resto.
-    /// `loop.go:396-397`.
     fn con_omision(msgs: Vec<Message>, corte: usize) -> Self {
         let mut resultado = Vec::with_capacity(msgs.len().saturating_sub(corte) + 1);
         resultado.push(Message {
@@ -218,7 +214,7 @@ mod tests {
     }
 
     /// Proveedor falso que contesta el resumen cuando ve su mensaje `system`
-    /// exacto y guarda cada petición. `compact_test.go:12-35`.
+    /// exacto y guarda cada petición.
     #[derive(Default)]
     struct PedidosFalsos {
         pedidos: Mutex<Vec<Vec<Message>>>,
@@ -294,7 +290,6 @@ mod tests {
     }
 
     /// Un grupo de herramienta justo donde suele caer el corte.
-    /// `compact_test.go:106-109`.
     fn grupo_de_herramienta() -> [Message; 2] {
         let mut llamada = mensaje("assistant", "");
         llamada.tool_calls = Some(vec![ToolCall {
@@ -308,7 +303,7 @@ mod tests {
         [llamada, resultado]
     }
 
-    /// Ningún `tool` sin la llamada que lo pidió. `compact_test.go:47-59`.
+    /// Ningún `tool` sin la llamada que lo pidió.
     fn sin_huerfanos(msgs: &[Message]) {
         let mut pedidas = HashSet::new();
         for m in msgs {

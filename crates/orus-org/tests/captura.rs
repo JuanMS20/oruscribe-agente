@@ -86,7 +86,7 @@ fn parse_git_log_salta_entrada_vacia() {
     assert!(parse_git_log("abc\x1f2026-11-04T19:06:42-05:00\x1e").is_empty());
 }
 
-// Go corta por bytes y puede partir un rune; Rust corta en la frontera anterior
+// El contrato corta por bytes y puede partir un rune; Rust corta en la frontera anterior
 // para no producir texto inválido. En ASCII el resultado es el mismo.
 #[test]
 fn parse_git_log_corta_en_frontera_de_rune() {

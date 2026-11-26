@@ -578,7 +578,6 @@ async fn ocupado_gana_a_imagenes() {
 }
 
 /// PNG de 1x1 transparente, el archivo real más pequeño que se puede mandar
-/// (`agent_images_test.go:13`).
 const PNG_MINIMO: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lU7c5wAAAABJRU5ErkJggg==";
 
 #[tokio::test]

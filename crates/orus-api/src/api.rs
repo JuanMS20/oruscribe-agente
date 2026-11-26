@@ -60,8 +60,8 @@ impl Api {
         Self::con(app, Arc::new(Hub::new()), Arc::new(GitLogReal))
     }
 
-    /// Restaura la sesión guardada en segundo plano, como el `Boot()` de Go
-    /// (`main.go:28-32`). Tiene que llamarse dentro de un runtime de Tokio:
+    /// Restaura la sesión guardada en segundo plano, como el `Boot` del contrato
+    /// Tiene que llamarse dentro de un runtime de Tokio:
     /// `App::boot` usa `tokio::spawn`. Sin esta llamada, una `App` con token en
     /// disco se queda en `connecting` para siempre.
     pub fn boot(&self) {
@@ -78,7 +78,7 @@ impl Api {
         Self::con(app, Arc::new(Hub::new()), git_log)
     }
 
-    /// La versión que muestra el panel. Go usa `App.Version` (`settings.go:32`);
+    /// La versión que muestra el panel. El contrato usa `App.Version`;
     /// el binario la inyecta hasta que exista un constructor propio.
     pub fn with_version(mut self, version: String) -> Self {
         self.version = version;

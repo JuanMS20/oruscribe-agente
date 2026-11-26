@@ -1,6 +1,6 @@
 //! El bucle del agente: pregunta al modelo, acumula uso y emite los pasos.
 //!
-//! Port de `internal/agent/loop.go:42-206` y `:450-481`. Las herramientas viven
+//! Las herramientas viven
 //! en `runner_tools` (T2.4) y la compactación en `compact` (T2.5).
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -16,11 +16,10 @@ use crate::error::{ProviderError, SIN_RESPUESTA, respuesta_vacia};
 use crate::policy::{Mode, Risk};
 use crate::types::{ChatReply, ChatRequest, OnDelta, Provider, Tool, ToolError, ToolSpec};
 
-/// Pasos por defecto cuando `max_steps` no se declara. `loop.go:36`.
+/// Pasos por defecto cuando `max_steps` no se declara.
 pub const PASOS_POR_DEFECTO: usize = 12;
 
 /// Lo que el bucle espera entre reintentos de un turno transitorio.
-/// `pausaReintentoTurno` (`loop.go:178`).
 pub const PAUSA_REINTENTO_TURNO: Duration = Duration::from_millis(500);
 
 /// Cuántas veces se vuelve a pedir una respuesta cuando el proveedor
@@ -30,7 +29,7 @@ const REINTENTOS_SIN_RESPUESTA: usize = 2;
 /// Aviso efímero para ese reintento; no se guarda en el historial.
 const AVISO_CONTINUAR: &str = "(nota del programa: tu respuesta anterior llegó vacía. Usa el resultado de la herramienta: si el trabajo ya está hecho y verificado, respóndele al usuario con un resumen; si falta algo, pide la siguiente herramienta.)";
 
-/// La herramienta con la que el modelo propone su plan. `loop.go:18-25`.
+/// La herramienta con la que el modelo propone su plan.
 pub const HERRAMIENTA_PROPOSE_PLAN: &str = "propose_plan";
 
 const DESCRIPCION_PROPOSE_PLAN: &str = "Propón el plan de la tarea ANTES de usar otras herramientas: qué harás, paso a paso. Al aprobarlo, las lecturas y las escrituras corren sin preguntar durante el resto de esta ejecución; en modo autónomo la ejecución de programas también corre sin preguntar.";
@@ -42,7 +41,7 @@ pub enum StepKind {
     ToolResult,
     Denied,
     Answer,
-    /// `loop.go:272`: T2.4 lo usa al resolver `propose_plan`.
+    /// T2.4 lo usa al resolver `propose_plan`.
     Plan,
 }
 
@@ -58,7 +57,7 @@ impl StepKind {
     }
 }
 
-/// Un paso del bucle, para que la interfaz lo muestre. `loop.go:42-47`.
+/// Un paso del bucle, para que la interfaz lo muestre.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Step {
     pub kind: StepKind,
@@ -66,7 +65,7 @@ pub struct Step {
     pub text: String,
 }
 
-/// Lo que el proveedor cobró por la conversación, en tokens. `loop.go:49-53`.
+/// Lo que el proveedor cobró por la conversación, en tokens.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Usage {
     pub prompt: i64,
@@ -86,40 +85,34 @@ pub type EmitFn = Arc<dyn Fn(Step) + Send + Sync>;
 /// Callback de streaming de la respuesta.
 pub type OnTokenFn = Arc<dyn Fn(&str) + Send + Sync>;
 
-/// Aprobación de una herramienta. En Go es `func(context.Context, ToolCall)
-/// (bool, error)` (`loop.go:64`); acá no lleva contexto porque el futuro del
+/// Aprobación de una herramienta. No lleva contexto porque el futuro del
 /// run ya se cancela al dejar caer el proveedor, y T2.4 decide cómo esperar.
 pub type ApproveFn = Arc<dyn Fn(&ToolCall) -> Result<bool, ToolError> + Send + Sync>;
 
-/// Aprobación del plan propuesto. `loop.go:70-76`.
+/// Aprobación del plan propuesto.
 pub type PlanApproveFn = Arc<dyn Fn(&str) -> Result<bool, ToolError> + Send + Sync>;
 
 /// Regla recordada para una llamada que la política dejaría en `AskUser`.
-/// `loop.go:66-69`.
 pub type AllowRuleFn = Arc<dyn Fn(&ToolCall, Risk) -> bool + Send + Sync>;
 
-/// Error del bucle. Go usa un `error` sentinela para el tope de pasos y
-/// `fmt.Errorf` para ventana y presupuesto; acá son variantes para que el
+/// Error del bucle. Son variantes para que el
 /// arnés pueda distinguirlas sin comparar textos.
 #[derive(Debug, Error)]
 pub enum RunnerError {
-    /// `errTooManySteps` (`loop.go:15-16`).
     #[error("el agente llegó al tope de pasos sin dar respuesta")]
     TopeDePasos,
 
-    /// `loop.go:122-124`.
     #[error(
         "la ventana del modelo se llenó ({usados} de {ventana} tokens de entrada); no puedo seguir en esta conversación"
     )]
     VentanaLlena { usados: i64, ventana: i64 },
 
-    /// `loop.go:141-146`.
     #[error(
         "el presupuesto de tokens de la conversación ({max}) se agotó ({usados} usados); no hago el siguiente pedido"
     )]
     PresupuestoAgotado { max: i64, usados: i64 },
 
-    /// `context.Canceled` en Go. El bucle abandona en la espera del proveedor
+    /// `context.Canceled`. El bucle abandona en la espera del proveedor
     /// y en la pausa del reintento.
     #[error("la ejecución se canceló")]
     Cancelado,
@@ -130,7 +123,7 @@ pub enum RunnerError {
     Proveedor(#[from] ProviderError),
 }
 
-/// Cancelación de una corrida. Rust no tiene `context.Context` y `tokio-util`
+/// Cancelación de una corrida. `tokio-util`
 /// no está en el grafo de dependencias (`cargo tree -p orus-agent`), así que
 /// este token mínimo cumple el mismo papel: un `AtomicBool` para consultar y
 /// un `Notify` para despertar a quien espera.
@@ -174,16 +167,16 @@ impl CancelToken {
 }
 
 /// Corre el bucle: pregunta al modelo, ejecuta sus herramientas y repite hasta
-/// tener respuesta. `loop.go:56-99`.
+/// tener respuesta.
 ///
 /// Los campos son públicos porque el arnés arma el runner una sola vez y las
-/// pruebas sustituyen el proveedor y los callbacks, igual que en Go.
+/// pruebas sustituyen el proveedor y los callbacks
 pub struct Runner {
     pub provider: Arc<dyn Provider>,
     pub model: String,
     pub system: String,
     pub tools: Vec<Arc<dyn Tool>>,
-    /// `None` es el valor cero de Go: un modo desconocido que la política niega.
+    /// `None` es el valor cero: un modo desconocido que la política niega.
     pub mode: Option<Mode>,
     pub max_steps: i64,
     /// Presupuesto de la conversación en caracteres; `0` usa el de siempre.
@@ -203,7 +196,7 @@ pub struct Runner {
     pub(crate) uso_compartido: Option<Arc<Mutex<Usage>>>,
 
     /// Tokens de entrada del último pedido al modelo principal, no del resumen.
-    /// `0` tras compactar o antes de medir. `loop.go:93`.
+    /// `0` tras compactar o antes de medir.
     pub ultimo_prompt: i64,
 
     /// Vive lo que vive la corrida y se reinicia al empezar otra. T2.4 lo lee
@@ -211,13 +204,13 @@ pub struct Runner {
     /// permite compartirlo con las herramientas en paralelo.
     pub(crate) plan_aprobado: Arc<AtomicBool>,
 
-    /// Serializa las emisiones, como el mutex de Go (`loop.go:94`). Lo
+    /// Serializa las emisiones, como el mutex del contrato. Lo
     /// comparten el runner y el despachador de herramientas.
     pub(crate) emitir_mu: Arc<Mutex<()>>,
 }
 
 impl Runner {
-    /// Arma un runner con los valores cero de Go. El proveedor y el modelo son
+    /// Arma un runner con los valores cero. El proveedor y el modelo son
     /// lo único obligatorio.
     pub fn new(provider: Arc<dyn Provider>, model: impl Into<String>) -> Self {
         Self {
@@ -245,7 +238,7 @@ impl Runner {
     }
 
     /// Sigue la conversación y devuelve el historial completo. No modifica el
-    /// arreglo que recibe. `Run` (`loop.go:107-158`).
+    /// arreglo que recibe. `Run`.
     pub async fn run(
         &mut self,
         history: &[Message],
@@ -314,7 +307,7 @@ impl Runner {
             };
             let respuesta = match resultado_chat {
                 Ok(respuesta) => respuesta,
-                // `loop.go:126-129`: un error del proveedor corta el run antes
+                // un error del proveedor corta el run antes
                 // de acumular uso o emitir `answer`. La parcial que la persona
                 // ya vio entra al historial para no perderla (issue #93): solo
                 // el texto, porque las llamadas no se ejecutaron y dejarían
@@ -392,8 +385,7 @@ impl Runner {
     /// Manda el turno al proveedor. Si el intento falla con un error transitorio
     /// y no se emitió ningún token, lo reintenta hasta `chat_retries` veces,
     /// esperando [`PAUSA_REINTENTO_TURNO`] entre intentos. Reintentar con texto
-    /// ya mostrado duplicaría la respuesta. `chatConReintento`
-    /// (`loop.go:186-206`).
+    /// ya mostrado duplicaría la respuesta.
     async fn chat_con_reintento(
         &self,
         msgs: &[Message],
@@ -444,7 +436,7 @@ impl Runner {
     }
 
     /// Compacta la conversación cuando ya no cabe: al 80 % de la ventana
-    /// declarada o al presupuesto de caracteres. `compactar` (`loop.go:375-403`)
+    /// declarada o al presupuesto de caracteres. `compactar`
     /// vive en [`crate::compact`]; acá solo se acumula el consumo del resumen y
     /// se reinicia la medición del último prompt.
     async fn compactar(&mut self, msgs: Vec<Message>, cancel: &CancelToken) -> Vec<Message> {
@@ -483,7 +475,7 @@ impl Runner {
     /// Ofrece el plan solo cuando hay quien pueda responderlo y cuando cambia
     /// algo: en `Ask` convierte varias aprobaciones en una; en autónomo no hay
     /// nada que aprobar y en solo lectura ninguna escritura puede abrirse.
-    /// `especificaciones` (`loop.go:450-465`).
+    /// `especificaciones`.
     fn especificaciones(&self) -> Vec<ToolSpec> {
         let mut out: Vec<ToolSpec> = self.tools.iter().map(|tool| tool.spec()).collect();
         if self.mode == Some(Mode::Ask) && (self.plan_approve.is_some() || self.approve.is_some()) {
@@ -493,7 +485,6 @@ impl Runner {
     }
 
     /// Pone el mensaje de sistema delante, solo para esta llamada.
-    /// `conSistema` (`loop.go:467-473`).
     fn con_sistema(&self, msgs: &[Message]) -> Vec<Message> {
         if self.system.is_empty() {
             return msgs.to_vec();
@@ -509,7 +500,7 @@ impl Runner {
     }
 
     /// Emite un paso si hay a quién. El mutex serializa las emisiones, igual
-    /// que `emitir` (`loop.go:475-481`); el despachador de herramientas usa el
+    /// que `emitir`; el despachador de herramientas usa el
     /// mismo mutex para que el orden se conserve entre tareas.
     fn emitir(&self, paso: Step) {
         crate::runner_tools::emitir(&self.emit, &self.emitir_mu, paso);
@@ -519,7 +510,6 @@ impl Runner {
 /// Deja un resultado por cada llamada que no llegó a correr. Sin esto, el
 /// historial guardado termina en una respuesta assistant con `tool_calls` y sin
 /// mensajes tool; OpenAI rechaza ese turno en la ejecución siguiente.
-/// `cerrarLlamadasSinEjecutar` (`loop.go:160-173`).
 fn cerrar_llamadas_sin_ejecutar(msgs: &mut Vec<Message>, llamadas: &[ToolCall]) {
     for llamada in llamadas {
         msgs.push(Message {
@@ -532,7 +522,7 @@ fn cerrar_llamadas_sin_ejecutar(msgs: &mut Vec<Message>, llamadas: &[ToolCall]) 
     }
 }
 
-/// La especificación de `propose_plan` (`loop.go:29-33`).
+/// La especificación de `propose_plan`.
 fn especificacion_propose_plan() -> ToolSpec {
     ToolSpec {
         name: HERRAMIENTA_PROPOSE_PLAN.to_owned(),

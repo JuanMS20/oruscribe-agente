@@ -2,7 +2,6 @@
 //! errores, el reintento, los clientes de OpenAI y Anthropic y el bucle del
 //! runner.
 //!
-//! Port de `internal/agent`.
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 // Los tests sí pueden usar `unwrap` y `expect`: son la red que prueba el

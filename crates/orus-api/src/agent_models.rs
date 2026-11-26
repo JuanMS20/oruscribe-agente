@@ -1,6 +1,6 @@
 //! Catálogo público de modelos para el desplegable del agente.
 //!
-//! Port de `internal/app/agent_models.go:17-121`. La URL es una costura
+//! La URL es una costura
 //! (`Api::with_models_url`) y la caché vive en el borde, una sola por `Api`:
 //! guarda el mapa completo del catálogo, no una lista por proveedor.
 
@@ -16,7 +16,6 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{ErrorRuta, write_err, write_json};
 
-/// `piModelsURL` (`agent_models.go:19`).
 pub(crate) const URL_CATALOGO: &str = "https://pi.dev/api/models";
 const TOPE_CATALOGO: usize = 8 << 20;
 const TTL_CATALOGO: Duration = Duration::from_secs(10 * 60);
@@ -27,7 +26,7 @@ const ESPERA_CATALOGO: Duration = Duration::from_secs(12);
 #[derive(Clone)]
 pub(crate) struct UrlCatalogo(pub String);
 
-/// Una entrada del selector (`agent_models.go:28-31`).
+/// Una entrada del selector.
 #[derive(Clone, Debug, Serialize)]
 pub(crate) struct Modelo {
     id: String,
@@ -35,7 +34,7 @@ pub(crate) struct Modelo {
     name: String,
 }
 
-/// El mapa completo del catálogo y cuándo se leyó (`agent_models.go:33-39`).
+/// El mapa completo del catálogo y cuándo se leyó.
 #[derive(Default)]
 pub(crate) struct CacheModelos {
     at: Option<Instant>,
@@ -70,7 +69,7 @@ where
 /// un error de formato, así que cada nivel opcional se conserva.
 type Catalogo = HashMap<String, Option<HashMap<String, Option<DatosCatalogo>>>>;
 
-/// `GET /api/agent/models?provider=` (`http.go:829-836`).
+/// `GET /api/agent/models?provider=`.
 pub(crate) async fn modelos(
     Extension(UrlCatalogo(url)): Extension<UrlCatalogo>,
     Extension(http): Extension<reqwest::Client>,
@@ -84,7 +83,7 @@ pub(crate) async fn modelos(
     }
 }
 
-/// Port de `App.AgentModels` (`agent_models.go:45-121`): valida, sirve de la
+/// Valida, sirve de la
 /// caché si el proveedor está en el mapa vigente y, si no, vuelve a leer el
 /// catálogo completo.
 pub(crate) async fn obtener(
@@ -166,7 +165,7 @@ async fn leer_catalogo(
             let datos = datos.unwrap_or_default();
             let mut id = datos.id;
             // `trim` solo decide si falta: la clave se conserva sin recortar y
-            // el id emitido se deja tal cual vino (`agent_models.go:93-100`).
+            // el id emitido se deja tal cual vino.
             if id.trim().is_empty() {
                 id = clave;
             }

@@ -1,5 +1,5 @@
-//! Tests portados de `internal/update/update_test.go:29-362` y
-//! `internal/install/update_target_test.go:5-24`, con un servidor HTTP local.
+//! Tests portados y
+//! con un servidor HTTP local.
 //! No tocan la red real ni el ejecutable de la suite.
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]

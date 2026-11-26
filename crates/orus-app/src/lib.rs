@@ -1,4 +1,4 @@
-//! Sesión de la app: token, refresco y cliente MCP. Port de `internal/app/app.go:33-40,487-535,680,730-800`.
+//! Sesión de la app: token, refresco y cliente MCP.
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 

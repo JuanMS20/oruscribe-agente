@@ -20,11 +20,11 @@ use tray_icon::{Icon, TrayIcon, TrayIconBuilder, TrayIconEvent};
 pub const ID_ABRIR: &str = "oruscribe.abrir";
 /// Identificador del elemento que termina el proceso.
 pub const ID_SALIR: &str = "oruscribe.salir";
-/// Texto exacto del menú de Go (`main.go:267`).
+/// Texto exacto del menú del contrato.
 pub const TEXTO_ABRIR: &str = "Abrir Oruscribe Agente";
-/// Texto exacto del menú de Go (`main.go:269`).
+/// Texto exacto del menú del contrato.
 pub const TEXTO_SALIR: &str = "Salir";
-/// Tooltip de la bandeja mientras no hay avisos (`main.go:265`).
+/// Tooltip de la bandeja mientras no hay avisos.
 pub const TOOLTIP: &str = "Oruscribe Agente";
 pub const WATCHER: &str = "org.kde.StatusNotifierWatcher";
 

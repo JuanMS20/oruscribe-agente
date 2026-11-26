@@ -1,6 +1,6 @@
 //! Mensajes de la organización: leer salas y mensajes, enviar y marcar leído.
 //!
-//! Port de `internal/oruscribe/oruscribe.go:415-507`. Las funciones públicas
+//! Las funciones públicas
 //! reciben un [`ToolCaller`]; [`Client`] lo implementa sobre MCP y los tests lo
 //! implementan con respuestas guionadas.
 
@@ -107,7 +107,7 @@ pub async fn rooms_page<C: ToolCaller + ?Sized>(caller: &C, offset: i64) -> Resu
 /// Una página de mensajes, del más viejo al más nuevo.
 ///
 /// El servidor manda el más nuevo primero; el orden se invierte con un sort
-/// estable, igual que el `SliceStable` del Go.
+/// estable.
 pub async fn messages<C: ToolCaller + ?Sized>(
     caller: &C,
     room_id: &str,

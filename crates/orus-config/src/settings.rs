@@ -332,7 +332,7 @@ fn apply_stored(mut settings: Settings, stored: StoredSettings) -> Settings {
             tool,
             pattern,
             note: rule.note.unwrap_or_default(),
-            created_at: rule.created_at.unwrap_or_else(go_zero_time),
+            created_at: rule.created_at.unwrap_or_else(tiempo_cero),
         });
     }
     settings.agent.wake_enabled = agent.wake_enabled.unwrap_or_default();
@@ -375,8 +375,8 @@ fn es_cero_f64(value: &f64) -> bool {
     *value == 0.0
 }
 
-// El cero de time.Time en Go se escribe "0001-01-01T00:00:00Z".
-fn go_zero_time() -> DateTime<Utc> {
+// El cero de time.Time se escribe "0001-01-01T00:00:00Z".
+fn tiempo_cero() -> DateTime<Utc> {
     let naive = NaiveDate::from_ymd_opt(1, 1, 1).and_then(|date| date.and_hms_opt(0, 0, 0));
     match naive {
         Some(naive) => DateTime::from_naive_utc_and_offset(naive, Utc),
@@ -384,7 +384,7 @@ fn go_zero_time() -> DateTime<Utc> {
     }
 }
 
-// Espejo tolerante de Settings: en Go un campo ausente queda en su cero y una
+// Espejo tolerante de Settings: un campo ausente queda en su cero y una
 // locale desconocida no invalida el resto del archivo. Los Option distinguen
 // "ausente" de un valor vacío sin usar serde(default).
 #[derive(Default, serde::Deserialize)]

@@ -1,5 +1,4 @@
 //! Adaptador de las herramientas locales al trait `Tool` del agente. Es el
-//! `localTool` de `internal/localtools/localtools.go:112-127`.
 
 use std::future::Future;
 use std::pin::Pin;
@@ -15,8 +14,7 @@ use super::{Error, Set};
 
 const MARGEN_PLAZO: u64 = 5;
 
-/// Una función del `Set` con la firma que usa el adaptador.
-/// `func(context.Context, json.RawMessage)`; acá el token se agrega aparte
+/// Una función del `Set` con la firma que usa el adaptador. El token se agrega aparte
 /// porque el trait `Tool` no recibe contexto (D41).
 pub(crate) type Correr = fn(&Set, Value, &CancelToken) -> Result<String, Error>;
 

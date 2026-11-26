@@ -1,5 +1,4 @@
-//! Ajustes del panel: leer y cambiar (`http.go:739-741,798-815`,
-//! `settings.go:14-110`).
+//! Ajustes del panel: leer y cambiar.
 //!
 //! Todo es local: no hay red ni llavero. La versión y el timbre llegan por
 //! `Extension`, igual que `GitLog` (D182).
@@ -29,7 +28,7 @@ struct McpQuotaView {
     limit_hour: usize,
 }
 
-/// Lo que muestra el panel (`settings.go:14-25`).
+/// Lo que muestra el panel.
 #[derive(Serialize)]
 pub struct Info {
     version: String,
@@ -52,7 +51,7 @@ pub struct Info {
 }
 
 /// El estado del timbre que inyecta el borde desde el `Watch` real
-/// (`settings.go:38-39`). Acá no entra `orus-org` (D161).
+/// Acá no entra `orus-org` (D161).
 pub trait BellStatus: Send + Sync {
     fn doorbell(&self) -> bool;
     fn error(&self) -> String;
@@ -91,12 +90,12 @@ impl Autostart for SinAutostart {
     }
 }
 
-/// El cuerpo del `POST`. Los punteros de Go significan "ausente = no tocar"
-/// (`settings.go:53-58`); `locale` es texto y vacío tampoco cambia nada.
+/// El cuerpo del `POST`. Los punteros del contrato significan "ausente = no tocar"
+/// `locale` es texto y vacío tampoco cambia nada.
 #[derive(Deserialize, Default)]
 #[serde(default)]
 struct CuerpoAjustes {
-    // `Option` también acepta `null`, que en Go deja el string vacío.
+    // `Option` también acepta `null`, que deja el string vacío.
     locale: Option<String>,
     autostart: Option<bool>,
     #[serde(rename = "autostartAsked")]

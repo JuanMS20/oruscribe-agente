@@ -1,8 +1,7 @@
 //! Las tres rutas del instalador: `GET /api/setup`,
 //! `POST /api/setup/install` y `POST /api/setup/uninstall`.
 //!
-//! Port de `internal/app/http.go:743-745,764-796` y
-//! `internal/app/setup.go:14-94`. Las acciones reales (instalar, desinstalar,
+//! Las acciones reales (instalar, desinstalar,
 //! guardar la aceptación y programar el cierre) viven en el borde que inyecta
 //! el trait; acá solo se leen cuerpos, se valida el sobre y se escriben códigos,
 //! cabeceras y textos.
@@ -22,10 +21,10 @@ use crate::{decode, error_de_accion, write_err, write_json};
 ///
 /// `setup_info` no escribe nada. `install` exige `terms_version` exacta,
 /// instala, actualiza `settings.terms_version` en memoria, guarda y programa
-/// `AfterInstall` 1,2 s después **dentro de la implementación** (tokio spawn +
+/// la acción posterior a la instalación 1,2 s después **dentro de la implementación** (tokio spawn +
 /// sleep, no en el handler). `uninstall` hace `Logout()` ignorando el error,
-/// apaga el autostart si se puede, desinstala y programa `AfterUninstall` de la
-/// misma forma. Los errores se devuelven con el texto exacto de Go y el borde
+/// apaga el autostart si se puede, desinstala y programa la acción posterior a la desinstalación de la
+/// misma forma. Los errores se devuelven con el texto exacto del contrato y el borde
 /// los convierte en 500.
 pub trait Setup: Send + Sync {
     fn setup_info(&self) -> Result<SetupInfo, String>;
@@ -59,7 +58,7 @@ impl Setup for SinInstalador {
     }
 }
 
-/// El cuerpo de `POST /api/setup/install` (`http.go:765-768`). En Go un `null`
+/// El cuerpo de `POST /api/setup/install`. En el contrato un `null`
 /// deja el valor cero; por eso los dos campos son opcionales.
 #[derive(Deserialize, Default)]
 #[serde(default)]
@@ -69,7 +68,7 @@ struct CuerpoInstalar {
     terms_version: Option<String>,
 }
 
-/// El cuerpo de `POST /api/setup/uninstall` (`http.go:781-785`): solo un
+/// El cuerpo de `POST /api/setup/uninstall`: solo un
 /// `false` explícito autoriza borrar los datos.
 #[derive(Deserialize, Default)]
 #[serde(default)]

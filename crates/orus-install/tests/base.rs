@@ -1,4 +1,4 @@
-//! Tests portados de `internal/update/update_test.go` y golden de los términos.
+//! Tests portados y golden de los términos.
 
 use orus_install::{TERMS_BODY, TERMS_TITLE, TERMS_VERSION, newer, numbers, valid_sha, version};
 
@@ -94,7 +94,7 @@ fn numbers_corta_donde_deja_de_ser_numero() {
     assert_eq!(numbers("1..2"), [1i64]);
     assert_eq!(numbers("1.x.3"), [1i64]);
     assert_eq!(numbers("  v2.0.0+meta"), [2i64, 0, 0]);
-    // Go solo quita la `v` minúscula; una mayúscula corta igual que un texto.
+    // El contrato solo quita la `v` minúscula; una mayúscula corta igual que un texto.
     assert_eq!(numbers("V1.2.3"), Vec::<i64>::new());
 }
 

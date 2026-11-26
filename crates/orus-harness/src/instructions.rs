@@ -1,6 +1,5 @@
 //! Instrucciones del proyecto: `AGENTS.md` y `ORUSCRIBE.md`.
 //!
-//! Port de `internal/harness/instructions.go:13-140`.
 
 use std::fs;
 use std::io::{self, Read};

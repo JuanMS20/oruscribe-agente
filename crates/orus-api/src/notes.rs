@@ -1,8 +1,7 @@
-//! Bloc de notas local: `GET`, `POST` y `DELETE /api/notes` (`notes.go`).
+//! Bloc de notas local: `GET`, `POST` y `DELETE /api/notes`.
 //!
 //! El archivo vive en `orus_config::data_dir()/notes.json`, es un mapa por
-//! dueño (`user_id@org_slug`) y nunca sale del equipo. La tienda es global,
-//! como `var notes = &noteStore{}` en Go (`notes.go:31`), y relee el archivo en
+//! dueño (`user_id@org_slug`) y nunca sale del equipo. La tienda es global y relee el archivo en
 //! cada operación para no pisar cambios de otro proceso.
 
 use std::collections::BTreeMap;
@@ -21,14 +20,14 @@ use serde_json::json;
 
 use crate::{ErrorRuta, decode, write_err, write_json};
 
-/// `notes.go:185`: es `errors.New`, no `validacion`, y `writeErr` lo deja 500.
+/// Error de texto plano, no de validación: responde 500.
 const SIN_IDENTIFICADOR: &str = "la nota no tiene identificador";
-/// `notes.go:201`: también `errors.New`, también 500.
+/// Error de texto plano: responde 500.
 const FALTA_IDENTIFICADOR: &str = "falta el identificador";
-/// `notes.go:189,205`: el texto completo de `ErrLoggedOut` más el sufijo.
+/// El texto del error de sesión cerrada más el sufijo.
 const SIN_SESION: &str = "no has iniciado sesión: inicia sesión para escribir en el bloc";
 
-/// Una nota personal (`notes.go:19-24`).
+/// Una nota personal.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Nota {
     id: String,
@@ -36,8 +35,8 @@ struct Nota {
     title: String,
     #[serde(default)]
     body: String,
-    /// `time.Time` de Go acepta el campo ausente como cero; acá el cero es
-    /// `MIN_UTC`, el mismo que usa `orus-tools` para el cero de Go. Solo
+    /// `time.Time` del contrato acepta el campo ausente como cero; acá el cero es
+    /// `MIN_UTC`, el mismo que usa `orus-tools` para el cero. Solo
     /// importa al leer un archivo viejo incompleto.
     #[serde(default = "fecha_cero")]
     updated_at: DateTime<Utc>,
@@ -48,8 +47,8 @@ fn fecha_cero() -> DateTime<Utc> {
 }
 
 /// El cuerpo del `POST`: la UI y el caso inmune mandan `{id,title,body}`, sin
-/// `updated_at` (`app.js:1967`, `immune_contract_test.go:557`). El valor del
-/// cliente se ignora: el servidor fija `Utc::now()` como Go (`notes.go:113`).
+/// `updated_at`. El valor del
+/// cliente se ignora: el servidor fija `Utc::now`
 /// `null` deja el campo vacío, igual que `encoding/json` con un `string`.
 #[derive(Default, Deserialize)]
 #[serde(default)]
@@ -62,7 +61,7 @@ struct EntradaNota {
     body: String,
 }
 
-/// Go deserializa `null` en un `string` sin error y deja el cero.
+/// El contrato deserializa `null` en un `string` sin error y deja el cero.
 fn texto_o_vacio<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -77,7 +76,7 @@ pub(crate) struct Consulta {
     id: Option<String>,
 }
 
-/// La tienda en memoria, con el mismo alcance que el `notes` de Go.
+/// La tienda en memoria, con el mismo alcance que el `notes` del contrato.
 #[derive(Default)]
 struct Tienda {
     notas: BTreeMap<String, Vec<Nota>>,
@@ -85,7 +84,7 @@ struct Tienda {
 
 static TIENDA: LazyLock<Mutex<Tienda>> = LazyLock::new(|| Mutex::new(Tienda::default()));
 
-/// Go no envenena el mutex: si otro hilo falló, se sigue usando el estado.
+/// El contrato no envenena el mutex: si otro hilo falló, se sigue usando el estado.
 fn tienda() -> MutexGuard<'static, Tienda> {
     TIENDA
         .lock()
@@ -114,7 +113,7 @@ fn con_candado<T>(operacion: impl FnOnce() -> Result<T, String>) -> Result<T, St
     operacion()
 }
 
-/// Port de `noteStore.load` (`notes.go:38-71`). El formato actual es un mapa
+/// El formato actual es un mapa
 /// por dueño; una lista suelta es el formato viejo y se asigna al primer dueño
 /// con sesión, para no perder lo ya escrito.
 impl Tienda {
@@ -152,7 +151,7 @@ impl Tienda {
         }
     }
 
-    /// Port de `noteStore.save` (`notes.go:73-86`): `.tmp` + rename, carpeta 0700
+    /// `.tmp` + rename, carpeta 0700
     /// y archivo 0600. En Windows los permisos POSIX no aplican.
     fn guardar(&self) -> Result<(), String> {
         let carpeta = orus_config::data_dir();
@@ -201,7 +200,7 @@ fn escribir_privado(ruta: &Path, datos: &[u8]) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
-/// `noteStore.all` (`notes.go:88-97`): copia y ordena por `updated_at`
+/// Copia y ordena por `updated_at`
 /// descendente.
 fn todas(owner: &str) -> Result<Vec<Nota>, String> {
     let mut tienda = tienda();
@@ -213,7 +212,7 @@ fn todas(owner: &str) -> Result<Vec<Nota>, String> {
     })
 }
 
-/// `noteStore.upsert` (`notes.go:104-128`): reemplaza por `id` o agrega, y
+/// Reemplaza por `id` o agrega, y
 /// siempre fija la hora del servidor.
 fn guardar_nota(owner: &str, entrada: EntradaNota) -> Result<Nota, String> {
     if owner.is_empty() {
@@ -238,7 +237,7 @@ fn guardar_nota(owner: &str, entrada: EntradaNota) -> Result<Nota, String> {
     })
 }
 
-/// `noteStore.remove` (`notes.go:130-148`): borra por `id` y guarda aunque no
+/// Borra por `id` y guarda aunque no
 /// hubiera nada que borrar.
 fn borrar_nota(owner: &str, id: &str) -> Result<(), String> {
     if owner.is_empty() {
@@ -254,7 +253,7 @@ fn borrar_nota(owner: &str, id: &str) -> Result<(), String> {
     })
 }
 
-/// `App.notesOwner` (`notes.go:152-163`): sin usuario no hay dueño; dos cuentas
+/// `App.notesOwner`: sin usuario no hay dueño; dos cuentas
 /// en el mismo equipo no comparten el bloc.
 fn dueno(app: &App) -> String {
     let usuario = app.me().map(|me| me.user_id).unwrap_or_default();
@@ -264,8 +263,8 @@ fn dueno(app: &App) -> String {
     format!("{usuario}@{}", app.settings_snapshot().org_slug)
 }
 
-/// `/api/notes`, registrada sin método como Go (`http.go:736`). El `id` se
-/// valida antes de mirar la sesión en `POST` y `DELETE` (`notes.go:184-206`).
+/// `/api/notes`, registrada sin método El `id` se
+/// valida antes de mirar la sesión en `POST` y `DELETE`.
 pub(crate) async fn notas(
     AxumState(app): AxumState<Arc<App>>,
     method: Method,
@@ -331,7 +330,7 @@ pub(crate) async fn notas(
                 Err(error) => write_err(ErrorRuta::Lectura(error)),
             }
         }
-        // Go contesta 405 sin cuerpo (`notes.go:213-215`).
+        // El contrato contesta 405 sin cuerpo.
         _ => StatusCode::METHOD_NOT_ALLOWED.into_response(),
     }
 }

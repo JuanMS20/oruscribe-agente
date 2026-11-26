@@ -1,13 +1,11 @@
 //! Cambio del ejecutable en uso y relanzamiento
-//! (`internal/update/restart_windows.go:14-32`,
-//! `internal/update/restart_other.go:12-26`).
 
 use std::path::Path;
 use std::process::{Command, Stdio};
 
 #[cfg(windows)]
 /// Windows no deja sobrescribir un programa en ejecución, pero sí renombrarlo:
-/// el update va por dos renames y conserva `target.old` (`restart_windows.go:11-25`).
+/// el update va por dos renames y conserva `target.old`.
 pub fn swap(downloaded: &Path, target: &Path) -> std::io::Result<()> {
     intercambiar(downloaded, target, |origen, destino| {
         std::fs::rename(origen, destino)
@@ -84,7 +82,7 @@ pub fn rollback(_target: &Path) -> std::io::Result<()> {
 
 #[cfg(windows)]
 /// Arranca la copia nueva desacoplada de esta consola y en su propio grupo:
-/// `DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP` (`restart_windows.go:27-32`).
+/// `DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP`.
 pub fn restart(target: &Path) -> std::io::Result<()> {
     use std::os::windows::process::CommandExt;
 

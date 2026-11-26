@@ -8,10 +8,10 @@ use orus_org::Client;
 use super::backend::{Backend, SessionError, org_error};
 use crate::sync::lock;
 
-/// El cliente OAuth usa 30 s (`org.go:58`); los 45 s de D36 son del MCP.
+/// El cliente OAuth usa 30 s; los 45 s de D36 son del MCP.
 const REFRESH_TIMEOUT: Duration = Duration::from_secs(30);
 
-/// Abre el cliente real. Es la costura de `a.open` (`app.go:787`).
+/// Abre el cliente real. Es la costura de `a.open`.
 #[async_trait]
 pub trait Connector: Send + Sync {
     async fn open(

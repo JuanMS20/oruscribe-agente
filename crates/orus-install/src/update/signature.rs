@@ -1,4 +1,4 @@
-//! Firma Ed25519 de `latest.json` (`internal/update/update.go:123-156`).
+//! Firma Ed25519 de `latest.json`.
 
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD;
@@ -8,7 +8,6 @@ use super::{Error, Keys, LIMITE_FIRMA, leer_hasta};
 
 /// Baja `url + ".sig"`, decodifica base64 y exige que alguna llave firme los
 /// bytes exactos del manifiesto. Cualquier fallo es [`Error::NoFirmado`], como
-/// `errNotSigned` en Go.
 pub(crate) async fn verify_signature(
     http: &reqwest::Client,
     url: &str,

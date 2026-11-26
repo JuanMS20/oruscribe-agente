@@ -139,7 +139,7 @@ async fn tool_specs_maps_name_description_schema() {
     let specs = client.tool_specs().await.expect("lista de herramientas");
 
     // El schema se compara como Value: serde_json no conserva el orden de las
-    // claves, a diferencia del json.RawMessage del Go.
+    // claves.
     assert_eq!(
         specs,
         vec![

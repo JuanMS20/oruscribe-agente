@@ -24,7 +24,7 @@ use crate::url_segura;
 pub const DEFAULT_ENDPOINT: &str =
     "https://cfamprdygpngrjtaxzes.supabase.co/functions/v1/mcp-server";
 
-/// Tiempo máximo de una petición, igual que el `http.Client` de Go.
+/// Tiempo máximo de una petición, igual que el `http.Client` del contrato.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(45);
 
 const MAX_PAGAS_TOOLS: usize = 10;
@@ -139,8 +139,7 @@ pub type JsonObject = Map<String, Value>;
 
 /// Una herramienta que ofrece el servidor, con el JSON Schema de sus argumentos.
 ///
-/// Port de `mcp.ToolInfo` (`internal/mcp/client.go:113-117`). En Go `Schema` es
-/// `json.RawMessage`; acá es un [`Value`], así que se conserva la estructura
+/// `Schema` es un [`Value`], así que se conserva la estructura
 /// pero no el orden de las claves.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ToolSpec {
@@ -189,7 +188,7 @@ impl Client {
             return Err(OrgError::InsecureEndpoint(endpoint.to_owned()));
         }
 
-        // Go solo reagrega Authorization en redirects al mismo host. Denegar
+        // El contrato solo reagrega Authorization en redirects al mismo host. Denegar
         // todo redirect cumple el mismo objetivo de seguridad: el token nunca
         // cambia de origen.
         let http = reqwest::Client::builder()
@@ -261,8 +260,7 @@ impl Client {
     ///
     /// `list_all_tools` de `rmcp` pide la página siguiente con el cursor y
     /// conserva el orden en que llegan. Una sesión cerrada se trata como
-    /// [`OrgError::NotConnected`], igual que el cliente nil del Go
-    /// (`internal/mcp/client.go:121-124`).
+    /// [`OrgError::NotConnected`], igual que el cliente nil del contrato
     pub async fn tool_specs(&self) -> Result<Vec<ToolSpec>> {
         if self.service.is_closed() {
             return Err(OrgError::NotConnected);

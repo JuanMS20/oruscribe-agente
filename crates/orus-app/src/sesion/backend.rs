@@ -15,14 +15,14 @@ pub enum SessionError {
     StoreLeer(String),
     #[error("no se pudo guardar la sesión renovada: {0}")]
     Guardar(String),
-    /// El error crudo del `Store` al importar un token (`app.go:937-940`).
+    /// El error crudo del `Store` al importar un token.
     #[error("{0}")]
     GuardarToken(String),
     #[error("cerrar sesión: {0}")]
     Cerrar(String),
     #[error("la sesión se cerró, pero no se pudieron borrar las conversaciones: {0}")]
     Conversaciones(String),
-    /// Un 401/403 del servidor. No se reintenta (`app.go:789-802`).
+    /// Un 401/403 del servidor. No se reintenta.
     #[error("la sesión no está autorizada")]
     Auth,
     #[error("{0}")]
@@ -38,13 +38,13 @@ pub enum SessionError {
     Tool(String),
     #[error("este cliente no ofrece timbre")]
     NoDoorbell,
-    /// Un dato de la ruta que el Go responde como 400.
+    /// Un dato de la ruta que el contrato responde como 400.
     #[error("{0}")]
     Invalido(String),
-    /// Una operación que choca con una ejecución del agente; el Go responde 409.
+    /// Una operación que choca con una ejecución del agente; el contrato responde 409.
     #[error("{0}")]
     Ocupado(String),
-    /// La organización se quedó sin almacenamiento; el Go responde 507.
+    /// La organización se quedó sin almacenamiento; el contrato responde 507.
     #[error("la organización se quedó sin espacio para archivos: {0}")]
     SinEspacio(String),
     /// El límite local de llamadas MCP cortó un posible sondeo; el borde responde 429.
@@ -52,7 +52,7 @@ pub enum SessionError {
     RateLimited(String),
 }
 
-/// El recorte del cliente MCP que usa la app (`app.go:56-93`).
+/// El recorte del cliente MCP que usa la app.
 #[async_trait]
 pub trait Backend: Send + Sync {
     async fn me(&self) -> Result<Me, SessionError>;
@@ -82,7 +82,7 @@ pub trait Backend: Send + Sync {
     async fn doorbell(&self) -> Result<DoorbellConfig, SessionError>;
 
     /// Busca tareas. `status` llega como texto del query y el `Client` lo
-    /// parsea como Go: un valor desconocido no filtra.
+    /// parsea: un valor desconocido no filtra.
     ///
     /// El trait no usa `orus_org::Status` para que `orus-api` no dependa de
     /// `orus-org` (D161); el parseo vive en la implementación real.
@@ -328,7 +328,7 @@ impl SessionError {
 }
 
 /// Auth por código de estado estructurado, nunca por subcadena del mensaje
-/// de una herramienta (`esErrorDeAuth`, `app.go:1027-1033`, corregido en #95).
+/// de una herramienta (corregido en #95).
 fn es_auth(error: &OrgError) -> bool {
     match error {
         OrgError::UploadStatus { status, .. } => matches!(status, 401 | 403),

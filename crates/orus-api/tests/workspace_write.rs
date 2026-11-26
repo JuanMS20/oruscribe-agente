@@ -1,6 +1,6 @@
 //! Rutas de escritura de tareas y mensajes.
 //!
-//! Port de `internal/app/http.go:79-205,277-331,354-413`. El backend de prueba
+//! El backend de prueba
 //! anota cada llamada y devuelve valores conocidos; no hay red real, llavero ni
 //! variables de entorno.
 

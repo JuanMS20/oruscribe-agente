@@ -1,6 +1,5 @@
 //! Edición de archivos: reemplazo exacto, con respaldo en el diario y sin
-//! escribir si el texto no está o hay varias coincidencias. Port de
-//! `localtools.go:281-313,501-555`.
+//! escribir si el texto no está o hay varias coincidencias.
 
 use std::path::Path;
 
@@ -12,7 +11,7 @@ use super::escritura::{Escritura, guardar, modo_de};
 use super::lectura::{leer_args, leer_texto, texto_o_vacio};
 use super::{Error, Set};
 
-/// 1 MiB por lectura y por resultado (`localtools.go:25-26`).
+/// 1 MiB por lectura y por resultado.
 const MAX_CONTENIDO: usize = 1 << 20;
 
 #[derive(Default, Deserialize)]
@@ -32,7 +31,7 @@ fn booleano_o_falso<'de, D: Deserializer<'de>>(deserializador: D) -> Result<bool
     Ok(Option::<bool>::deserialize(deserializador)?.unwrap_or_default())
 }
 
-/// `editFile` (`localtools.go:504-555`): reemplaza una porción exacta y falla
+/// Reemplaza una porción exacta y falla.
 /// sin escribir si no está o si hay varias coincidencias sin `replace_all`.
 pub(super) fn edit_file(set: &Set, args: Value, cancel: &CancelToken) -> Result<String, Error> {
     edit_file_con(set, args, cancel, sin_cambio)

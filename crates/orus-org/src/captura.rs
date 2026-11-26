@@ -1,6 +1,6 @@
 //! Puesta al día: metas, borradores de trabajo y lectura de `git log`.
 //!
-//! Port de `internal/oruscribe/capture.go:1-227`. `GitLog` corre en la máquina,
+//! `GitLog` corre en la máquina,
 //! nunca contra el servidor; el resto de los métodos hablan MCP por
 //! [`ToolCaller`].
 
@@ -150,7 +150,7 @@ pub async fn apply_digest<C: ToolCaller + ?Sized>(
 /// Lee los commits de un repositorio local desde un momento. Es la materia
 /// prima de la puesta al día: se lee de la máquina y nunca del servidor.
 ///
-/// `since = None` representa el cero de Go: se buscan los últimos siete días.
+/// `since = None` representa el cero: se buscan los últimos siete días.
 pub fn git_log(dir: &str, since: Option<DateTime<Utc>>) -> Result<DigestSource> {
     git_log_con_plazo(dir, since, PLAZO_GIT_LOG)
 }
@@ -179,7 +179,7 @@ fn leer_git_log(
     }
     let since = since.unwrap_or_else(|| Utc::now() - Duration::days(7));
     // \x1f separa campos y \x1e separa commits. El formato reproduce el string
-    // de Go, donde los escapes ya son bytes de control al llegar a git.
+    // del contrato, donde los escapes ya son bytes de control al llegar a git.
     let mut command = Command::new(programa);
     command
         .arg("-C")
@@ -283,7 +283,7 @@ fn leer_git_log(
 
 /// Convierte la salida de `git log` en commits.
 ///
-/// Go corta el título a 300 bytes y el resumen a 2000, aunque parta un rune;
+/// El contrato corta el título a 300 bytes y el resumen a 2000, aunque parta un rune;
 /// acá se corta en la frontera de rune anterior para no producir texto
 /// inválido. Con texto ASCII el resultado es el mismo.
 pub fn parse_git_log(raw: &str) -> Vec<DigestItem> {
@@ -364,7 +364,7 @@ fn recortar(value: &str, max: usize) -> &str {
     &value[..end]
 }
 
-/// Igual que el `stringPtr` de Go: una cadena vacía se vuelve `None`.
+/// Una cadena vacía se vuelve `None`.
 fn string_ptr(value: &str) -> Option<String> {
     if value.is_empty() {
         None
@@ -373,7 +373,7 @@ fn string_ptr(value: &str) -> Option<String> {
     }
 }
 
-/// El formato `2 Jan 2006` de Go: día sin ceros, mes en inglés.
+/// El formato `2 Jan 2006` del contrato: día sin ceros, mes en inglés.
 fn fecha_larga(value: DateTime<Utc>) -> String {
     format!("{} {} {}", value.day(), value.format("%b"), value.year())
 }

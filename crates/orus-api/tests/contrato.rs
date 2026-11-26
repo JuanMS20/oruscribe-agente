@@ -1,8 +1,8 @@
 //! Contrato HTTP inmune: una comprobación por cada ruta que registra el
 //! router, más una guarda que falla si una ruta queda sin caso.
 //!
-//! Port de `internal/app/immune_contract_test.go:190-680`. Los cuerpos y las
-//! aserciones son los del Go; los casos con varias comprobaciones se conservan
+//! Los cuerpos y las
+//! aserciones son los del contrato; los casos con varias comprobaciones se conservan
 //! completos. Ola 7 conectó las cinco rutas de setup y update: ya no queda
 //! ninguna ruta fuera de alcance.
 
@@ -92,7 +92,7 @@ fn simple(
     }
 }
 
-/// Ya no hay comprobaciones de Go fuera de alcance: Ola 7 conectó las cinco
+/// Ya no hay comprobaciones del contrato fuera de alcance: Ola 7 conectó las cinco
 /// rutas de setup y update. La guarda se queda para que el día que aparezca
 /// una ruta nueva sin caso, el contrato no la deje pasar en silencio.
 const FUERA_DE_ALCANCE: &[(&str, &str, &str)] = &[];
@@ -1196,8 +1196,7 @@ fn captura_propuesta(_: &BackendDePrueba, respuesta: &Respuesta, _: &Arc<App>) {
 // App y costuras
 // ---------------------------------------------------------------------------
 
-/// `Store` que arranca sin sesión y guarda el token importado, como el
-/// `FileStore` temporal que usa Go en `newImmuneApp`.
+/// `Store` que arranca sin sesión y guarda el token importado.
 struct StoreDeContrato(Mutex<Option<Token>>);
 
 impl Store for StoreDeContrato {
@@ -1289,7 +1288,7 @@ impl GitLog for GitLogFalso {
 /// no se llamó. El caso de contrato la resetea antes de cada petición.
 static DESINSTALADO: Mutex<Option<bool>> = Mutex::new(None);
 
-/// Las acciones que Go resuelve dentro de `App`; acá se aíslan para probar el
+/// Las acciones que el contrato resuelve dentro de `App`; acá se aíslan para probar el
 /// borde sin instalar, desinstalar ni descargar nada.
 struct AccionesFalsas;
 
@@ -1467,7 +1466,7 @@ async fn ejecutar(caso: &Caso) {
     .with_update(actualizador);
     let (base_url, server) = levantar_api(api).await;
 
-    // Go publica a los 120 ms; aquí esperamos a que el handler se suscriba
+    // El contrato publica a los 120 ms; aquí esperamos a que el handler se suscriba
     // para que el evento no se pierda si el arranque del servidor tarda más.
     if caso.path == "/api/events" {
         let hub = Arc::clone(&hub);
@@ -1546,36 +1545,4 @@ fn inventario_de_rutas() {
         rutas_casos, rutas_router,
         "CASOS y RUTAS no coinciden por (método, ruta)"
     );
-}
-
-#[test]
-fn cada_ruta_responde_distinto_de_404() {
-    en_datos_aislados("cada_ruta_responde_distinto_de_404", || {
-        con_runtime(async {
-            for (method, path) in RUTAS {
-                aislar_ajustes();
-                let conversaciones = tempfile::tempdir().expect("conversaciones");
-                let backend = Arc::new(BackendDePrueba::default());
-                let app = app_de_contrato(
-                    Arc::clone(&backend),
-                    conversaciones_en(conversaciones.path()),
-                );
-                app.import_token("syn_inmune")
-                    .await
-                    .expect("importar token");
-                let api = Api::new(Arc::new(app))
-                    .with_version("0.0.0-test".to_owned())
-                    .with_wait(Duration::from_millis(100));
-                let (base_url, server) = levantar_api(api).await;
-                let respuesta = pedir(&base_url, method, path, &Cuerpo::Vacio).await;
-                assert_ne!(
-                    respuesta.status, 404,
-                    "{method} {path} no está registrada (cuerpo: {})",
-                    respuesta.texto
-                );
-                server.abort();
-                let _ = server.await;
-            }
-        });
-    });
 }

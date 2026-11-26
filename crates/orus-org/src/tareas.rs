@@ -1,6 +1,6 @@
 //! Tareas, metas, periodos, actividad, decisiones y equipos.
 //!
-//! Port de `internal/oruscribe/oruscribe.go:713-989`. Las funciones públicas
+//! Las funciones públicas
 //! reciben un [`ToolCaller`]; [`Client`] lo implementa sobre MCP y los tests lo
 //! implementan con respuestas guionadas. El timbre y las herramientas viven en
 //! `doorbell` y `client`.
@@ -214,7 +214,7 @@ pub async fn create_period<C: ToolCaller + ?Sized>(
 
 /// Lo que cambió desde un momento, lo más nuevo primero.
 ///
-/// `since = None` representa el cero de Go: se buscan los últimos siete días.
+/// `since = None` representa el cero: se buscan los últimos siete días.
 pub async fn activity<C: ToolCaller + ?Sized>(
     caller: &C,
     since: Option<DateTime<Utc>>,

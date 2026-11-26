@@ -1,6 +1,6 @@
 //! `bash`: un comando de shell dentro de una carpeta permitida, con timeout,
 //! tope de salida, entorno limpio y corte del árbol de procesos. Usa la misma
-//! puerta de rutas y el mismo cuerpo de ejecución que `runCommand`; lo único
+//! puerta de rutas y el mismo cuerpo de ejecución que `comando`; lo único
 //! propio es el resolvedor de shell y su entorno.
 
 use std::path::{Path, PathBuf};
@@ -337,7 +337,7 @@ pub(super) fn run_bash(set: &Set, args: Value, cancel: &CancelToken) -> Result<S
         Some(_) => return Err(Error::ArgumentosInvalidos),
         None => set.timeout,
     };
-    // El cwd pasa por la misma puerta que `runCommand`: sin `cwd` se usa la
+    // El cwd pasa por la misma puerta que `comando`: sin `cwd` se usa la
     // primera carpeta permitida, y una ruta de fuera no llega al shell.
     let cwd = if args.cwd.trim().is_empty() {
         set.roots[0].clone()

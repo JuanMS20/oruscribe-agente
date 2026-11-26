@@ -1,5 +1,4 @@
-//! Tipos del proveedor y de las herramientas. Port de
-//! `internal/agent/types.go:38-72`.
+//! Tipos del proveedor y de las herramientas.
 
 use std::fmt;
 use std::time::Duration;
@@ -16,8 +15,7 @@ use crate::runner::Usage;
 /// Describe una herramienta para el modelo. `schema` es el JSON Schema de los
 /// argumentos.
 ///
-/// Copia de `internal/agent/types.go:39-43`. En Go `Schema` es
-/// `json.RawMessage`; acá es un valor JSON, así que se conserva la estructura
+/// `Schema` es un valor JSON, así que se conserva la estructura
 /// pero no el orden de las claves.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ToolSpec {
@@ -28,8 +26,8 @@ pub struct ToolSpec {
 
 /// Cualquier servicio que responde un turno de chat.
 ///
-/// Copia de `internal/agent/types.go:46-48`. `Send + Sync` no está en el
-/// interface de Go: es lo que Rust necesita para mover el proveedor entre
+/// `Send + Sync` no está en el
+/// interface del contrato: es lo que Rust necesita para mover el proveedor entre
 /// tareas.
 #[async_trait]
 pub trait Provider: Send + Sync {
@@ -40,8 +38,6 @@ pub trait Provider: Send + Sync {
 pub type OnDelta = Box<dyn Fn(&str) + Send + Sync>;
 
 /// Lo que se le manda al proveedor en cada vuelta.
-///
-/// Copia de `internal/agent/types.go:51-58`.
 pub struct ChatRequest {
     pub model: String,
     pub messages: Vec<Message>,
@@ -64,8 +60,6 @@ impl fmt::Debug for ChatRequest {
 }
 
 /// La respuesta del proveedor con el consumo de tokens.
-///
-/// Copia de `internal/agent/types.go:61-65`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChatReply {
     pub message: Message,
@@ -73,8 +67,8 @@ pub struct ChatReply {
     pub completion_tokens: i64,
 }
 
-/// Error de una herramienta. En Go, `Tool.Run` devuelve `error`
-/// (`internal/agent/types.go:71`) y el bucle solo usa su texto; acá el enum
+/// Error de una herramienta.
+/// El bucle solo usa su texto; el enum
 /// permite que las herramientas de T2.4 agreguen variantes sin cambiar el
 /// trait.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
@@ -84,15 +78,12 @@ pub enum ToolError {
 }
 
 /// Una herramienta que el agente puede correr.
-///
-/// Copia de `internal/agent/types.go:68-72`.
 #[async_trait]
 pub trait Tool: Send + Sync {
     fn spec(&self) -> ToolSpec;
 
     /// Riesgo de la herramienta. `None` es un riesgo desconocido y la
-    /// política lo niega, igual que un valor fuera de la lista en Go
-    /// (`policy.go:32-34`).
+    /// política lo niega, igual que un valor fuera de la lista en el contrato
     fn risk(&self) -> Option<Risk>;
 
     async fn run(&self, args: Value) -> Result<String, ToolError>;

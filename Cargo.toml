@@ -44,13 +44,13 @@ temp-env = "0.3"
 serial_test = "3"
 
 [profile.dev]
-# Backtraces con línea y sin el PDB final: menos disco y enlace más rápido.
-debug = "line-tables-only"
-split-debuginfo = "unpacked"
+# Sin PDB: cada binario de test generaba uno (9,5 GB con 262 binarios) y el
+# enlace era el cuello de botella. Para depurar un fallo puntual:
+# `$env:CARGO_PROFILE_DEV_DEBUG='line-tables-only'`.
+debug = 0
 
 [profile.test]
-debug = "line-tables-only"
-split-debuginfo = "unpacked"
+debug = 0
 
 [profile.release]
 lto = "thin"

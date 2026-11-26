@@ -1,7 +1,7 @@
 //! Cableado HTTP de `POST /api/agent/transcribe` y `POST /api/agent/speak`.
 //!
 //! Los servidores de voz son locales: ningún caso sale a la red. El orden de
-//! validaciones y los textos son los de `internal/app/agent_voice.go`.
+//! validaciones y los textos son los.
 
 mod soporte;
 

@@ -27,6 +27,13 @@ if [ -z "${DISPLAY:-}" ]; then
   exit 2
 fi
 
+FALTAN=$(ldd "$BIN" 2>&1 | grep "not found" || true)
+if [ -n "$FALTAN" ]; then
+  echo "faltan librerías del sistema para arrancar el binario:" >&2
+  echo "$FALTAN" | sed 's/^/  /' >&2
+  exit 1
+fi
+
 TITULO="Oruscribe Agente"
 TEMPORALES=$(mktemp -d "${TMPDIR:-/tmp}/orus-smoke.XXXXXX")
 LOG="$TEMPORALES/app.log"
@@ -119,4 +126,46 @@ if grep -q "can only contain one widget" "$LOG"; then
   exit 1
 fi
 
-echo "ok: ventana '$TITULO' con $COLORES colores"
+if ! kill -0 "$APP" 2>/dev/null; then
+  echo "la app murió después de pintar la ventana" >&2
+  sed 's/^/  /' "$LOG" >&2
+  exit 1
+fi
+
+if grep -Eq "panicked at|stack backtrace" "$LOG"; then
+  echo "el log trae un pánico" >&2
+  sed 's/^/  /' "$LOG" >&2
+  exit 1
+fi
+
+descendientes() {
+  ps -e -o pid=,ppid=,comm= | awk -v raiz="$1" '
+    { hijo[$1] = $2; nombre[$1] = $3 }
+    END {
+      for (p in hijo) {
+        q = p
+        while (q != "" && q != 0 && q != 1) {
+          if (q == raiz) { print nombre[p]; break }
+          q = hijo[q]
+        }
+      }
+    }'
+}
+
+WEBKIT=0
+INTENTO=0
+while [ "$INTENTO" -lt 10 ]; do
+  INTENTO=$((INTENTO + 1))
+  if descendientes "$APP" | grep -q "^WebKitWebProces"; then
+    WEBKIT=1
+    break
+  fi
+  sleep 1
+done
+if [ "$WEBKIT" -eq 0 ]; then
+  echo "WebKit no arrancó: la app no tiene un WebKitWebProcess hijo" >&2
+  sed 's/^/  /' "$LOG" >&2
+  exit 1
+fi
+
+echo "ok: ventana '$TITULO' con WebKit y $COLORES colores"

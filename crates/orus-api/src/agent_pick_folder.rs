@@ -1,14 +1,14 @@
-//! Selector de carpetas del agente (`http.go:964-975`).
+//! Selector de carpetas del agente.
 //!
 //! El selector es una costura (`Api::with_pick_folder`): el servidor headless
-//! la cablea con `--pick-folder` y el borde sin selector responde 400, como Go
-//! con `PickFolder == nil`. La ruta sale limpia como `filepath.Clean`.
+//! la cablea con `--pick-folder` y el borde sin selector responde 400
+//! sin selector. La ruta sale con limpieza léxica.
 //! Cancelar no es un fallo: el trait devuelve `Ok(None)` y el borde responde
 //! 200 sin `path`, que es lo que `app.js` ya espera (`if (!r.path) return`).
 //!
 //! Sin selector nativo (Linux) el cuerpo puede traer `path`: la ruta que la
 //! persona escribe a mano en el formulario. Se valida con la misma regla que
-//! las carpetas permitidas (`carpetasPermitidas`, `agent.go:483-506`) y se
+//! las carpetas permitidas y se
 //! devuelve limpia; es el respaldo cross-platform del selector.
 
 use std::path::Path;
@@ -22,7 +22,7 @@ use serde::Deserialize;
 
 use crate::{ErrorRuta, decode, write_err, write_json};
 
-/// Lo que el borde usa para pedir una carpeta (`immune_fake.go:590-592`).
+/// Lo que el borde usa para pedir una carpeta.
 /// `Ok(None)` es el usuario que cerró el diálogo sin elegir.
 pub trait PickFolder: Send + Sync {
     fn elegir(&self) -> Result<Option<String>, String>;
@@ -51,10 +51,10 @@ pub(crate) async fn seleccionar(
     }
 }
 
-/// La ruta elegida, limpia como el `filepath.Clean` que aplica Go en el
-/// selector (`immune_fake.go:591`). `Ok(None)` es una cancelación, no un error.
-/// El error del selector es un 500, igual que cualquier error de `writeErr` en
-/// Go. Una ruta manual no abre el diálogo: se valida y se devuelve tal cual.
+/// La ruta elegida, con limpieza léxica en el
+/// selector. `Ok(None)` es una cancelación, no un error.
+/// El error del selector es un 500.
+/// Una ruta manual no abre el diálogo: se valida y se devuelve tal cual.
 pub(crate) fn ruta(
     selector: Option<&dyn PickFolder>,
     manual: &str,
@@ -77,7 +77,7 @@ pub(crate) fn ruta(
         .display()
         .to_string();
     Ok(Some(if limpia.is_empty() {
-        // `filepath.Clean("")` devuelve ".".
+        // Una ruta vacía se limpia a ".".
         ".".to_owned()
     } else {
         limpia
@@ -85,7 +85,7 @@ pub(crate) fn ruta(
 }
 
 /// Respaldo cross-platform: la ruta escrita a mano tiene que poder ser una
-/// carpeta permitida: absoluta, existente y carpeta, como `carpetasPermitidas`.
+/// carpeta permitida: absoluta, existente y carpeta, como.
 fn carpeta_manual(manual: &str) -> Result<String, ErrorRuta> {
     let ruta = Path::new(manual);
     if !ruta.is_absolute() {

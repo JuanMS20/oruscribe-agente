@@ -1,9 +1,9 @@
 //! Versión del binario y comparación de versiones.
 //!
-//! Port de `Newer`, `numbers` y `validSHA` en `internal/update/update.go`.
+//! `numbers` y.
 //! La comparación es numérica por tramo y tolerante: ignora prefijo `v`, los
 //! sufijos de prerrelease al contar tramos y el build metadata tras `+`, y no
-//! inventa un número donde Go no lo tiene. Entre tramos iguales, una versión
+//! inventa un número dondel contrato no lo tiene. Entre tramos iguales, una versión
 //! final gana a su prerrelease (`1.0.0` supera a `1.0.0-rc1`) y dos
 //! prerreleases se comparan con la precedencia de semver (`rc1` queda antes
 //! que `rc2`).
@@ -20,7 +20,7 @@ pub fn version() -> &'static str {
 
 /// Indica si `latest` es una versión posterior a `current`.
 ///
-/// `latest` vacío no es más nuevo que nada, igual que en Go. Si los tramos
+/// `latest` vacío no es más nuevo que nada Si los tramos
 /// numéricos coinciden, desempata la prerrelease: la final gana a la rc o beta
 /// (`1.0.0` supera a `1.0.0-rc1`) y dos prerreleases se comparan con la
 /// precedencia de semver (`1.0.0-rc2` supera a `1.0.0-rc1`). El sufijo `+`
@@ -141,7 +141,7 @@ fn sin_ceros(digits: &str) -> &str {
 
 /// Separa una versión en sus tramos numéricos.
 ///
-/// Hace los mismos cortes que Go: recorta espacios, quita un `v` inicial
+/// Hace los mismos cortes que el contrato: recorta espacios, quita un `v` inicial
 /// minúsculo y descarta todo desde el primer `-` o `+`. Si un tramo no es
 /// número, devuelve lo acumulado y deja de mirar; por eso `1..2` da `[1]`.
 pub fn numbers(version: &str) -> Vec<i64> {
@@ -154,7 +154,7 @@ pub fn numbers(version: &str) -> Vec<i64> {
 
     let mut out = Vec::new();
     for part in v.split('.') {
-        // `i64` es el `int` de Go en windows/amd64 y linux/amd64: un tramo que
+        // `i64` es el `int` del contrato en windows/amd64 y linux/amd64: un tramo que
         // no entra también corta igual, en vez de desbordar.
         match part.parse::<i64>() {
             Ok(n) => out.push(n),
@@ -166,7 +166,7 @@ pub fn numbers(version: &str) -> Vec<i64> {
 
 /// Indica si `s` es una huella SHA-256 válida: exactamente 64 hex.
 ///
-/// Acepta mayúsculas y minúsculas, como `hex.DecodeString` en Go.
+/// Acepta mayúsculas y minúsculas, como `hex.DecodeString`.
 pub fn valid_sha(s: &str) -> bool {
     s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit())
 }

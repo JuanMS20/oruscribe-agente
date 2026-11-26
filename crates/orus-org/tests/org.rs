@@ -42,7 +42,7 @@ fn status_serializes_with_wire_names() {
 
 #[test]
 fn task_keeps_unknown_status_instead_of_failing() {
-    // Go decodifica Status como string y no valida al leer: un valor nuevo del
+    // El contrato decodifica Status como string y no valida al leer: un valor nuevo del
     // servidor no debe romper la lista de tareas.
     let task: Task = serde_json::from_str(r#"{"id": "t1", "status": "archived"}"#).unwrap();
     assert_eq!(task.status, Status::Unknown("archived".to_owned()));
@@ -76,7 +76,7 @@ fn task_round_trip_keeps_tags_and_nulls() {
         r#"{
             "id": "t1",
             "title": "Portar tipos",
-            "description": "desde Go",
+            "description": "desde la app",
             "status": "in_progress",
             "priority": "high",
             "goal_id": "g1",

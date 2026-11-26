@@ -518,7 +518,7 @@ async fn aprobar_sin_id_responde_400_e_id_desconocido_no_hace_nada() {
     let body = cuerpo_json(response).await;
     assert!(body.as_array().is_some_and(Vec::is_empty));
 
-    // En Go `approve` es *bool: null se lee como false, no como error.
+    // `approve` es *bool: null se lee como false, no como error.
     let response = client
         .post(format!("{base}/api/agent/approve"))
         .json(&json!({"id": "ap-null", "approve": null}))

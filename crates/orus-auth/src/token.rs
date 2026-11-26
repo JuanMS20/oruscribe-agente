@@ -1,7 +1,7 @@
 use chrono::{DateTime, Datelike, FixedOffset, NaiveDate, TimeZone, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Lo que la app conserva tras iniciar sesión (`oauth.go:43-50`).
+/// Lo que la app conserva tras iniciar sesión.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Token {
     #[serde(default)]
@@ -18,7 +18,7 @@ pub struct Token {
 
 impl Token {
     /// Un minuto de gracia para que una petición no compita con el vencimiento.
-    /// El cero de Go (`0001-01-01T00:00:00Z`) significa "sin vencimiento".
+    /// El cero (`0001-01-01T00:00:00Z`) significa "sin vencimiento".
     pub fn expired(&self, now: DateTime<FixedOffset>) -> bool {
         !is_zero(&self.expiry) && now + chrono::Duration::minutes(1) > self.expiry
     }

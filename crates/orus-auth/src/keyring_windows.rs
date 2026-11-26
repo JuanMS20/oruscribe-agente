@@ -9,12 +9,12 @@ use windows_sys::Win32::Security::Credentials::{
 
 use crate::{Error, Store, Token};
 
-// go-keyring compone `service + ":" + username` (`keyring_windows.go:96-99`).
+// go-keyring compone `service + ":" + username`.
 pub(crate) const KEYRING_TARGET: &str = "oruscribe-agent:session";
 const KEYRING_USER: &str = "session";
 
 /// Llavero de un secreto suelto: target `service:name` y usuario `name`, como
-/// go-keyring (`secret.go:13-49`). `get` distingue "no hay" con `Ok(None)`.
+/// go-keyring. `get` distingue "no hay" con `Ok(None)`.
 pub struct SecretStore {
     target: String,
     user: String,
@@ -176,7 +176,7 @@ mod tests {
     use windows_sys::Win32::Foundation::{ERROR_ACCESS_DENIED, ERROR_NO_SUCH_LOGON_SESSION};
 
     #[test]
-    fn keyring_target_matches_go() {
+    fn keyring_target_es_estable() {
         assert_eq!(KEYRING_TARGET, "oruscribe-agent:session");
         assert_eq!(KEYRING_USER, "session");
 
@@ -194,7 +194,7 @@ mod tests {
             );
             if unavailable {
                 eprintln!(
-                    "se omite keyring_target_matches_go: Credential Manager no disponible ({error})"
+                    "se omite keyring_target_es_estable: Credential Manager no disponible ({error})"
                 );
                 return;
             }

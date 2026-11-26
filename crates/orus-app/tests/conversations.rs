@@ -1,4 +1,4 @@
-//! Contrato de `internal/app/conversations.go:17-230`.
+//! Contrato.
 //!
 //! Cada prueba usa una carpeta temporal y archivos escritos a mano: nunca el
 //! directorio real de la persona.

@@ -1,5 +1,4 @@
-//! Recorte de una línea para los prompts. Port de `compactar`
-//! (`internal/harness/run.go:720-728`); el marcador es `…`, como en Go.
+//! Recorte de una línea para los prompts. El marcador es `…`.
 
 /// Reemplaza saltos por espacios, colapsa los repetidos y corta en runas.
 pub fn compactar(texto: &str, max: usize) -> String {

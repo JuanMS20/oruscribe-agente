@@ -1,4 +1,4 @@
-//! Puerto de `internal/auth/pkce.go`: verificador, reto S256 y estado.
+//! Puerto: verificador, reto S256 y estado.
 
 use rand::{RngCore, rngs::OsRng};
 use sha2::{Digest, Sha256};
@@ -7,21 +7,21 @@ use crate::Error;
 
 const ALFABETO: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
-/// 32 bytes aleatorios en base64url sin relleno: 43 caracteres (`pkce.go:14`).
+/// 32 bytes aleatorios en base64url sin relleno: 43 caracteres.
 pub fn new_verifier() -> Result<String, Error> {
     let mut bytes = [0u8; 32];
     aleatorio(&mut bytes)?;
     Ok(base64url(&bytes))
 }
 
-/// Deriva el reto S256 con SHA-256 y base64url (`pkce.go:23`).
+/// Deriva el reto S256 con SHA-256 y base64url.
 pub fn challenge(verifier: &str) -> String {
     let mut hash = Sha256::new();
     hash.update(verifier.as_bytes());
     base64url(&hash.finalize())
 }
 
-/// 16 bytes aleatorios en base64url sin relleno: 22 caracteres (`pkce.go:29`).
+/// 16 bytes aleatorios en base64url sin relleno: 22 caracteres.
 pub fn new_state() -> Result<String, Error> {
     let mut bytes = [0u8; 16];
     aleatorio(&mut bytes)?;

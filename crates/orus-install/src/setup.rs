@@ -1,6 +1,6 @@
 //! Cuerpo de `GET /api/setup`.
 //!
-//! Port de `internal/app/setup.go:13-40`: las ocho claves, sin `omitempty`, en
+//! Las ocho claves, sin `omitempty`, en
 //! el mismo orden y con los mismos nombres camelCase. No abre HTTP ni toca el
 //! registro; 7-04 solo conecta [`setup_json`] a la ruta.
 
@@ -13,7 +13,7 @@ use crate::terms::{TERMS_BODY, TERMS_TITLE, TERMS_VERSION};
 
 /// Lo que la ventana necesita para decidir si ofrece instalar.
 ///
-/// Las claves JSON son las de Go: `installed`, `portable`, `dir`,
+/// Las claves JSON son las del contrato: `installed`, `portable`, `dir`,
 /// `termsTitle`, `termsBody`, `termsVersion`, `acceptedTerms` y `platform`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -57,9 +57,7 @@ pub fn setup_json(
 
 /// Nombre de la plataforma para el campo `platform`.
 ///
-/// Es el `runtime.GOOS` de Go (`internal/app/setup.go:38`). Divergencia
-/// declarada: en macOS Go dice `"darwin"` y Rust dice `"macos"`, que es el
-/// nombre de `std::env::consts::OS`.
+/// Es el valor de `std::env::consts::OS`.
 pub fn platform() -> &'static str {
     std::env::consts::OS
 }

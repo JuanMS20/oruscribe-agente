@@ -26,7 +26,7 @@ use super::{AgentError, AgentInput, AgentProbe, AgentView, JournalEntryView, MAX
 
 /// La costura que arma un proveedor con la base y la clave. Los tests y O6-08
 /// la usan para probar sin salir a la red; sin ella, `agent_test` usa la
-/// fábrica real (`agent.go:153-155`).
+/// fábrica real.
 pub type ProveedorFn = Arc<
     dyn Fn(&str, &str) -> Result<Arc<dyn orus_agent::Provider>, orus_agent::ProviderError>
         + Send
@@ -69,8 +69,7 @@ fn invalidar_clave_cacheada() {
 }
 
 impl App {
-    /// Valida, guarda y devuelve la vista nueva (`AgentConfigure`,
-    /// `agent.go:275-392`). La reserva se toma antes de validar para que un
+    /// Valida, guarda y devuelve la vista nueva. La reserva se toma antes de validar para que un
     /// formulario no cambie el cerebro a mitad de un turno.
     pub fn agent_configure(&self, input: AgentInput) -> Result<AgentView, AgentError> {
         let agent = self.agent().ok_or_else(|| {
@@ -239,8 +238,7 @@ impl App {
         self.agent_view().map_err(AgentError::Sesion)
     }
 
-    /// Prueba el proveedor del formulario sin guardar nada (`AgentTest`,
-    /// `agent.go:397-481`). Todos los caminos son 200 salvo la validación.
+    /// Prueba el proveedor del formulario sin guardar nada. Todos los caminos son 200 salvo la validación.
     pub async fn agent_test(&self, input: AgentInput) -> Result<AgentProbe, AgentError> {
         let kind = input.kind.trim();
         let kind = if kind.is_empty() { "openai" } else { kind };
@@ -274,8 +272,7 @@ impl App {
                 "el agente no está disponible".to_owned(),
             ))
         })?;
-        // Probar no reserva: `agentSetup` no cuenta, solo una ejecución viva
-        // (`agent.go:405-410`).
+        // Probar no reserva: la configuración no cuenta, solo una ejecución viva
         if agent.busy() {
             return Ok(AgentProbe {
                 error: "espera a que termine la ejecución en curso y vuelve a probar".to_owned(),
@@ -341,7 +338,7 @@ impl App {
                         Some(secrets) => match clave_para(secrets.as_ref(), &guardado.base_url) {
                             Ok(Some(clave_guardada)) => {
                                 // Un host distinto mandaría la clave anterior a
-                                // otro servidor (`agent.go:446-453`).
+                                // otro servidor.
                                 if host_de(&guardado.base_url) != host_de(&limpia) {
                                     return Err(AgentError::Invalid(
                                         "cambiaste de proveedor: escribe también la clave de ese proveedor"
@@ -431,7 +428,7 @@ impl App {
     }
 
     /// Arma la vista desde los ajustes, el llavero, el agente y el registro de
-    /// despertar (`AgentState`, `agent.go:194-238`).
+    /// despertar.
     pub fn agent_view(&self) -> Result<AgentView, SessionError> {
         let agent = self
             .agent()
@@ -493,7 +490,7 @@ impl App {
     }
 
     /// Arma el turno del envío desde los ajustes, el llavero, la sesión y el
-    /// agente (`AgentSendWithImages`, `agent.go:565-679`). El borde aporta el
+    /// agente. El borde aporta el
     /// texto y la ruta le suma las imágenes ya normalizadas; las herramientas
     /// locales, skills y subagente los resuelve el arnés desde el `Turno`. Para
     /// `kind == "org"` el proveedor ya viaja resuelto y el arnés no construye
@@ -524,7 +521,7 @@ impl App {
         };
         if cfg.kind == "org" {
             // El cerebro de la organización es `CloudBrain`: su base sale del
-            // timbre y el token se lee del store en cada llamada (`agent.go:161-180`).
+            // timbre y el token se lee del store en cada llamada.
             let _ = self.client().await.map_err(|error| match error {
                 SessionError::LoggedOut => AgentError::Sesion(SessionError::LoggedOut),
                 otro => {
@@ -592,7 +589,7 @@ impl App {
                         "configura el agente antes de usarlo".to_owned(),
                     ));
                 }
-                // Go devuelve el error crudo del llavero, que el borde pinta
+                // El contrato devuelve el error crudo del llavero, que el borde pinta
                 // como 500; no es "falta configurar".
                 Err(error) => return Err(AgentError::Turno(error)),
             },
@@ -719,7 +716,7 @@ impl App {
     }
 
     /// La clave del proveedor solo si el servidor de voz vive en su mismo host
-    /// (`claveDeVoz`, `agent_voice.go:85-100`). Dos hosts vacíos no cuentan
+    /// Dos hosts vacíos no cuentan
     /// como coincidencia: sin destino no se manda la credencial.
     pub fn clave_de_voz(&self, destino: &str) -> Option<String> {
         let proveedor = self.settings_snapshot().agent.base_url;
@@ -737,7 +734,7 @@ impl App {
     }
 
     /// Las escrituras respaldadas, de la más reciente a la más vieja
-    /// (`AgentJournal`, `agent.go:1137-1153`). Sin diario, la lista es `[]`.
+    /// Sin diario, la lista es `[]`.
     pub fn journal_entries(&self) -> Result<Vec<JournalEntryView>, SessionError> {
         let diario = Journal::open(journal::default_dir())
             .map_err(|error| SessionError::Tool(error.to_string()))?;
@@ -757,19 +754,16 @@ impl App {
     }
 
     /// Las reglas recordadas, de la más vieja a la más nueva
-    /// (`permissions.List`, `permissions.go:153-158`).
     pub fn rules(&self) -> Vec<AllowRule> {
         permissions::list()
     }
 
     /// Quita una regla; `false` dice que no existía
-    /// (`permissions.Revoke`, `permissions.go:125-150`).
     pub fn revoke_rule(&self, id: &str) -> Result<bool, SessionError> {
         permissions::revoke(id).map_err(|error| SessionError::Tool(error.to_string()))
     }
 
     /// Deshace las últimas `n` escrituras dentro de las carpetas permitidas
-    /// (`AgentUndo`, `agent.go:1155-1206`).
     pub fn agent_undo(&self, n: i64, force: bool) -> Result<usize, SessionError> {
         let n = n.clamp(1, 50);
         let agent = self

@@ -1,6 +1,6 @@
 //! `POST /api/agent/test`: prueba el proveedor sin guardar nada.
 //!
-//! Port de `internal/app/http.go:852-867` y `agent.go:397-481`. El cuerpo se
+//! El cuerpo se
 //! decodifica con su tope; la sonda y sus validaciones viven en `orus-app`.
 
 use std::sync::Arc;

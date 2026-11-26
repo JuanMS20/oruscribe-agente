@@ -1,6 +1,6 @@
 //! Configuración local del agente: carpeta de datos, idioma y `settings.json`.
 //!
-//! Port de `internal/config` (Go). Nada aquí habla con la red.
+//! Nada aquí habla con la red.
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 

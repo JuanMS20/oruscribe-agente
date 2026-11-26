@@ -1,8 +1,8 @@
 //! Escritura de tareas, mensajes, metas, captura, avisos y contexto.
 //!
-//! Port de `internal/app/http.go:79-205,277-331,354-413,450-565,636-733`. Los
-//! adaptadores decodifican, validan lo mismo que Go antes de pedir el cliente y
-//! delegan en `Backend`; el orden y los textos son los del Go.
+//! Los
+//! adaptadores decodifican, validan lo mismo que el contrato antes de pedir el cliente y
+//! delegan en `Backend`; el orden y los textos son los del contrato.
 
 use std::sync::Arc;
 
@@ -18,7 +18,7 @@ use serde_json::json;
 
 use crate::{ErrorRuta, decode, write_json};
 
-/// La lectura de `git log` de una carpeta local (`capture.go:148-180`).
+/// La lectura de `git log` de una carpeta local.
 ///
 /// `orus-api` no depende de `orus-org` (D161/D180): la implementación real
 /// delega en `orus_app::git_log_con_plazo` y los tests inyectan un fake.
@@ -137,8 +137,8 @@ fn ok() -> Response {
     write_json(StatusCode::OK, &json!({"ok": true}))
 }
 
-/// `POST /api/tasks` (`http.go:79-96`): el adaptador no valida título ni
-/// descripción; el error del backend queda en 500 como el Go.
+/// `POST /api/tasks`: el adaptador no valida título ni
+/// descripción; el error del backend queda en 500
 pub(crate) async fn crear_tarea(
     AxumState(app): AxumState<Arc<App>>,
     body: Body,
@@ -152,7 +152,7 @@ pub(crate) async fn crear_tarea(
     ))
 }
 
-/// `POST /api/tasks/status` (`http.go:179-205`): el estado se parsea antes de
+/// `POST /api/tasks/status`: el estado se parsea antes de
 /// pedir el cliente; uno desconocido es 500, no 400.
 pub(crate) async fn cambiar_estado(
     AxumState(app): AxumState<Arc<App>>,
@@ -171,7 +171,7 @@ pub(crate) async fn cambiar_estado(
     ))
 }
 
-/// `POST /api/tasks/files/comment` (`http.go:158-178`): Go no devuelve el
+/// `POST /api/tasks/files/comment`: el contrato no devuelve el
 /// `update_id`.
 pub(crate) async fn comentar_avance(
     AxumState(app): AxumState<Arc<App>>,
@@ -185,7 +185,7 @@ pub(crate) async fn comentar_avance(
     Ok(ok())
 }
 
-/// `POST /api/messages` (`http.go:277-311`): valida `body`/`room`/`to` antes de
+/// `POST /api/messages`: valida `body`/`room`/`to` antes de
 /// pedir el cliente y no recorta ninguno de los tres.
 pub(crate) async fn enviar_mensaje(
     AxumState(app): AxumState<Arc<App>>,
@@ -211,7 +211,7 @@ pub(crate) async fn enviar_mensaje(
     Ok(ok())
 }
 
-/// `POST /api/rooms/read` (`http.go:313-331`).
+/// `POST /api/rooms/read`.
 pub(crate) async fn marcar_sala(
     AxumState(app): AxumState<Arc<App>>,
     body: Body,
@@ -222,7 +222,7 @@ pub(crate) async fn marcar_sala(
     Ok(ok())
 }
 
-/// `POST /api/alerts/read` (`http.go:354-372`): sin ids se pasa `[]`, no null.
+/// `POST /api/alerts/read`: sin ids se pasa `[]`, no null.
 pub(crate) async fn marcar_alertas(
     AxumState(app): AxumState<Arc<App>>,
     body: Body,
@@ -233,7 +233,7 @@ pub(crate) async fn marcar_alertas(
     Ok(ok())
 }
 
-/// `POST /api/mentions/read` (`http.go:395-413`): sin ids se pasa `[]`, no null.
+/// `POST /api/mentions/read`: sin ids se pasa `[]`, no null.
 pub(crate) async fn marcar_menciones(
     AxumState(app): AxumState<Arc<App>>,
     body: Body,
@@ -244,8 +244,8 @@ pub(crate) async fn marcar_menciones(
     Ok(ok())
 }
 
-/// `POST /api/goals` (`http.go:450-467`): el adaptador no valida el título; el
-/// backend responde 500 si falta, como el Go.
+/// `POST /api/goals`: el adaptador no valida el título; el
+/// backend responde 500 si falta
 pub(crate) async fn crear_meta(
     AxumState(app): AxumState<Arc<App>>,
     body: Body,
@@ -259,7 +259,7 @@ pub(crate) async fn crear_meta(
     ))
 }
 
-/// `POST /api/periods` (`http.go:483-500`).
+/// `POST /api/periods`.
 pub(crate) async fn crear_periodo(
     AxumState(app): AxumState<Arc<App>>,
     body: Body,
@@ -273,7 +273,7 @@ pub(crate) async fn crear_periodo(
     ))
 }
 
-/// `POST /api/capture/propose` (`http.go:504-550`): `git_log` corre antes de
+/// `POST /api/capture/propose`: `git_log` corre antes de
 /// pedir el cliente, así que una carpeta inválida da 500 y no 401. El `folder`
 /// original se pasa tal cual; solo la validación lo recorta.
 pub(crate) async fn proponer_captura(
@@ -288,7 +288,7 @@ pub(crate) async fn proponer_captura(
         ));
     }
     let (since_utc, since_texto) = if cuerpo.since.is_empty() {
-        // Go resta siete días al reloj local; `Duration::days` es 168 h fijas y
+        // El contrato resta siete días al reloj local; `Duration::days` es 168 h fijas y
         // puede diferir una hora en el cambio de horario (D181).
         let local = Local::now() - Duration::days(7);
         (
@@ -312,7 +312,7 @@ pub(crate) async fn proponer_captura(
     let source = git_con_plazo(git_log, cuerpo.folder, Some(since_utc), PLAZO_GIT).await?;
     let cliente = app.client().await?;
     let digest = cliente.propose_digest(&since_texto, &[source]).await?;
-    // `Digest` directo serializaría `candidates: null`; Go usa `[]` y deja
+    // `Digest` directo serializaría `candidates: null`; El contrato usa `[]` y deja
     // `skipped` como `null` cuando el servidor no lo mandó (D176).
     Ok(write_json(
         StatusCode::OK,
@@ -354,7 +354,7 @@ async fn git_con_plazo(
     }
 }
 
-/// `POST /api/capture/apply` (`http.go:552-565`): un digest o `accept` vacío lo
+/// `POST /api/capture/apply`: un digest o `accept` vacío lo
 /// rechaza el backend con 500, no 400.
 pub(crate) async fn aplicar_captura(
     AxumState(app): AxumState<Arc<App>>,
@@ -369,7 +369,7 @@ pub(crate) async fn aplicar_captura(
     ))
 }
 
-/// `POST /api/alerts/send` (`http.go:636-665`): tipo y destino se validan
+/// `POST /api/alerts/send`: tipo y destino se validan
 /// antes del cliente; el mensaje vacío lo rechaza el backend con 500.
 pub(crate) async fn enviar_aviso(
     AxumState(app): AxumState<Arc<App>>,
@@ -392,7 +392,7 @@ pub(crate) async fn enviar_aviso(
     Ok(ok())
 }
 
-/// `POST /api/messages/react` (`http.go:667-686`): no valida; el backend
+/// `POST /api/messages/react`: no valida; el backend
 /// responde 500 con `reacción incompleta`.
 pub(crate) async fn reaccionar(
     AxumState(app): AxumState<Arc<App>>,
@@ -404,7 +404,7 @@ pub(crate) async fn reaccionar(
     Ok(ok())
 }
 
-/// `POST /api/context` (`http.go:714-733`): no valida; el backend responde 500
+/// `POST /api/context`: no valida; el backend responde 500
 /// con `no hay nada que actualizar`.
 pub(crate) async fn actualizar_contexto(
     AxumState(app): AxumState<Arc<App>>,

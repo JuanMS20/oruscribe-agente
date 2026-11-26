@@ -138,7 +138,7 @@ async fn pick_folder_path_manual_con_selector_lo_prefiere() {
 }
 
 /// La ruta manual se valida con la regla de las carpetas permitidas
-/// (`carpetasPermitidas`): absoluta, existente y carpeta.
+/// absoluta, existente y carpeta.
 #[tokio::test]
 async fn pick_folder_path_manual_relativo_es_400() {
     let app = Arc::new(AppDePrueba::nuevo().construir());
@@ -217,7 +217,7 @@ async fn pick_folder_path_manual_archivo_no_carpeta_es_400() {
 }
 
 /// El cuerpo ahora se decodifica: un JSON inválido responde el error de
-/// `decode` (500, como el writeErr de Go para json.Unmarshal) aunque haya
+/// `decode` (500) aunque haya
 /// selector cableado; antes el cuerpo se ignoraba y el diálogo se abría.
 #[tokio::test]
 async fn pick_folder_body_invalido_con_selector_es_error() {

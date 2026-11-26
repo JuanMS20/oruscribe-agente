@@ -1,4 +1,4 @@
-//! Timbre de la app: port de `internal/app/watch.go:15-303`. El hub HTTP no se porta.
+//! Timbre de la app: port. El hub HTTP no se porta.
 
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -113,7 +113,7 @@ pub trait ClientProvider: Send + Sync {
     async fn client(&self) -> Result<Arc<dyn Backend>, SessionError>;
 
     /// Cachea la configuración del timbre que acaba de traer el servidor. El
-    /// default deja intactos los fakes que no la usan (`watch.go:151-155`).
+    /// default deja intactos los fakes que no la usan.
     fn set_bell_config(&self, _config: Config) {}
 
     /// El id de la persona de la sesión, para no despertar por lo que ella
@@ -373,8 +373,8 @@ impl Watch {
             SessionError::NoDoorbell => WatchError::NoDoorbell,
             other => WatchError::Other(other.to_string()),
         })?;
-        // Go guarda la copia recién cuando `doorbell.Dial` tuvo éxito
-        // (`watch.go:151-155`): un timbre que no abre no deja base al cerebro.
+        // El contrato guarda la copia recién cuando `doorbell.Dial` tuvo éxito
+        // Un timbre que no abre no deja base al cerebro.
         let config_para_cache = config.clone();
         let (events, mut incoming) = mpsc::unbounded_channel();
         let watch = Arc::clone(self);
@@ -632,7 +632,7 @@ mod tests {
         }
     }
 
-    /// Go cachea la copia cuando `Dial` ya abrió el canal; si se moviera antes,
+    /// El contrato cachea la copia cuando `Dial` ya abrió el canal; si se moviera antes,
     /// un timbre que no conecta dejaría al cerebro con una base que no existe.
     #[tokio::test]
     async fn watch_once_cachea_el_timbre_al_conectar() {

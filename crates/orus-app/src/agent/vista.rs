@@ -11,14 +11,14 @@ use crate::wake::WakeEntry;
 
 use super::AgentStep;
 
-/// Una imagen que la ventana pinta (`agent.go:74-82`). `data` y `preview` no
+/// Una imagen que la ventana pinta. `data` y `preview` no
 /// viajan vacíos. El envío la deserializa y `normalizar_imagenes` la valida
 /// antes de que toque la conversación.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentImage {
     #[serde(default)]
     pub mime: String,
-    /// En Go `Data` no lleva `omitempty`: viaja también vacío cuando la
+    /// `Data` no lleva `omitempty`: viaja también vacío cuando la
     /// miniatura lo reemplaza en la vista.
     #[serde(default)]
     pub data: String,
@@ -26,7 +26,7 @@ pub struct AgentImage {
     pub preview: String,
 }
 
-/// Un mensaje visible de la conversación (`agent.go:84-89`).
+/// Un mensaje visible de la conversación.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct AgentMessage {
     pub role: String,
@@ -35,7 +35,7 @@ pub struct AgentMessage {
     pub images: Option<Vec<AgentImage>>,
 }
 
-/// Lo que la ventana pinta del agente (`agent.go:100-129`). El `null` de Go es
+/// Lo que la ventana pinta del agente. El `null` del contrato es
 /// una lista vacía acá: nunca se serializa `null` para los campos de lista.
 #[derive(Debug, Clone, Serialize)]
 pub struct AgentView {
@@ -80,7 +80,7 @@ pub struct AgentView {
 }
 
 /// La respuesta a "¿este proveedor funciona con esta clave y este modelo?".
-/// No guarda nada y nunca incluye la clave (`AgentProbe`, `agent.go:240-247`).
+/// No guarda nada y nunca incluye la clave.
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 pub struct AgentProbe {
     pub ok: bool,
@@ -91,7 +91,7 @@ pub struct AgentProbe {
     pub error: String,
 }
 
-/// Lo que la ventana ve del diario (`agent.go:1129-1135`).
+/// Lo que la ventana ve del diario.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct JournalEntryView {
     pub id: String,
@@ -102,7 +102,7 @@ pub struct JournalEntryView {
 }
 
 /// Lo que la persona escribió y lo que el modelo contestó; los pasos de
-/// herramientas van aparte (`visibles`, `agent.go:1060-1074`).
+/// herramientas van aparte.
 pub(crate) fn visibles(historial: &[Message]) -> Vec<AgentMessage> {
     let mut salida = Vec::new();
     for mensaje in historial {
@@ -193,7 +193,6 @@ pub(crate) fn reconstruir_pasos(historial: &[Message], at: DateTime<Utc>) -> Vec
 }
 
 /// La miniatura es lo que se pinta; sin ella cae al archivo completo
-/// (`imagenesVisibles`, `agent_images.go:107-124`).
 fn imagenes_visibles(imagenes: Option<Vec<Image>>) -> Option<Vec<AgentImage>> {
     let imagenes = imagenes.filter(|lista| !lista.is_empty())?;
     Some(
@@ -236,7 +235,7 @@ mod tests {
     }
 
     /// La miniatura es lo que se pinta; el archivo completo se guarda para el
-    /// proveedor y no se repite en cada sondeo (`agent_images.go:107-124`).
+    /// proveedor y no se repite en cada sondeo.
     #[test]
     fn la_vista_usa_la_miniatura_y_no_repite_el_archivo() {
         let visibles = visibles(&mensaje_con(Image {

@@ -1,5 +1,4 @@
 //! Hub de eventos y long poll de `GET /api/events`
-//! (`internal/app/watch.go:25-74`).
 
 mod soporte;
 

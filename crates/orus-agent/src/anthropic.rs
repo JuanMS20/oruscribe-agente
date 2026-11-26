@@ -1,8 +1,7 @@
 //! Cliente de la Messages API de Anthropic.
 //!
-//! Port de `internal/agent/anthropic.go:17-224` (tipos, `Chat`, `resumen` y
-//! `leerRespuesta`) y `:397-493` (traducción de mensajes y herramientas). El
-//! SSE vive en [`crate::anthropic_stream`] (`:226-395`).
+//! Incluye los tipos, `Chat`, `resumen` y la traducción de mensajes y
+//! herramientas. El SSE vive en [`crate::anthropic_stream`].
 
 use std::fmt;
 
@@ -22,14 +21,14 @@ use crate::openai::{
 };
 use crate::types::{ChatReply, ChatRequest, Provider, ToolSpec};
 
-/// Cabecera `anthropic-version` que este adaptador habla. `anthropic.go:18`.
+/// Cabecera `anthropic-version` que este adaptador habla.
 const VERSION_ANTHROPIC: &str = "2023-06-01";
-/// La API exige `max_tokens`; ningún ajuste de ventana lo cambia. `:19`.
+/// La API exige `max_tokens`; ningún ajuste de ventana lo cambia.
 const MAX_TOKENS_DEFECTO: i64 = 4096;
 
-/// Habla con la Messages API de Anthropic. Copia de `anthropic.go:25-37`.
+/// Habla con la Messages API de Anthropic.
 ///
-/// Los campos son públicos como en Go: la fábrica arma el cliente una vez y
+/// Los campos son públicos: la fábrica arma el cliente una vez y
 /// las pruebas sustituyen la espera.
 pub struct Anthropic {
     pub base_url: String,
@@ -72,7 +71,7 @@ impl Anthropic {
     }
 
     /// Tope de tokens de la respuesta, con el valor por defecto de la API.
-    /// `limite` (`anthropic.go:101-106`).
+    /// `limite`.
     pub(crate) fn limite(&self) -> i64 {
         if self.max_tokens > 0 {
             self.max_tokens
@@ -83,7 +82,7 @@ impl Anthropic {
 
     /// Manda la conversación al proveedor y devuelve su respuesta.
     ///
-    /// Port de `Chat` (`anthropic.go:115-168`): con `on_delta` pide el SSE y
+    /// Con `on_delta` pide el SSE y
     /// devuelve cada fragmento; sin él espera la respuesta entera.
     pub async fn chat(&self, req: ChatRequest) -> Result<ChatReply, ProviderError> {
         let base = validar_base(&self.base_url)?;
@@ -97,7 +96,7 @@ impl Anthropic {
             tools: con_herramientas.then(|| convertir_herramientas(&req.tools)),
             tool_choice: con_herramientas.then_some(AnthChoice { kind: "auto" }),
             // `omitempty`: sin delta el campo no viaja y el pedido es el de
-            // T2.6a (`anthropic.go:122`).
+            // T2.6a.
             stream: req.on_delta.is_some().then_some(true),
         };
         let payload = serde_json::to_vec(&cuerpo).map_err(|error| {
@@ -114,9 +113,8 @@ impl Anthropic {
         }
     }
 
-    /// Con `on_delta` el status no 2xx se trata antes de abrir el SSE: Go lee
+    /// Con `on_delta` el status no 2xx se trata antes de abrir el SSE: El contrato lee
     /// el cuerpo acotado y devuelve el código con lo que alcanzó a leer
-    /// (`anthropic.go:149-153`).
     async fn procesar_stream(
         &self,
         respuesta: reqwest::Response,
@@ -132,8 +130,8 @@ impl Anthropic {
     /// Reintenta solo lo pasajero: 429, 5xx y fallos de transporte. El bucle
     /// vive en `openai.rs`; esta clausura conserva la cabecera de Anthropic.
     ///
-    /// Port de `conReintentos` (`reintentar.go:23-64`) aplicado por
-    /// `Chat` (`anthropic.go:143`).
+    /// Aplicado por
+    /// `Chat`.
     async fn enviar(
         &self,
         url: reqwest::Url,
@@ -167,14 +165,14 @@ impl Anthropic {
 
     /// Lee el cuerpo, comprueba el tamaño y delega el parseo.
     ///
-    /// Port de `anthropic.go:157-167`. El orden importa: Go prefiere el error
+    /// El orden importa: el contrato prefiere el error
     /// de tamaño aunque el status no sea 2xx.
     async fn procesar(&self, respuesta: reqwest::Response) -> Result<ChatReply, ProviderError> {
         let datos = procesar_respuesta(respuesta, |datos| resumen(datos, &self.api_key)).await?;
         self.leer_respuesta(&datos)
     }
 
-    /// Lee una respuesta 2xx completa. `leerRespuesta` (`anthropic.go:184-224`).
+    /// Lee una respuesta 2xx completa.
     fn leer_respuesta(&self, datos: &[u8]) -> Result<ChatReply, ProviderError> {
         let respuesta: AnthRespuesta = serde_json::from_slice(datos).map_err(|error| {
             ProviderError::local(format!("respuesta del proveedor inválida: {error}"))
@@ -187,7 +185,7 @@ impl Anthropic {
                 resumen(error.message.as_bytes(), &self.api_key)
             )));
         }
-        // Go acepta `content: null` como slice nil: también es "sin respuesta".
+        // El contrato acepta `content: null` como slice nil: también es "sin respuesta".
         let contenido = respuesta.content.as_deref().unwrap_or_default();
         if contenido.is_empty() {
             return Err(ProviderError::local(SIN_RESPUESTA));
@@ -217,14 +215,14 @@ impl Anthropic {
             return Err(ProviderError::local(SIN_RESPUESTA));
         }
 
-        // Go acepta `usage: null` como el struct cero.
+        // El contrato acepta `usage: null` como el struct cero.
         let usage = respuesta.usage.unwrap_or_default();
         let reply = ChatReply {
             message: Message {
                 role: "assistant".to_owned(),
                 content: texto,
                 images: None,
-                // Go deja `nil` sin tool_use (`anthropic.go:196`): `None`, no
+                // El contrato deja `nil` sin tool_use: `None`, no
                 // `Some(vec![])`; esa asimetría es la del stream (D28).
                 tool_calls: (!llamadas.is_empty()).then_some(llamadas),
                 tool_call_id: String::new(),
@@ -250,14 +248,12 @@ impl Provider for Anthropic {
     }
 }
 
-/// `errRespuestaCortada` (`anthropic.go:108-112`).
 pub(crate) fn error_respuesta_cortada(max_tokens: i64) -> String {
     format!(
         "la respuesta se cortó al llegar al límite de {max_tokens} tokens; pide una respuesta más corta o continúa en otro mensaje"
     )
 }
 
-/// `convertirMensajesAnthropic` (`anthropic.go:397-444`).
 fn convertir_mensajes_anthropic(msgs: &[Message]) -> (String, Vec<AnthMessage>) {
     let mut sistema = String::new();
     let mut out: Vec<AnthMessage> = Vec::new();
@@ -322,7 +318,7 @@ fn convertir_mensajes_anthropic(msgs: &[Message]) -> (String, Vec<AnthMessage>) 
         }
     }
     // La API exige que la conversación empiece por user; tras compactar puede
-    // empezar en assistant (`anthropic.go:437-442`).
+    // empezar en assistant.
     if out.first().is_some_and(|m| m.role == "assistant") {
         out.insert(
             0,
@@ -339,7 +335,6 @@ fn convertir_mensajes_anthropic(msgs: &[Message]) -> (String, Vec<AnthMessage>) 
     (sistema, out)
 }
 
-/// `bloquesDeMensaje` (`anthropic.go:446-471`).
 fn bloques_de_mensaje(m: &Message) -> Vec<AnthBlock> {
     let mut bloques = Vec::new();
     // Las imágenes van antes del texto: el modelo ve el adjunto y después lee
@@ -388,7 +383,6 @@ fn bloques_de_mensaje(m: &Message) -> Vec<AnthBlock> {
     bloques
 }
 
-/// `convertirHerramientasAnthropic` (`anthropic.go:483-493`).
 fn convertir_herramientas(specs: &[ToolSpec]) -> Vec<AnthTool> {
     specs
         .iter()
@@ -426,7 +420,7 @@ struct AnthMessage {
 }
 
 /// Bloque de contenido: texto, `tool_use` del historial, `tool_result` o
-/// imagen. Copia de `anthropic.go:54-66`.
+/// imagen.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct AnthBlock {
     #[serde(rename = "type")]
@@ -583,7 +577,7 @@ mod tests {
         );
 
         // En streaming el error llega antes de leer el cuerpo: mismo contrato
-        // y sin emitir deltas (`anthropic.go:149-153`).
+        // y sin emitir deltas.
         let emitidos = Arc::new(AtomicUsize::new(0));
         let error = proveedor_sin_espera(&servidor_url)
             .chat(ChatRequest {
@@ -728,7 +722,7 @@ mod tests {
         );
         assert_eq!(respuesta.message.content, "hola");
 
-        // `AuthBearer` cambia `x-api-key` por `Authorization: Bearer`.
+        // Con auth Bearer se cambia `x-api-key` por `Authorization: Bearer`.
         let captura = Arc::new(Mutex::new(None::<(String, String)>));
         let servidor_url = servidor({
             let captura = Arc::clone(&captura);
@@ -1127,7 +1121,7 @@ mod tests {
         assert_eq!(llamadas.load(Ordering::SeqCst), 3);
     }
 
-    /// Cubre lo que el Go fija fuera de los doce tests de la tarjeta: imagen
+    /// Cubre lo que el contrato fija fuera de los doce tests de la tarjeta: imagen
     /// antes del texto, mensaje sin bloques, `input` nulo y `call_{i}`.
     #[test]
     fn normaliza_imagenes_mensajes_vacios_y_entradas_nulas() {
@@ -1176,7 +1170,7 @@ mod tests {
             .expect("la respuesta debe ser válida");
         assert_eq!(
             solo_texto.message.tool_calls, None,
-            "sin tool_use, Go deja nil y Rust None"
+            "sin tool_use, la lista de llamadas queda en None"
         );
     }
 

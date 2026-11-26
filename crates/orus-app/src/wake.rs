@@ -1,4 +1,4 @@
-//! Despertar del agente: port de `internal/app/wake.go:14-300`. El ejecutor es
+//! Despertar del agente: port. El ejecutor es
 //! [`Despertador`], el reloj [`Clock`] y la generación la fija el borde de la sesión.
 
 use std::collections::hash_map::DefaultHasher;
@@ -20,7 +20,7 @@ const VENTANA_DUPLICADOS_MINUTOS: i64 = 60;
 const MAX_VISTOS_DESPERTAR: usize = 256;
 const MAX_PROMPT_DESPERTAR: usize = 8_000;
 
-/// Una línea del registro de lo que el agente hizo solo (`wake.go:14-20`).
+/// Una línea del registro de lo que el agente hizo solo.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WakeEntry {
     pub at: DateTime<Local>,
@@ -29,7 +29,7 @@ pub struct WakeEntry {
     pub result: String,
 }
 
-/// Lo que se entendió de un ping del timbre (`wake.go:22-29`).
+/// Lo que se entendió de un ping del timbre.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WakeEvent {
     pub id: String,
@@ -39,7 +39,7 @@ pub struct WakeEvent {
     pub body: String,
 }
 
-/// El fallo del ejecutor. `Busy` es el centinela que reencola (`wake.go:186`).
+/// El fallo del ejecutor. `Busy` es el centinela que reencola.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum WakeError {
     #[error("el agente está ocupado")]
@@ -51,7 +51,7 @@ pub enum WakeError {
 #[async_trait]
 pub trait Despertador: Send + Sync {
     async fn send(&self, prompt: &str) -> Result<(), WakeError>;
-    /// El pre-chequeo que evita el viaje al servidor (`wake.go:168-180`).
+    /// El pre-chequeo que evita el viaje al servidor.
     fn busy(&self) -> bool;
     /// La generación de la sesión. El borde la usa para alinear la política
     /// después de un logout; el default sirve a los fakes sin sesión.
@@ -90,7 +90,7 @@ impl Turno {
     }
 }
 
-/// Topes, cola, duplicados, registro y el turno activo (`wake.go:31-244`).
+/// Topes, cola, duplicados, registro y el turno activo.
 pub struct WakePolicy {
     pub enabled: bool,
     pub per_minute: u32,
@@ -153,7 +153,6 @@ impl WakePolicy {
         self.queue.clear();
     }
     /// Aplica duplicados y límites; los contadores se tocan al encolar
-    /// (`wake.go:93-153`).
     pub fn puede_despertar(&mut self, ev: &WakeEvent) -> bool {
         let ahora = self.clock.now();
         self.seen.retain(|_, at| {
@@ -210,7 +209,7 @@ impl WakePolicy {
         }
     }
     /// La mitad sin red de [`despertar`](Self::despertar): valida, aplica los
-    /// topes y encola (`wake.go:55-91`). Devuelve si el evento quedó encolado.
+    /// topes y encola. Devuelve si el evento quedó encolado.
     pub fn encolar(&mut self, evento: doorbell::Event, me: &str) -> bool {
         let Some(ev) = leer_evento(evento.clone()) else {
             return false;
@@ -238,7 +237,6 @@ impl WakePolicy {
     }
     /// Marca el próximo turno como activo, sin red: el llamador envía afuera y
     /// vuelve a entrar para cerrarlo. `None` si no hay nada que ejecutar
-    /// (`wake.go:155-195`).
     pub fn tomar(&mut self, agent: &dyn Despertador) -> Option<Turno> {
         loop {
             if self.active || self.queue.is_empty() {
@@ -272,7 +270,7 @@ impl WakePolicy {
         self.current = None;
         self.anotar(&turno.event, &format!("no se pudo: {error}"));
     }
-    /// Arranca el primero de la cola si no hay uno activo (`wake.go:155-195`).
+    /// Arranca el primero de la cola si no hay uno activo.
     pub async fn siguiente(&mut self, agent: &dyn Despertador) {
         while let Some(turno) = self.tomar(agent) {
             match agent.send(&turno.prompt()).await {
@@ -285,7 +283,7 @@ impl WakePolicy {
             }
         }
     }
-    /// Cierra el turno en vuelo y anota lo que costó (`wake.go:197-224`).
+    /// Cierra el turno en vuelo y anota lo que costó.
     /// Devuelve `false` si el cierre es de otra generación: ahí no se drena.
     pub fn cerrar(&mut self, generacion: u64, tokens: u64, error: Option<&WakeError>) -> bool {
         if self.generation != generacion {
@@ -304,7 +302,7 @@ impl WakePolicy {
         }
         true
     }
-    /// Suelta el turno con el candado tomado y drena la cola (`wake.go:197-224`).
+    /// Suelta el turno con el candado tomado y drena la cola.
     /// Al terminar cualquier turno se drena la cola: el del usuario llega con
     /// `active=false` porque el evento se reencoló por busy, y sin este
     /// drenaje la mención encolada no se ejecuta hasta que llegue otro evento
@@ -327,7 +325,7 @@ impl WakePolicy {
         self.espejo = espejo;
         self.refrescar_espejo();
     }
-    /// El registro visible, como copia (`wake.go:239-244`).
+    /// El registro visible, como copia.
     pub fn wake_log(&self) -> Vec<WakeEntry> {
         self.log.iter().cloned().collect()
     }
@@ -362,7 +360,7 @@ fn clave_vista(id: &str) -> u64 {
     hasher.finish()
 }
 
-/// Entiende el ping: el tipo viene en `kind` o en `name` (`wake.go:246-280`).
+/// Entiende el ping: el tipo viene en `kind` o en `name`.
 pub fn leer_evento(e: doorbell::Event) -> Option<WakeEvent> {
     let texto = format!("{} {}", e.kind, e.name).to_lowercase();
     let kind = if texto.contains("mention") || texto.contains("mencion") {
@@ -401,7 +399,7 @@ pub fn leer_evento(e: doorbell::Event) -> Option<WakeEvent> {
     Some(ev)
 }
 
-/// El evento entra al prompt como dato, nunca como orden (`wake.go:282-300`).
+/// El evento entra al prompt como dato, nunca como orden.
 pub fn prompt_despertar(ev: &WakeEvent) -> String {
     let mut texto =
         String::from("Desperté solo porque llegó un evento de Oruscribe mientras no mirabas.\n");

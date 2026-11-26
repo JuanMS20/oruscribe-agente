@@ -1,6 +1,6 @@
 //! Tests de la instalación Windows sin tocar el `HKCU` real ni el perfil.
 //!
-//! Port de `internal/install/install_windows_test.go:12-105`: la carpeta y el
+//! La carpeta y el
 //! binario se inyectan, el registro es en memoria y los accesos van a una
 //! carpeta temporal.
 
@@ -249,7 +249,7 @@ fn de_prueba(base: &Path) -> (Rutas, RutasAccesos) {
 
 // D201 y el contrato de nombres: una sola clave canónica, la de NSIS.
 #[test]
-fn claves_y_nombres_coinciden_con_go() {
+fn claves_y_nombres_del_registro() {
     assert_eq!(
         CLAVE_DESINSTALACION,
         r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Oruscribe Agente"
@@ -277,7 +277,7 @@ fn claves_y_nombres_coinciden_con_go() {
     );
 }
 
-// Port de `install_windows.go:84-116`: copia atómica, registro y dos accesos.
+// Copia atómica, registro y dos accesos.
 #[test]
 fn instalar_copia_registra_y_crea_los_dos_accesos() {
     let temp = tempfile::tempdir().expect("carpeta temporal");
@@ -350,7 +350,7 @@ fn instalar_copia_registra_y_crea_los_dos_accesos() {
     assert_eq!(creador.llamadas(), esperadas.to_vec());
 }
 
-// D201: la entrada de Go se migra y se borra; queda exactamente una.
+// D201: la entrada del contrato se migra y se borra; queda exactamente una.
 #[test]
 fn instalar_migra_la_entrada_de_go_y_deja_una_sola() {
     let temp = tempfile::tempdir().expect("carpeta temporal");
@@ -363,14 +363,14 @@ fn instalar_migra_la_entrada_de_go_y_deja_una_sola() {
             "DisplayName",
             Valor::Texto("Oruscribe Agente".to_owned()),
         )
-        .expect("clave de Go");
+        .expect("clave de la instalación anterior");
     registro
         .escribir(
             CLAVE_DESINSTALACION_GO,
             "DisplayVersion",
             Valor::Texto("0.5.4".to_owned()),
         )
-        .expect("versión de Go");
+        .expect("versión de la instalación anterior");
     registro
         .escribir(
             CLAVE_DESINSTALACION,
@@ -394,10 +394,10 @@ fn instalar_migra_la_entrada_de_go_y_deja_una_sola() {
     );
 }
 
-// Hallazgo 7: la migración de la clave Go es best-effort. Si borrar falla, la
+// Hallazgo 7: la migración de la clave anterior es best-effort. Si borrar falla, la
 // instalación no se aborta y los accesos se crean igual.
 #[test]
-fn instalar_sigue_si_falla_la_migracion_de_go() {
+fn instalar_sigue_si_falla_la_migracion_de_la_clave_anterior() {
     let temp = tempfile::tempdir().expect("carpeta temporal");
     let (rutas, accesos) = de_prueba(temp.path());
     let registro = RegistroMemoria::default();
@@ -409,7 +409,7 @@ fn instalar_sigue_si_falla_la_migracion_de_go() {
             "DisplayName",
             Valor::Texto("Oruscribe Agente".to_owned()),
         )
-        .expect("clave de Go");
+        .expect("clave de la instalación anterior");
     let origen = temp.path().join("descarga.exe");
     fs::write(&origen, b"binario").expect("binario de origen");
 
@@ -448,7 +448,7 @@ fn instalar_sobre_el_mismo_binario_no_lo_copia() {
 }
 
 #[test]
-fn sin_carpeta_de_usuario_falla_con_el_texto_de_go() {
+fn sin_carpeta_de_usuario_falla_con_texto_claro() {
     let temp = tempfile::tempdir().expect("carpeta temporal");
     let rutas = Rutas::new(Platform::Windows, PathBuf::new());
     let accesos = RutasAccesos::new(temp.path().join("inicio"), temp.path().join("escritorio"));
@@ -557,7 +557,7 @@ fn autostart_se_lee_y_borra_por_ruta_no_por_nombre() {
     );
 }
 
-// `install_windows.go:220-232`: dos `rd` por carpeta, `%` escapado y borrado
+// dos `rd` por carpeta, `%` escapado y borrado
 // del propio script.
 #[test]
 fn el_guion_escapa_porcentaje_y_borra_dos_veces() {
@@ -576,7 +576,7 @@ fn el_guion_escapa_porcentaje_y_borra_dos_veces() {
     assert!(!texto.replace("\r\n", "").contains('\n'));
 }
 
-// Hallazgo 5: el error conserva el texto de Windows; Go solo envuelve el
+// Hallazgo 5: el error conserva el texto de Windows; El contrato solo envuelve el
 // error de crear la clave de desinstalación.
 #[test]
 fn el_error_de_windows_conserva_el_texto_y_solo_se_envuelve_la_creacion() {
@@ -640,7 +640,7 @@ fn preparar_desinstalacion_limpia_accesos_y_claves() {
             "DisplayName",
             Valor::Texto("Oruscribe Agente".to_owned()),
         )
-        .expect("clave de Go");
+        .expect("clave de la instalación anterior");
     let datos = temp.path().join("datos");
     fs::create_dir_all(&datos).expect("carpeta de datos");
 
@@ -717,7 +717,7 @@ fn si_falla_escribir_el_script_no_se_borran_accesos_ni_claves() {
             "DisplayName",
             Valor::Texto("Oruscribe Agente".to_owned()),
         )
-        .expect("clave de Go");
+        .expect("clave de la instalación anterior");
 
     // `temporal` como archivo: `create_dir_all` falla sin depender de permisos.
     let temporal = temp.path().join("temp");
@@ -739,7 +739,7 @@ fn si_falla_escribir_el_script_no_se_borran_accesos_ni_claves() {
     );
     assert!(
         registro.existe(CLAVE_DESINSTALACION_GO),
-        "la clave de Go se borró aunque falló el script"
+        "la clave anterior se borró aunque falló el script"
     );
 }
 
@@ -777,7 +777,7 @@ fn cada_desinstalacion_escribe_un_script_distinto() {
 }
 
 #[test]
-fn las_banderas_de_desinstalacion_son_las_de_go() {
+fn las_banderas_de_desinstalacion_son_las_esperadas() {
     let args = |lista: &[&str]| {
         lista
             .iter()
@@ -797,7 +797,7 @@ fn las_banderas_de_desinstalacion_son_las_de_go() {
     );
 }
 
-// Port de `install_windows_test.go:83-105`: `cmd` con `chcp 65001` encuentra
+// `cmd` con `chcp 65001` encuentra
 // la carpeta con acentos y `%`.
 #[cfg(windows)]
 #[test]
@@ -824,7 +824,7 @@ fn el_cmd_borra_acentos_y_porcentaje() {
     );
 }
 
-// Port de `install_windows_test.go:33-65`: un `.lnk` real en carpeta temporal.
+// Un `.lnk` real en carpeta temporal.
 #[cfg(windows)]
 #[test]
 fn el_acceso_real_se_crea() {

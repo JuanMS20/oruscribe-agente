@@ -22,8 +22,7 @@ fn texto_programas(texto: &mut String, programas: &[String], herramienta: &str) 
 }
 
 /// Las instrucciones del proyecto, salvo `--no-agents-md`, y el sistema ya
-/// renderizado. Port de `DiscoverInstructions` + `promptSistema`
-/// (`run.go:361-365,582-611`).
+/// renderizado.
 pub(super) fn sistema_del_turno(turno: &TurnoReal<'_>) -> std::result::Result<String, ErrorTurno> {
     let instrucciones = instructions::discover(Path::new(&turno.cwd), !turno.no_agents_md)?;
     Ok(prompt_sistema(
@@ -36,7 +35,7 @@ pub(super) fn sistema_del_turno(turno: &TurnoReal<'_>) -> std::result::Result<St
 }
 
 /// Todas las carpetas permitidas para las herramientas locales, los `--program`
-/// repetidos y el diario abierto (`agent.go:609-619`, `run.go:370-374`). Las
+/// repetidos y el diario abierto. Las
 /// carpetas de las skills cargadas entran como solo lectura: el bloque de la
 /// skill promete esos `references/*.md` y el modelo necesita poder abrirlos.
 pub(super) fn config_local(
@@ -61,7 +60,7 @@ pub(super) fn config_local(
     }
 }
 
-/// Agrega la herramienta `skill` solo si hay skills cargadas (`run.go:387-397`).
+/// Agrega la herramienta `skill` solo si hay skills cargadas.
 pub(super) fn agregar_skills(
     herramientas: &mut Vec<Arc<dyn Tool>>,
     riesgos: &mut HashMap<String, Option<Risk>>,
@@ -77,7 +76,7 @@ pub(super) fn agregar_skills(
 
 /// Agrega `task` con las herramientas de lectura de la lista actual; como la
 /// lista todavía no incluye `task`, el subagente no se delega a sí mismo
-/// (`run.go:398-407`). Devuelve el subagente para que los tests lo inspeccionen.
+/// Devuelve el subagente para que los tests lo inspeccionen.
 pub(super) fn agregar_subagente(
     herramientas: &mut Vec<Arc<dyn Tool>>,
     riesgos: &mut HashMap<String, Option<Risk>>,
@@ -99,7 +98,7 @@ pub(super) fn agregar_subagente(
     Some(subagente)
 }
 
-/// Port de `promptSistema` (`run.go:582-611`). El orden es cabecera, nota de
+/// El orden es cabecera, nota de
 /// organización, programas e instrucciones.
 pub(super) fn prompt_sistema(
     cwd: &str,

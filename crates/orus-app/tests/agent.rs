@@ -1,4 +1,4 @@
-//! Contrato del núcleo del agente (`internal/app/agent.go:539-1113`).
+//! Contrato del núcleo del agente.
 
 use std::path::Path;
 use std::sync::{Arc, Mutex};

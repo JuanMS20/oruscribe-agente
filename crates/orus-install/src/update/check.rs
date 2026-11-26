@@ -1,4 +1,4 @@
-//! Chequeo del manifiesto (`internal/update/update.go:44-121`).
+//! Chequeo del manifiesto.
 
 use reqwest::header::CACHE_CONTROL;
 use serde::Serialize;
@@ -7,7 +7,7 @@ use super::{Error, Keys, LIMITE_MANIFIESTO, Manifest, leer_hasta};
 use crate::{newer, valid_sha};
 
 /// Respuesta de `GET /api/update`, con las mismas claves y omisiones que el
-/// `Result` de Go (`update.go:44-53`): `latest`, `notes`, `url` y `sha256`
+/// `Result` del contrato: `latest`, `notes`, `url` y `sha256`
 /// desaparecen cuando están vacíos.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 pub struct UpdateInfo {
@@ -26,7 +26,7 @@ pub struct UpdateInfo {
 
 /// Consulta el manifiesto con las llaves embebidas.
 ///
-/// Una red caída es error, no un "estás al día" (`update.go:55-56`).
+/// Una red caída es error, no un "estás al día".
 pub async fn check(http: &reqwest::Client, url: &str, current: &str) -> Result<UpdateInfo, Error> {
     if url.is_empty() {
         return Ok(UpdateInfo {
@@ -42,7 +42,7 @@ pub async fn check(http: &reqwest::Client, url: &str, current: &str) -> Result<U
 /// Igual que [`check`] pero con las llaves inyectadas.
 ///
 /// Es la costura que usan los tests para firmar con llaves desechables y para
-/// reproducir el `trustedKeysB64 = nil` de `update_test.go`. En producción se
+/// reproducir el `trustedKeysB64 = nil`. En producción se
 /// usa [`check`], que siempre lleva las dos llaves embebidas.
 pub async fn check_with_keys(
     http: &reqwest::Client,
@@ -69,7 +69,7 @@ pub async fn check_with_keys(
     }
     let body = leer_hasta(respuesta, LIMITE_MANIFIESTO).await?;
 
-    // Sin llaves no se exige firma: pasa solo en tests (`update.go:83-88`).
+    // Sin llaves no se exige firma: pasa solo en tests.
     if !keys.is_empty() {
         super::signature::verify_signature(http, url, &body, keys).await?;
     }
@@ -95,7 +95,7 @@ pub async fn check_with_keys(
     }
 
     // Un manifiesto que anuncia algo que no puede entregar está roto, no al
-    // día: falla acá y no reporta "al día" (`update.go:110-119`).
+    // día: falla acá y no reporta "al día".
     super::download::check_download_url(&info.url)?;
     if !valid_sha(&info.sha256) {
         return Err(Error::HuellaInvalida);

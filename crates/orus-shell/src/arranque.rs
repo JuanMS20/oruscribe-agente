@@ -265,9 +265,9 @@ impl Acciones {
     }
 }
 
-/// Cliente del manifiesto con el tope de 30 s de Go (`internal/app/app.go:226`).
+/// Cliente del manifiesto con el tope de 30 s del contrato.
 ///
-/// La descarga usa otro cliente sin timeout total (`internal/update/update.go:63`):
+/// La descarga usa otro cliente sin timeout total:
 /// un paquete grande en una red lenta no debe cortarse a los 30 s.
 fn cliente_de_chequeo() -> reqwest::Client {
     reqwest::Client::builder()
@@ -280,7 +280,7 @@ fn cliente_de_chequeo() -> reqwest::Client {
 /// conexión y calla (o se cuelga a mitad del paquete) corta a los 60 s en vez
 /// de dejar el candado de actualización tomado para siempre. El plazo corre
 /// por lectura, no sobre el total: mientras lleguen fragmentos, un paquete
-/// grande en una red lenta sigue bajando (`internal/update/update.go:63`).
+/// grande en una red lenta sigue bajando.
 fn cliente_de_descarga() -> reqwest::Client {
     reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(60))
@@ -611,7 +611,7 @@ pub fn iniciar(acciones: Arc<Acciones>) -> Result<Servidor, Box<dyn std::error::
             .with_setup(acciones.clone())
             .with_update(acciones.clone())
             .with_quit(acciones.clone());
-        // `App::new` deja `connecting` si hay token en disco; el `Boot()` de Go
+        // `App::new` deja `connecting` si hay token en disco; el `Boot` del contrato
         // era quien arrancaba la restauración. Sin esto, la ventana se queda en
         // el splash para siempre.
         api.boot();
@@ -661,7 +661,7 @@ fn lanzar_copia_instalada(
         .map_err(|error| format!("no se pudo abrir la copia instalada: {error}"))
 }
 
-/// Arranca la copia instalada con el mismo contrato que `start_windows.go`:
+/// Arranca la copia instalada:
 /// `--relaunch` siempre y `--autostart` si se pidió en la instalación.
 #[cfg(windows)]
 fn lanzar_instalada(exe: &Path, autostart: bool) -> std::io::Result<()> {

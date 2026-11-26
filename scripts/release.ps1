@@ -155,7 +155,7 @@ try {
         return
     }
 
-    # Igual que el release de Go: las llaves embebidas se comprueban siempre,
+    # Las llaves embebidas se comprueban siempre,
     # también con -SkipTests. Si están mal, el updater dejaría de exigir firma
     # y aceptaría cualquier manifiesto.
     Write-Host 'Llaves de firma...'
@@ -218,7 +218,7 @@ try {
         $linuxUrl = "$BaseUrl/$(Split-Path $LinuxArchive -Leaf)"
     }
 
-    # El manifiesto conserva el nombre de asset que ya usa el updater de Go.
+    # El manifiesto conserva el nombre de asset que ya usa el updater.
     # `sha256` es la huella de Windows; `windows_sha256` no existe en el
     # Manifest de Rust y se ignora si queda en un latest.json viejo.
     $manifest = [ordered]@{

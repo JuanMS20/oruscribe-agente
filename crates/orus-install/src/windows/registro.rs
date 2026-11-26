@@ -2,8 +2,7 @@
 //!
 //! [`Registro`] es la interfaz inyectable; el backend real
 //! ([`crate::windows::RegistroWindows`]) vive en `registro_windows.rs` y no se
-//! usa en tests. Port de `install_windows.go:155-190,201` y del autostart de
-//! Wails (`autostart_windows.go:13,30-66,105-157`).
+//! usa en tests.
 
 use std::path::Path;
 
@@ -16,14 +15,14 @@ pub const CLAVE_DESINSTALACION_PADRE: &str = r"Software\Microsoft\Windows\Curren
 pub const CLAVE_DESINSTALACION: &str =
     r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Oruscribe Agente";
 
-/// Clave del instalador Go anterior; se migra y se borra (D201).
+/// Clave del instalador anterior; se migra y se borra (D201).
 pub const CLAVE_DESINSTALACION_GO: &str =
     r"Software\Microsoft\Windows\CurrentVersion\Uninstall\OruscribeAgente";
 
 /// Clave de arranque automático por usuario.
 pub const CLAVE_INICIO: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
 
-/// Valor que usaba Wails (`autostart_windows.go:40,62`).
+/// Valor que usaba Wails.
 pub const VALOR_AUTOSTART: &str = "oruscribe-agente";
 
 /// Editor de la entrada de desinstalación.
@@ -38,7 +37,7 @@ pub enum Valor {
 
 /// Operaciones de registro que necesita el instalador.
 pub trait Registro {
-    /// Crea (o abre) la clave. Go envuelve solo este error con
+    /// Crea (o abre) la clave. El contrato envuelve solo este error con
     /// "no se pudo registrar la desinstalación".
     fn crear(&self, clave: &str) -> Result<(), Error>;
     fn escribir(&self, clave: &str, nombre: &str, valor: Valor) -> Result<(), Error>;
@@ -53,7 +52,7 @@ pub trait Registro {
     fn valores(&self, clave: &str) -> Result<Vec<(String, String)>, Error>;
 }
 
-/// Escribe los valores de Agregar o quitar programas con los nombres de Go.
+/// Escribe los valores de Agregar o quitar programas con los nombres del contrato.
 pub fn escribir_entrada(registro: &dyn Registro, exe: &Path, version: &str) -> Result<(), Error> {
     let version = if version.is_empty() { "0.0.0" } else { version };
     let exe_texto = exe.to_string_lossy();
@@ -96,14 +95,14 @@ pub fn actualizar_version(registro: &dyn Registro, version: &str) -> Result<(), 
     )
 }
 
-/// Borra la clave del instalador Go anterior, si quedó (D201).
-pub fn migrar_entrada_go(registro: &dyn Registro) -> Result<(), Error> {
+/// Borra la clave del instalador anterior, si quedó (D201).
+pub fn migrar_entrada_anterior(registro: &dyn Registro) -> Result<(), Error> {
     registro.borrar(CLAVE_DESINSTALACION_GO)
 }
 
 /// Nombres de las entradas de Oruscribe bajo Desinstalar.
 ///
-/// El gate exige una sola: por eso también mira la clave vieja de Go.
+/// El gate exige una sola: por eso también mira la clave vieja.
 pub fn entradas_oruscribe(registro: &dyn Registro) -> Result<Vec<String>, Error> {
     let mut nombres = registro.subclaves(CLAVE_DESINSTALACION_PADRE)?;
     nombres.retain(|nombre| nombre.to_lowercase().contains("oruscribe"));
@@ -112,10 +111,9 @@ pub fn entradas_oruscribe(registro: &dyn Registro) -> Result<Vec<String>, Error>
 }
 
 /// Escribe `oruscribe-agente` en `HKCU\...\Run` con la ruta citada si tiene
-/// espacios, como `quoteWindowsArg` de Wails.
+/// espacios.
 ///
 /// Antes borra una entrada vieja con otro nombre que apunte al mismo exe, como
-/// `autostart_windows.go:54-60`.
 pub fn activar_autostart(registro: &dyn Registro, exe: &Path) -> Result<(), Error> {
     if let Ok(nombres) = encontrar(registro, exe) {
         for nombre in nombres
@@ -157,7 +155,6 @@ fn encontrar(registro: &dyn Registro, exe: &Path) -> Result<Vec<String>, Error> 
 }
 
 /// Primer token de una línea de comando, sin comillas y en minúsculas, como
-/// `parseWindowsCommandExe` de `autostart_windows.go:141-157`.
 fn comando_exe(comando: &str) -> String {
     let comando = comando.trim();
     if comando.is_empty() {

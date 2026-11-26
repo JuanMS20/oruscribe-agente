@@ -61,6 +61,10 @@ jobs:
           if (-not $env:ORUSCRIBE_SENTRY_DSN) { Write-Warning 'ORUSCRIBE_SENTRY_DSN vacío: este binario no enviará telemetría' }
           cargo build --release --locked -p orus-shell
 
+      - name: Humo de la ventana con WebView2
+        shell: pwsh
+        run: pwsh -NoProfile -File scripts/smoke-windows.ps1 -Bin target\release\orus-shell.exe
+
       - name: Huella del binario
         shell: pwsh
         run: |
@@ -120,6 +124,9 @@ jobs:
 
       - name: Pruebas
         run: cargo test --workspace --locked --no-fail-fast
+
+      - name: Prueba del propio humo con apps de mentira
+        run: sh scripts/test-smoke-linux.sh
 
       - name: Compilar la app para Linux
         env:

@@ -1,6 +1,6 @@
 //! API HTTP del cliente: adaptadores finos sobre `orus-app`.
 //!
-//! Port de `internal/app/http.go:19-40,1151-1166`. `Api` y sus constructores
+//! `Api` y sus constructores
 //! viven en `api.rs`, el registro de rutas en `router.rs`; las rutas de
 //! autenticación están en `auth.rs`, el long poll en `events.rs` y la lectura
 //! del espacio de trabajo en `workspace.rs`.
@@ -51,11 +51,10 @@ pub use crate::workspace_write::GitLog;
 
 const CONTENT_TYPE_JSON: &str = "application/json; charset=utf-8";
 const MENSAJE_SERIALIZACION: &str = "{\"error\":\"no se pudo serializar la respuesta\"}\n";
-/// `topeCuerpoPorDefecto` (`http.go:1123`).
 const TOPE_CUERPO: usize = 1 << 20;
 const TEXTO_CUERPO_GRANDE: &str = "el cuerpo de la petición pasa del máximo de la ruta";
 
-/// El plazo del long poll (`watch.go:69`).
+/// El plazo del long poll.
 pub(crate) const ESPERA_EVENTOS: Duration = Duration::from_secs(25);
 
 /// Sirve el router hasta que el listener se cierra.
@@ -64,7 +63,6 @@ pub async fn serve(listener: TcpListener, app: Arc<App>) -> std::io::Result<()> 
 }
 
 /// Lo que `decode` y las rutas convierten en respuesta de error
-/// (`http.go:1116-1149,1176-1207`).
 #[derive(Debug)]
 pub(crate) enum ErrorRuta {
     Sesion(SessionError),
@@ -89,20 +87,20 @@ impl From<SessionError> for ErrorRuta {
     }
 }
 
-/// Deja que los handlers usen `?` y devuelvan la respuesta de `writeErr`.
+/// Deja que los handlers usen `?` y devuelvan la respuesta de error.
 impl IntoResponse for ErrorRuta {
     fn into_response(self) -> Response {
         write_err(self)
     }
 }
 
-/// Port de `decode` (`http.go:1125-1149`): lee hasta el tope más uno para
+/// Lee hasta el tope más uno para
 /// distinguir "justo cabe" de "se pasó" y trata el cuerpo vacío como `{}`.
 pub(crate) async fn decode<T: DeserializeOwned>(body: Body) -> Result<T, ErrorRuta> {
     decode_con_limite(body, TOPE_CUERPO).await
 }
 
-/// Igual que `decode`, con el tope que declara la ruta (`decodeLimite`).
+/// Igual que `decode`, con el tope que declara la ruta.
 pub(crate) async fn decode_con_limite<T: DeserializeOwned>(
     body: Body,
     tope: usize,
@@ -128,11 +126,10 @@ pub(crate) async fn decode_con_limite<T: DeserializeOwned>(
     serde_json::from_slice(entrada).map_err(ErrorRuta::Json)
 }
 
-/// Port de `writeErr` (`http.go:1176-1207`): `LoggedOut` y `Auth` son 401, la
+/// `LoggedOut` y `Auth` son 401, la
 /// cuota agotada 507 y el resto de `SessionError` es 500.
 pub(crate) fn write_err(error: ErrorRuta) -> Response {
-    // Cualquier camino que traiga la cuota agotada responde 507, como el
-    // `errors.Is(err, oruscribe.ErrSinEspacio)` de Go (`http.go:1177`).
+    // Cualquier camino que traiga la cuota agotada responde 507.
     let error = match error {
         ErrorRuta::Sesion(SessionError::SinEspacio(detalle)) => ErrorRuta::SinEspacio(detalle),
         otro => otro,
@@ -155,15 +152,15 @@ pub(crate) fn write_err(error: ErrorRuta) -> Response {
             &serde_json::json!({"error": "el archivo supera los 25 MB", "code": "archivo_grande"}),
         ),
         ErrorRuta::SinEspacio(detalle) => {
-            // El Display de `SessionError` es el texto completo de Go
-            // (`oruscribe.go` y `http.go:1178`); no se duplica aquí.
+            // El Display de `SessionError` es el texto completo del contrato
+            // No se duplica aquí.
             let texto = SessionError::SinEspacio(detalle).to_string();
             write_json(
                 StatusCode::INSUFFICIENT_STORAGE,
                 &serde_json::json!({"error": texto, "code": "sin_espacio"}),
             )
         }
-        // Go usa el texto crudo de `json.Unmarshal`; serde da el suyo.
+        // El texto del error es el de serde.
         ErrorRuta::Json(error) => write_json(
             StatusCode::INTERNAL_SERVER_ERROR,
             &serde_json::json!({"error": error.to_string()}),
@@ -185,9 +182,8 @@ pub(crate) fn write_err(error: ErrorRuta) -> Response {
     }
 }
 
-/// Un fallo de una acción inyectada (instalador o update) que Go escribe con
-/// `writeErr` y, como no es de sesión, responde 500 con el texto de la
-/// implementación (`http.go:1201-1203`).
+/// Un fallo de una acción inyectada (instalador o update): como no es de sesión, responde 500 con el texto de la
+/// implementación.
 pub(crate) fn error_de_accion(texto: String) -> Response {
     write_json(
         StatusCode::INTERNAL_SERVER_ERROR,
@@ -195,7 +191,7 @@ pub(crate) fn error_de_accion(texto: String) -> Response {
     )
 }
 
-/// Replica `writeJSON` (`http.go:1151-1166`): serializa antes de escribir, y el
+/// Serializa antes de escribir, y el
 /// cuerpo lleva el `\n` que el cliente espera.
 pub(crate) fn write_json<T: Serialize>(status: StatusCode, value: &T) -> Response {
     match serde_json::to_vec(value) {
@@ -210,7 +206,7 @@ pub(crate) fn write_json<T: Serialize>(status: StatusCode, value: &T) -> Respons
     }
 }
 
-/// La rama de error de `writeJSON`: Go solo fija `Content-Type` (`http.go:1156`).
+/// La rama de error de la serialización: solo se fija `Content-Type`.
 fn error_de_serializacion() -> Response {
     let mut response = Response::new(Body::from(MENSAJE_SERIALIZACION));
     *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;

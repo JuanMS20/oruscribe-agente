@@ -145,7 +145,7 @@ async fn refresh_without_expires_in_keeps_zero_expiry() {
     let token = refresh(&reqwest::Client::new(), config(&base), "viejo")
         .await
         .expect("renueva");
-    assert_eq!(token.expiry.year(), 1, "cero de Go, no el pasado");
+    assert_eq!(token.expiry.year(), 1, "fecha cero, no el pasado");
     assert!(!token.expired(Utc::now().fixed_offset()));
     servidor.join().expect("el servidor termina");
 }
@@ -180,7 +180,7 @@ async fn refresh_expires_in_negativo_queda_en_cero() {
     let token = refresh(&reqwest::Client::new(), config(&base), "viejo")
         .await
         .expect("renueva");
-    assert_eq!(token.expiry.year(), 1, "cero de Go, no el pasado");
+    assert_eq!(token.expiry.year(), 1, "fecha cero, no el pasado");
     assert!(!token.expired(Utc::now().fixed_offset()));
     servidor.join().expect("el servidor termina");
 }

@@ -1,6 +1,6 @@
 //! Normalización de las imágenes que adjunta la ventana.
 //!
-//! Port de `internal/app/agent_images.go:11-105`: topes, MIME real por firma,
+//! Topes, MIME real por firma,
 //! base64 y vista previa.
 
 use base64::Engine as _;
@@ -9,8 +9,8 @@ use orus_core::Image;
 
 use super::{AgentError, AgentImage};
 
-/// Los topes del adjunto (`agent_images.go:11-15`). El cuerpo HTTP de la ruta
-/// deja aire para 6 MB de imágenes en base64 (`maxCuerpoAgente`).
+/// Los topes del adjunto. El cuerpo HTTP de la ruta
+/// deja aire para 6 MB de imágenes en base64.
 pub(super) const MAX_IMAGENES: usize = 4;
 pub(super) const MAX_IMAGEN_BYTES: usize = 2 << 20;
 const MAX_IMAGENES_BYTES: usize = 6 << 20;
@@ -19,7 +19,6 @@ pub(super) const MAX_PREVIEW_BYTES: usize = 256 << 10;
 /// Valida el adjunto antes de que toque la conversación: tipo real por los
 /// primeros bytes, tamaño por imagen y en total, y base64 decodificable. El
 /// MIME que declara la ventana no se cree solo
-/// (`normalizarImagenes`, `agent_images.go:35-70`).
 pub fn normalizar_imagenes(entrada: Vec<AgentImage>) -> Result<Vec<Image>, AgentError> {
     if entrada.is_empty() {
         return Ok(Vec::new());
@@ -70,7 +69,6 @@ fn invalida(texto: String) -> AgentError {
 }
 
 /// La firma que declara cada MIME que entienden los dos adaptadores de visión
-/// (`tiposDeImagen`, `agent_images.go:25-30`).
 fn firma_de(mime: &str) -> Option<&'static [u8]> {
     match mime {
         "image/png" => Some(b"\x89PNG\r\n\x1a\n".as_slice()),
@@ -92,7 +90,7 @@ fn coincide_la_firma(datos: &[u8], mime: &str, firma: &[u8]) -> bool {
 
 /// Acepta solo una miniatura ya empaquetada como data URL de un tipo que la
 /// ventana sepa pintar: el historial no puede volverse un portador de HTML ni
-/// de un archivo arbitrario (`normalizarPreview`, `agent_images.go:75-95`).
+/// de un archivo arbitrario.
 fn normalizar_preview(bruto: &str) -> Result<String, AgentError> {
     let bruto = bruto.trim();
     if bruto.is_empty() {
@@ -116,7 +114,7 @@ fn normalizar_preview(bruto: &str) -> Result<String, AgentError> {
     Ok(bruto.to_owned())
 }
 
-/// `base64.StdEncoding` de Go ignora los saltos de línea; el motor de Rust no.
+/// `base64.StdEncoding` del contrato ignora los saltos de línea; el motor de Rust no.
 fn decodificar_base64(texto: &str) -> Option<Vec<u8>> {
     if texto.bytes().any(|byte| byte == b'\r' || byte == b'\n') {
         let limpio: Vec<u8> = texto

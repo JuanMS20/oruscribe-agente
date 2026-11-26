@@ -1,4 +1,4 @@
-//! `GET /api/diagnostics` (`diagnostics.go`, `http.go:956-958`).
+//! `GET /api/diagnostics`.
 //!
 //! El texto no sale del equipo y no lleva nombres ni claves. Estos tests fijan
 //! las líneas, el orden y la redacción; el error crudo de sesión se arma con
@@ -79,7 +79,7 @@ impl Secrets for SecretosRoto {
 }
 
 /// Una app que falla al conectar: deja `Estado::last_error` con el texto de
-/// `SinRed` y `status = failed`, como la restauración de Go (`app.go:668-673`).
+/// `SinRed` y `status = failed`, como la restauración del contrato.
 async fn app_fallida(error: &str) -> App {
     let mut app = App::new(
         Box::new(StoreConToken),
@@ -167,7 +167,7 @@ fn diagnostico_completo_con_error_de_sesion_y_timbre() {
         #[cfg(windows)]
         assert!(
             texto.contains("Sistema: windows/amd64"),
-            "Go imprime windows/amd64: {texto}"
+            "el diagnóstico usa windows/amd64: {texto}"
         );
 
         server.abort();

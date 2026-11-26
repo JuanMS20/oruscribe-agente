@@ -12,7 +12,7 @@ use sha2::{Digest as _, Sha256};
 use crate::{Error, Store, Token};
 
 // Cuatro intentos de 25 ms: Windows niega el reemplazo mientras otro proceso
-// tiene el archivo abierto (`store.go:120-136`).
+// tiene el archivo abierto.
 const INTENTOS: usize = 4;
 const ESPERA: Duration = Duration::from_millis(25);
 
@@ -92,7 +92,7 @@ fn candado_huerfano(ruta: &Path) -> bool {
     }
 }
 
-/// Respaldo en texto plano para desarrollo y tests (`store.go:85-92`).
+/// Respaldo en texto plano para desarrollo y tests.
 pub struct FileStore {
     path: PathBuf,
 }

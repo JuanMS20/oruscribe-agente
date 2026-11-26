@@ -1,6 +1,6 @@
 //! Copia atómica del ejecutable y registro de la instalación.
 //!
-//! Port de `install_windows.go:79-116,241-262`: primero `.nuevo`, luego
+//! Primero `.nuevo`, luego
 //! `sync_all` y recién entonces el rename sobre el destino. Un corte de
 //! energía no deja un `.exe` truncado en su sitio.
 
@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use crate::Rutas;
 use crate::windows::Error;
 use crate::windows::accesos::{CreadorAccesos, RutasAccesos, crear_accesos};
-use crate::windows::registro::{Registro, escribir_entrada, migrar_entrada_go};
+use crate::windows::registro::{Registro, escribir_entrada, migrar_entrada_anterior};
 
 /// Instala `origen` bajo la carpeta por usuario y deja accesos y registro.
 pub fn instalar(
@@ -38,9 +38,9 @@ pub fn instalar(
     }
 
     escribir_entrada(registro, &destino, version)?;
-    // Go no migra y sigue; borrar la clave vieja es un extra que no puede
+    // El contrato no migra y sigue; borrar la clave vieja es un extra que no puede
     // impedir que queden el registro nuevo y los accesos.
-    if let Err(error) = migrar_entrada_go(registro) {
+    if let Err(error) = migrar_entrada_anterior(registro) {
         eprintln!("no se pudo borrar la entrada anterior de Oruscribe: {error}");
     }
 
@@ -51,7 +51,7 @@ fn copiar_atomico(origen: &Path, destino: &Path) -> Result<(), Error> {
     let nuevo = con_sufijo(destino, ".nuevo");
     let mut entrada = File::open(origen).map_err(error_copia)?;
     // Un symlink plantado en `.nuevo` no se sigue: se borra el enlace y el
-    // archivo se crea exclusivo, como `download.rs` (`update.go:249-254`).
+    // archivo se crea exclusivo, como `download.rs`.
     let _ = fs::remove_file(&nuevo);
     let mut salida = fs::OpenOptions::new()
         .write(true)
@@ -81,7 +81,7 @@ fn con_sufijo(ruta: &Path, sufijo: &str) -> PathBuf {
     PathBuf::from(texto)
 }
 
-/// Windows compara sin distinguir mayúsculas, como `strings.EqualFold`.
+/// Windows compara sin distinguir mayúsculas.
 fn misma_ruta(a: &Path, b: &Path) -> bool {
     #[cfg(windows)]
     {

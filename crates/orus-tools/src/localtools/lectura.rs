@@ -1,6 +1,5 @@
 //! Herramientas de lectura y el registro de las herramientas locales como
-//! `agent::Tool`. Port de
-//! `internal/localtools/localtools.go:99-127,199-216,315-454`.
+//! `agent::Tool`.
 
 use std::collections::HashSet;
 use std::fs::File;
@@ -21,8 +20,8 @@ const MAX_BUSQUEDA: usize = 50;
 const MAX_LINEA_BUSQUEDA: usize = 200;
 
 /// Abre un archivo para leerlo como texto. En Windows `File::open` de una
-/// carpeta falla con "acceso denegado"; Go la abre y el llamador la rechaza.
-/// Se comprueba antes para dar el mismo texto que Go.
+/// carpeta falla con "acceso denegado"; El contrato la abre y el llamador la rechaza.
+/// Se comprueba antes para dar el mismo texto que el contrato.
 fn abrir_texto(real: &Path) -> Result<File, Error> {
     if let Ok(info) = std::fs::metadata(real) {
         if info.is_dir() {
@@ -35,13 +34,13 @@ fn abrir_texto(real: &Path) -> Result<File, Error> {
     Ok(File::open(real)?)
 }
 
-/// `leerTexto` (`localtools.go:281-313`): 1 MiB, sin NUL y UTF-8 válido, con
+/// 1 MiB, sin NUL y UTF-8 válido, con.
 /// los mismos textos que `read_file`.
 pub(super) fn leer_texto(real: &Path) -> Result<String, Error> {
     leer_texto_abierto(abrir_texto(real)?)
 }
 
-/// Tramos comunes de `readFile` y `leerTexto` (`localtools.go:315-351`).
+/// Tramos comunes de la lectura de archivos.
 fn leer_texto_abierto(archivo: File) -> Result<String, Error> {
     let info = archivo.metadata()?;
     if info.is_dir() {
@@ -61,8 +60,8 @@ fn leer_texto_abierto(archivo: File) -> Result<String, Error> {
     String::from_utf8(datos).map_err(|_| Error::NoUtf8)
 }
 
-/// Arma las herramientas locales, como `Set.Tools` en Go
-/// (`localtools.go:101-110`). Go devuelve herramientas que apuntan al `Set`;
+/// Arma las herramientas locales, como `Set.Tools` en el contrato
+/// El contrato devuelve herramientas que apuntan al `Set`;
 /// acá comparten su dueño con `Arc`.
 impl Set {
     pub fn tools(self: &Arc<Self>) -> Vec<Arc<dyn Tool>> {
@@ -189,8 +188,8 @@ fn search_text_con_cancelar(set: &Set, args: Value, cancel: &CancelToken) -> Res
     set.search_text(args, cancel)
 }
 
-/// Los argumentos llegan ya decodificados como JSON. Un `null` es el cero de
-/// Go; un tipo equivocado es "argumentos inválidos".
+/// Los argumentos llegan ya decodificados como JSON. Un `null` es el valor por defecto;
+/// un tipo equivocado es "argumentos inválidos".
 pub(super) fn leer_args<T: serde::de::DeserializeOwned + Default>(
     valor: Value,
 ) -> Result<T, Error> {
@@ -228,7 +227,7 @@ struct ArgsBusqueda {
 }
 
 impl Set {
-    /// `abrir` (`localtools.go:199-216`): valida, abre y vuelve a validar. Si
+    /// `abrir`: valida, abre y vuelve a validar. Si
     /// la ruta cambió entre la comprobación y la apertura, se rechaza. Es una
     /// lectura: acepta también las carpetas de solo lectura.
     fn abrir(&self, ruta: &str) -> Result<File, Error> {
@@ -241,7 +240,7 @@ impl Set {
         Ok(archivo)
     }
 
-    /// `readFile` (`localtools.go:315-351`): hasta 1 MiB, sin NUL y UTF-8
+    /// Hasta 1 MiB, sin NUL y UTF-8.
     /// válido.
     fn read_file(&self, args: Value) -> Result<String, Error> {
         let args: ArgsRuta = leer_args(args)?;
@@ -249,7 +248,7 @@ impl Set {
         leer_texto_abierto(archivo)
     }
 
-    /// `listDir` (`localtools.go:353-385`): carpetas con `/`, archivos con su
+    /// Carpetas con `/`, archivos con su.
     /// tamaño, y corte a 500 entradas.
     fn list_dir(&self, args: Value, cancel: &CancelToken) -> Result<String, Error> {
         let args: ArgsRuta = leer_args(args)?;
@@ -294,7 +293,7 @@ impl Set {
         Ok(salida)
     }
 
-    /// `searchText` (`localtools.go:387-454`): recorre sin seguir enlaces, salta
+    /// Recorre sin seguir enlaces, salta.
     /// fuera, binarios y archivos de más de 1 MiB, y corta en seco al llegar al
     /// límite. Un error de lectura se propaga como error: «sin coincidencias»
     /// solo significa que no hubo coincidencias (#79).
@@ -488,7 +487,7 @@ impl Busqueda<'_> {
     }
 }
 
-/// Recorta a 200 runas y agrega "…", como `localtools.go:434-436`.
+/// Recorta a 200 runas y agrega "…", como.
 fn recortar_linea(linea: &str) -> String {
     if linea.chars().count() <= MAX_LINEA_BUSQUEDA {
         return linea.to_owned();
@@ -545,7 +544,7 @@ mod tests {
         );
         let sin_ruta = correr(&set, "local_read_file", json!({"path": null}))
             .await
-            .expect_err("path null es el cero de Go");
+            .expect_err("path null es el valor cero");
         assert_eq!(sin_ruta, "falta la ruta");
         let secreto = fuera.path().join("secreto.txt");
         assert!(

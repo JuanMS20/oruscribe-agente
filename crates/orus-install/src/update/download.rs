@@ -1,5 +1,4 @@
 //! Descarga del ejecutable y comprobación de su SHA-256
-//! (`internal/update/update.go:158-270`).
 
 use std::fs::{self, OpenOptions};
 use std::io::Write;
@@ -14,8 +13,8 @@ const PREFIJO_REPO: &str = "/JuanMS20/oruscribe-agente-descargas/";
 /// Acepta una descarga solo desde https en un host conocido.
 ///
 /// Loopback se acepta con cualquier esquema para tests y pruebas manuales
-/// (`update.go:158-178`). La redirección la sigue el cliente HTTP; esta
-/// comprobación mira la URL inicial, igual que Go.
+/// La redirección la sigue el cliente HTTP; esta
+/// comprobación mira la URL inicial, igual que el contrato.
 pub(crate) fn check_download_url(raw: &str) -> Result<(), Error> {
     let Ok(url) = reqwest::Url::parse(raw) else {
         return Err(Error::SitioNoPermitido(raw.to_owned()));
@@ -61,9 +60,9 @@ pub async fn download(
 /// `apply_update` cruza este `await` y el borde exige futuros `Send`.
 ///
 /// El archivo se crea exclusivo después de borrar lo que hubiera: un symlink
-/// plantado en `dest` no se sigue (`update.go:249-254`).
+/// plantado en `dest` no se sigue.
 ///
-/// shortcut: no se hace `fsync`, igual que el `Download` de Go; mejorarlo
+/// shortcut: no se hace `fsync`, igual que el `Download` del contrato; mejorarlo
 /// requiere decidir si el costo de sincronizar 512 MiB vale para el update.
 ///
 /// El plazo sin datos lo trae el cliente inyectado (`read_timeout` y
@@ -71,7 +70,7 @@ pub async fn download(
 /// acepta la conexión y calla corta en vez de dejar esta función —y el
 /// candado de actualización— colgados para siempre. No es un corte total:
 /// mientras lleguen fragmentos, un paquete grande en una red lenta sigue
-/// bajando (`internal/update/update.go:63`).
+/// bajando.
 pub async fn download_con(
     http: &reqwest::Client,
     url: &str,

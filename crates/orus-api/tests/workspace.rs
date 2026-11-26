@@ -78,7 +78,7 @@ async fn buscar_tareas_pasa_el_estado_y_no_falla_con_basura() {
     assert_eq!(cuerpo["tasks"][0]["title"], "encontrada");
     assert_eq!(backend.status().as_deref(), Some("blocked"));
 
-    // Go ignora el error de ParseStatus: 200 y sin filtro.
+    // El contrato ignora el error de ParseStatus: 200 y sin filtro.
     let cuerpo = afirmar_ok(pedir(&base, "/api/tasks/search?q=&status=basura").await).await;
     assert_eq!(cuerpo["tasks"][0]["id"], "t2");
     assert_eq!(backend.status().as_deref(), Some("basura"));

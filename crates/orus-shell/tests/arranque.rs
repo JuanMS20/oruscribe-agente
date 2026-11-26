@@ -1,7 +1,7 @@
 //! Regresión del arranque real: la sesión guardada tiene que salir de
 //! `connecting`.
 //!
-//! `App::new` deja `connecting` cuando hay token en disco, y el `Boot()` de Go
+//! `App::new` deja `connecting` cuando hay token en disco, y el `Boot` del contrato
 //! era quien arrancaba la restauración. Los tests de `orus-app` llamaban
 //! `app.boot()` a mano; el binario no, así que la ventana se quedaba en el
 //! splash. Este test usa `arranque::iniciar`, el mismo ensamblaje del binario.

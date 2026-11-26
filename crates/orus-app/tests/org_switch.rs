@@ -66,7 +66,7 @@ fn token_sin_vencer(access: &str) -> Token {
         refresh_token: String::new(),
         token_type: "Bearer".to_owned(),
         scope: String::new(),
-        expiry: serde_json::from_value(json!("0001-01-01T00:00:00Z")).expect("cero de Go"),
+        expiry: serde_json::from_value(json!("0001-01-01T00:00:00Z")).expect("fecha cero"),
     }
 }
 
@@ -275,7 +275,7 @@ async fn cambiar_a_la_org_b_reconecta_y_no_deja_rastro_de_la_a() {
             token_type: "Bearer".to_owned(),
             scope: String::new(),
             expiry: serde_json::from_value(json!("0001-01-01T00:00:00Z"))
-                .expect("vencimiento del cero de Go"),
+                .expect("vencimiento de la fecha cero"),
         };
         app.import_token(&importado.access_token)
             .await

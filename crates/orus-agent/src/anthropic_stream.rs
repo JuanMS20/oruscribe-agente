@@ -1,6 +1,6 @@
 //! Lectura de la respuesta en streaming (SSE) de la Messages API de Anthropic.
 //!
-//! Port de `Anthropic.leerStream` (`internal/agent/anthropic.go:226-395`). El
+//! El
 //! reintento HTTP ya ocurrió antes de entrar acá: una vez que el cuerpo empezó
 //! a leerse no se repite la petición, para no duplicar texto en la ventana.
 
@@ -57,7 +57,7 @@ pub(crate) async fn leer_stream(
     Ok(respuesta)
 }
 
-/// El mismo texto que devuelve `bufio.Scanner` de Go (`ErrTooLong`).
+/// El texto del error de línea demasiado larga.
 fn linea_demasiado_larga() -> ProviderError {
     ProviderError::local("se cortó la respuesta del proveedor: bufio.Scanner: token too long")
 }
@@ -138,7 +138,7 @@ impl Estado {
         let base: EventoBase = serde_json::from_str(dato).map_err(evento_invalido)?;
         match base.kind.as_str() {
             "message_start" => {
-                // En este evento el error de JSON se ignora (`:275`).
+                // En este evento el error de JSON se ignora.
                 if let Ok(evento) = serde_json::from_str::<EventoInicio>(dato)
                     && evento.message.usage.input_tokens > 0
                 {
@@ -206,7 +206,7 @@ impl Estado {
             }
             // ping, content_block_stop y message_limit no acumulan nada; un
             // tipo que este adaptador no habla también se ignora, como el
-            // switch sin default de Go.
+            // switch sin default del contrato.
             _ => {}
         }
         Ok(false)
@@ -237,7 +237,7 @@ impl Estado {
                 "tool_use" => {
                     // Un `input_json_delta` vacío es la herramienta sin
                     // argumentos; uno roto se marca para no ejecutarla con
-                    // datos inventados, igual que `sanearLlamadas`. El id de
+                    // datos inventados. El id de
                     // respaldo sale del índice del proveedor, no de la
                     // posición del vector (issue #126).
                     llamadas.push(ToolCall::con_argumentos(
@@ -255,8 +255,8 @@ impl Estado {
                 role: "assistant".to_owned(),
                 content: texto,
                 images: None,
-                // Go crea las llamadas con `make`, así que una respuesta sin
-                // llamadas queda `[]` y no `null` (`anthropic.go:368`, D28).
+                // El contrato crea las llamadas con `make`, así que una respuesta sin
+                // llamadas queda `[]` y no `null` (D28).
                 tool_calls: Some(llamadas),
                 tool_call_id: String::new(),
             },
@@ -405,8 +405,6 @@ mod tests {
         }
     }
 
-    /// Port de `TestAnthropicStreamConTextoYHerramienta`
-    /// (`anthropic_test.go:268-325`).
     #[tokio::test]
     async fn stream_con_texto_y_herramienta() {
         const STREAM: &str = r#"event: message_start
@@ -493,7 +491,6 @@ data: {"type":"message_stop"}
         assert_eq!(pedido["stream"], json!(true));
     }
 
-    /// Port de `TestAnthropicStreamCortado` (`anthropic_test.go:327-342`).
     #[tokio::test]
     async fn stream_cortado() {
         const STREAM: &str = "data: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":10,\"output_tokens\":1}}}\n\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\"}}\n\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"hola\"}}\n\n";
@@ -511,8 +508,6 @@ data: {"type":"message_stop"}
         );
     }
 
-    /// Port de `TestAnthropicAceptaDoneAlFinalDelStream`
-    /// (`anthropic_test.go:544-569`).
     #[tokio::test]
     async fn acepta_done_al_final_del_stream() {
         const STREAM: &str = "data: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":3}}}\n\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\"}}\n\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"hola\"}}\n\ndata: {\"type\":\"message_stop\"}\n\ndata: [DONE]\n\n";
@@ -528,12 +523,11 @@ data: {"type":"message_stop"}
         assert_eq!(
             respuesta.message.tool_calls,
             Some(Vec::new()),
-            "Go deja una lista vacía, no null (D28)"
+            "queda una lista vacía, no null (D28)"
         );
     }
 
-    /// Port del subtest `stream` de `TestAnthropicAvisaCuandoLaRespuestaSeCorta`
-    /// (`anthropic_test.go:491-512`): un corte por max_tokens no se presenta
+    /// Un corte por max_tokens no se presenta
     /// como respuesta completa y la parcial viaja en el error (D24).
     #[tokio::test]
     async fn avisa_cuando_la_respuesta_se_corta() {

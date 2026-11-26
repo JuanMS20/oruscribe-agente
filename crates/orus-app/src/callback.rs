@@ -1,6 +1,6 @@
 //! Callback loopback del inicio de sesión OAuth.
 //!
-//! Port de `internal/auth/callback.go:15-135`. Sirve exactamente una respuesta
+//! Sirve exactamente una respuesta
 //! en `/oauth_callback`, sin framework HTTP y sin bloquear la cancelación ni el
 //! vencimiento del flujo.
 
@@ -12,7 +12,6 @@ use std::time::{Duration, Instant};
 use orus_auth::CALLBACK_PATH;
 
 /// Lo que el navegador puede tardar en mandar la cabeza de su petición
-/// (`callback.go:48`).
 const ESPERA_CABEZA: Duration = Duration::from_secs(5);
 /// La espera entre `accept` no bloqueantes para mirar el cancel.
 const ESPERA_ACEPTAR: Duration = Duration::from_millis(10);
@@ -36,7 +35,7 @@ pub enum LoginError {
     Io(#[from] std::io::Error),
 }
 
-/// Sirve exactamente un callback y devuelve el código (`callback.go:41-104`).
+/// Sirve exactamente un callback y devuelve el código.
 pub fn wait(
     listener: TcpListener,
     expected_state: &str,
@@ -234,7 +233,7 @@ fn hex(byte: u8) -> Option<u8> {
     }
 }
 
-/// El mismo `subtle.ConstantTimeCompare` de `callback.go:60`.
+/// Comparación en tiempo constante.
 fn comparar_constante(izquierda: &[u8], derecha: &[u8]) -> bool {
     if izquierda.len() != derecha.len() {
         return false;
@@ -246,7 +245,7 @@ fn comparar_constante(izquierda: &[u8], derecha: &[u8]) -> bool {
     diferencia == 0
 }
 
-/// La página bilingüe exacta de `callback.go:122-135`.
+/// La página bilingüe exacta.
 fn page(ok: bool) -> String {
     let (mensaje, mensaje_en) = if ok {
         (

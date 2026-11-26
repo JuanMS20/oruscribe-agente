@@ -1,10 +1,9 @@
 //! Las tres rutas de actualización: `GET /api/update`, `POST /api/update/apply`
 //! y `GET /api/update/progress`.
 //!
-//! Port de `internal/app/http.go:747-762` y `internal/app/update.go:19-88`.
 //! La implementación real (elegir `ORUSCRIBE_UPDATE_URL` o la URL de la app,
 //! descargar a `<exe>.new`, verificar SHA, hacer el swap y programar
-//! `AfterUpdate`) vive en el borde que inyecta el trait; acá solo se escriben
+//! la acción posterior) vive en el borde que inyecta el trait; acá solo se escriben
 //! códigos y textos.
 
 use std::sync::Arc;
@@ -92,11 +91,11 @@ impl Default for Progreso {
 /// `check_update` usa `ORUSCRIBE_UPDATE_URL` o la URL de la app. Sin URL
 /// devuelve `configured:false`, `available:false`, `current` y las claves
 /// vacías se omiten. Un fallo de red, firma, SHA o URL es `Err` con el texto
-/// exacto de Go.
+/// exacto del contrato.
 ///
 /// `apply_update` toma el candado de "una actualización a la vez", exige una
 /// versión nueva, descarga a `<exe>.new` (o al `.tar.gz` y extrae, en Linux),
-/// verifica, hace el swap y programa `AfterUpdate` 1,2 s después **dentro de
+/// verifica, hace el swap y programa la acción posterior 1,2 s después **dentro de
 /// la implementación** (tokio spawn + sleep, no en el handler). Un segundo
 /// clic responde "ya hay una actualización en curso"; sin versión nueva, "no
 /// hay una versión nueva para descargar".
@@ -135,7 +134,7 @@ pub(crate) async fn leer(Extension(update): Extension<Arc<dyn Update>>) -> Respo
     }
 }
 
-/// `POST /api/update/apply` no lee el cuerpo (`http.go:756-762`): el handler
+/// `POST /api/update/apply` no lee el cuerpo: el handler
 /// no recibe `Body` y la petición se contesta apenas termina la acción.
 pub(crate) async fn aplicar(Extension(update): Extension<Arc<dyn Update>>) -> Response {
     match update.apply_update().await {

@@ -1,8 +1,8 @@
 //! Rutas del agente: vista, diario, reglas, aprobaciones y conversaciones.
 //!
-//! Port de `internal/app/http.go:817-1056`. Las 12 rutas no configuran ni
+//! Las 12 rutas no configuran ni
 //! envían: solo leen el estado y contestan lo que la ventana ya tiene. Los
-//! topes y el formato de error son los de `writeErr`/`decodeLimite` (O6-02).
+//! topes y el formato de error son los del borde (O6-02).
 
 use std::sync::Arc;
 
@@ -24,8 +24,8 @@ fn sin_agente() -> Response {
     write_err(SessionError::Tool("el agente no está disponible".to_owned()).into())
 }
 
-/// El código de `writeErr` sale del error, no de la ruta
-/// (`http.go:1176-1206`): `Busy` es 409, `Invalid` 400 y una sesión conserva
+/// El código HTTP sale del error, no de la ruta
+/// `Busy` es 409, `Invalid` 400 y una sesión conserva
 /// el código de `From<SessionError>` (401 sin login, 507 sin espacio).
 pub(crate) fn de_agente(error: AgentError) -> ErrorRuta {
     match error {
@@ -46,7 +46,7 @@ struct CuerpoId {
 struct CuerpoAprobar {
     #[serde(default)]
     id: String,
-    /// En Go es `*bool`: omitido y `null` valen `false`.
+    /// Es `*bool`: omitido y `null` valen `false`.
     #[serde(default)]
     approve: Option<bool>,
     #[serde(default)]
@@ -115,7 +115,7 @@ pub(crate) async fn deshacer(AxumState(app): AxumState<Arc<App>>, body: Body) ->
 
 pub(crate) async fn reglas(AxumState(app): AxumState<Arc<App>>) -> Response {
     let reglas = app.rules();
-    // El contrato conserva el nil de Go: sin reglas la clave es null.
+    // Sin reglas la clave es null.
     let rules = (!reglas.is_empty()).then_some(reglas);
     write_json(StatusCode::OK, &serde_json::json!({"rules": rules}))
 }
@@ -249,8 +249,7 @@ mod tests {
     use super::de_agente;
     use crate::write_err;
 
-    /// El código HTTP sale del error, no de la ruta (`writeErr`,
-    /// `http.go:1176-1206`). Una sesión conserva `LoggedOut` 401, `Invalido`
+    /// El código HTTP sale del error, no de la ruta. Una sesión conserva `LoggedOut` 401, `Invalido`
     /// 400, `Ocupado` 409 y `SinEspacio` 507; lo demás es 500.
     #[test]
     fn sesion_conserva_el_codigo_de_write_err() {

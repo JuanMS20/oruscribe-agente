@@ -1,6 +1,6 @@
 //! Subidas multipart de tareas y chat.
 //!
-//! Port de `internal/app/http.go:137-158,690-711,1065-1114`. El backend de
+//! El backend de
 //! prueba anota lo que recibe; no hay red real, llavero ni variables de
 //! entorno. El caso de 25 MB envía los bytes por loopback sin tocar el disco.
 
@@ -83,7 +83,7 @@ async fn chat_sube_el_archivo_y_usa_el_tipo_por_defecto() {
     let backend = Arc::new(BackendDePrueba::default());
     let (base, _server) = levantar(app_con(Arc::clone(&backend))).await;
 
-    // Sin `Content-Type` en la parte, Go manda `application/octet-stream`.
+    // Sin `Content-Type` en la parte, el contrato manda `application/octet-stream`.
     let formulario = reqwest::multipart::Form::new()
         .part(
             "file",
@@ -126,7 +126,7 @@ async fn chat_valida_la_sala_despues_del_archivo() {
     let backend = Arc::new(BackendDePrueba::default());
     let (base, _server) = levantar(app_con(Arc::clone(&backend))).await;
 
-    // Sin archivo y sin sala gana el archivo, como `subida` en Go.
+    // Sin archivo y sin sala gana el archivo, como `subida`.
     let formulario = reqwest::multipart::Form::new().text("body", "solo texto");
     let cuerpo = afirmar_error(enviar(&base, "/api/chat/files", formulario).await, 400).await;
     assert_eq!(cuerpo["error"], "falta el archivo");
@@ -148,7 +148,7 @@ async fn un_archivo_de_3_mb_pasa_del_tope_por_defecto_de_axum() {
     let (base, _server) = levantar(app_con(Arc::clone(&backend))).await;
 
     // 3 MB supera el `DefaultBodyLimit` de 2 MB: si la ruta no lo desactivara,
-    // la subida fallaría aunque Go la acepta sin problema.
+    // la subida fallaría aunque el contrato la acepta sin problema.
     let datos = vec![b'x'; 3 * 1024 * 1024];
     let formulario = reqwest::multipart::Form::new()
         .part(

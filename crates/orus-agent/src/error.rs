@@ -1,4 +1,4 @@
-//! Errores del proveedor y costo estimado. Port de `internal/agent/errors.go:12-63`.
+//! Errores del proveedor y costo estimado.
 
 use std::error::Error as StdError;
 use std::fmt;
@@ -24,8 +24,7 @@ pub(crate) fn respuesta_vacia(mensaje: &Message) -> bool {
 /// con su cuerpo, un error local anterior a la red, o un fallo de transporte.
 /// El bucle lo usa para decidir si tiene sentido reintentar.
 ///
-/// Copia de `internal/agent/errors.go:15-19`. Go devuelve la respuesta parcial
-/// y el error a la vez; acá la parcial viaja en [`ProviderError::partial`].
+/// La respuesta parcial viaja en [`ProviderError::partial`].
 #[derive(Debug)]
 pub struct ProviderError {
     /// Código HTTP; 0 cuando la petición falló antes de llegar o el error es
@@ -89,9 +88,7 @@ impl ProviderError {
     /// distinto de 429 no se reintenta; un contexto cancelado o vencido
     /// tampoco.
     ///
-    /// Port de `EsErrorTransitorio` (`internal/agent/errors.go:34-53`). En Go
-    /// un `net.Error` es transitorio; acá se reconocen los `ErrorKind` de red
-    /// de `std::io`. No hay `context.Canceled` en Rust: la cancelación llega
+    /// Se reconocen los `ErrorKind` de red de `std::io`. La cancelación llega
     /// como `Interrupted` y el vencimiento como `TimedOut`, y ninguno se
     /// reintenta.
     pub fn is_transient(&self) -> bool {
@@ -121,8 +118,7 @@ impl StdError for ProviderError {
     }
 }
 
-/// Recorre la cadena de causas como hacía `EsErrorTransitorio` al recursar en
-/// `pe.Err`: un error de transporte puede venir envuelto por otro.
+/// Recorre la cadena de causas un error de transporte puede venir envuelto por otro.
 fn fuente_es_transitoria(fuente: &(dyn StdError + 'static)) -> bool {
     let mut actual = fuente;
     loop {
@@ -171,8 +167,6 @@ fn es_kind_de_red(kind: io::ErrorKind) -> bool {
 /// Convierte tokens a dólares con las tarifas que declaró la persona (dólares
 /// por millón de tokens, entrada y salida por separado). Sin tarifas
 /// declaradas devuelve 0: el código no adivina precios que se pudren.
-///
-/// Port de `CostoEstimado` (`internal/agent/errors.go:58-63`).
 pub fn costo_estimado(
     prompt: i64,
     completion: i64,
@@ -209,7 +203,7 @@ mod tests {
         }
     }
 
-    /// Clasificación de `internal/agent/errors.go:34-53`.
+    /// Clasificación.
     #[test]
     fn error_transitorio() {
         for status in [429u16, 500, 503] {
@@ -238,7 +232,7 @@ mod tests {
         );
     }
 
-    /// El texto exacto de `internal/agent/errors.go:21-26`.
+    /// El texto exacto.
     #[test]
     fn mensaje_del_error() {
         assert_eq!(
@@ -260,7 +254,7 @@ mod tests {
         assert!(!error.is_transient());
     }
 
-    /// Fórmula de `internal/agent/errors.go:58-63`.
+    /// Fórmula.
     #[test]
     fn costo_estimado() {
         // El nombre del test tapa el de la función; se llama por ruta completa.
