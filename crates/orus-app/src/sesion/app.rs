@@ -273,7 +273,9 @@ impl App {
             Some("es") => Some(Locale::Spanish),
             Some("en") => Some(Locale::English),
             Some(otro) => {
-                return Err(SessionError::Tool(format!("idioma desconocido: {otro:?}")));
+                return Err(SessionError::Invalido(format!(
+                    "idioma desconocido: {otro:?}"
+                )));
             }
             None => None,
         };

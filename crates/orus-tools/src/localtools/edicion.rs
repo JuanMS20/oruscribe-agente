@@ -31,6 +31,38 @@ fn booleano_o_falso<'de, D: Deserializer<'de>>(deserializador: D) -> Result<bool
     Ok(Option::<bool>::deserialize(deserializador)?.unwrap_or_default())
 }
 
+/// Busca el texto tal cual y, si no aparece, con los finales de línea
+/// normalizados al estilo del archivo. Así un `old_string` con `\n` funciona
+/// sobre un archivo CRLF sin mezclar finales al escribir.
+fn coincidencia(antes: &str, args: &ArgsEdicion) -> (String, String, usize) {
+    let exactas = antes.matches(args.old_string.as_str()).count();
+    if exactas > 0 {
+        return (args.old_string.clone(), args.new_string.clone(), exactas);
+    }
+    let estilos = if antes.contains("\r\n") {
+        [true, false]
+    } else {
+        [false, true]
+    };
+    for crlf in estilos {
+        let viejo = normalizar_finales(&args.old_string, crlf);
+        let coincidencias = antes.matches(viejo.as_str()).count();
+        if coincidencias > 0 {
+            return (
+                viejo,
+                normalizar_finales(&args.new_string, crlf),
+                coincidencias,
+            );
+        }
+    }
+    (args.old_string.clone(), args.new_string.clone(), 0)
+}
+
+fn normalizar_finales(texto: &str, crlf: bool) -> String {
+    let lf = texto.replace("\r\n", "\n");
+    if crlf { lf.replace('\n', "\r\n") } else { lf }
+}
+
 /// Reemplaza una porción exacta y falla.
 /// sin escribir si no está o si hay varias coincidencias sin `replace_all`.
 pub(super) fn edit_file(set: &Set, args: Value, cancel: &CancelToken) -> Result<String, Error> {
@@ -56,7 +88,7 @@ fn edit_file_con(
     set.resolve(&dir.to_string_lossy())?;
     let antes = leer_texto(&real)?;
     tras_leer(&real);
-    let coincidencias = antes.matches(args.old_string.as_str()).count();
+    let (viejo, nuevo, coincidencias) = coincidencia(&antes, &args);
     if coincidencias == 0 {
         return Err(Error::SinCoincidencias);
     }
@@ -65,9 +97,9 @@ fn edit_file_con(
     }
     let reemplazos = if args.replace_all { coincidencias } else { 1 };
     let despues = if args.replace_all {
-        antes.replace(args.old_string.as_str(), &args.new_string)
+        antes.replace(viejo.as_str(), nuevo.as_str())
     } else {
-        antes.replacen(args.old_string.as_str(), &args.new_string, 1)
+        antes.replacen(viejo.as_str(), nuevo.as_str(), 1)
     };
     if despues.len() > MAX_CONTENIDO {
         return Err(Error::ResultadoGrande((MAX_CONTENIDO >> 20) as u64));
@@ -177,6 +209,56 @@ mod tests {
             salida,
             format!("editado {} (1 reemplazo, 12 bytes)", real.display())
         );
+    }
+
+    #[tokio::test]
+    async fn edit_crlf_accepts_lf_old_string_and_keeps_crlf() {
+        let raiz = tempfile::tempdir().expect("raiz");
+        let ruta = raiz.path().join("nota.txt");
+        std::fs::write(&ruta, "linea uno\r\nlinea dos\r\nlinea tres\r\n").expect("nota");
+        let set = conjunto(raiz.path());
+
+        correr(
+            &set,
+            "local_edit_file",
+            json!({
+                "path": ruta.to_string_lossy(),
+                "old_string": "linea uno\nlinea dos",
+                "new_string": "UNO\nDOS"
+            }),
+        )
+        .await
+        .expect("el texto con LF se encuentra en un archivo CRLF");
+
+        let datos = std::fs::read(&ruta).expect("leer");
+        assert_eq!(datos, b"UNO\r\nDOS\r\nlinea tres\r\n");
+        assert_eq!(
+            datos.iter().filter(|byte| **byte == b'\n').count(),
+            datos.windows(2).filter(|par| *par == b"\r\n").count(),
+            "no deben quedar finales mezclados"
+        );
+    }
+
+    #[tokio::test]
+    async fn edit_lf_accepts_crlf_old_string_and_writes_lf() {
+        let raiz = tempfile::tempdir().expect("raiz");
+        let ruta = raiz.path().join("nota.txt");
+        std::fs::write(&ruta, "uno\ndos\ntres\n").expect("nota");
+        let set = conjunto(raiz.path());
+
+        correr(
+            &set,
+            "local_edit_file",
+            json!({
+                "path": ruta.to_string_lossy(),
+                "old_string": "uno\r\ndos",
+                "new_string": "UNO\r\nDOS"
+            }),
+        )
+        .await
+        .expect("el texto con CRLF se encuentra en un archivo LF");
+
+        assert_eq!(std::fs::read(&ruta).expect("leer"), b"UNO\nDOS\ntres\n");
     }
 
     #[tokio::test]

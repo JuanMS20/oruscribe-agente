@@ -196,13 +196,13 @@ fn post_locale_en_guarda_y_devuelve() {
 }
 
 #[tokio::test]
-async fn post_locale_desconocido_da_500_sin_cambiar_la_memoria() {
+async fn post_locale_desconocido_da_400_sin_cambiar_la_memoria() {
     let app = app_de_prueba(ajustes(Locale::Spanish, false, None));
     let (base, server) = levantar_api(api(app, "", None)).await;
 
     let response = cambiar(&base, json!({"locale": "fr"})).await;
     let (status, error) = error_de(response).await;
-    assert_eq!(status, 500);
+    assert_eq!(status, 400);
     assert_eq!(error, "idioma desconocido: \"fr\"");
 
     let despues = cuerpo_json(leer(&base).await).await;

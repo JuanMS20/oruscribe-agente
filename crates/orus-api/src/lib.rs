@@ -160,9 +160,8 @@ pub(crate) fn write_err(error: ErrorRuta) -> Response {
                 &serde_json::json!({"error": texto, "code": "sin_espacio"}),
             )
         }
-        // El texto del error es el de serde.
         ErrorRuta::Json(error) => write_json(
-            StatusCode::INTERNAL_SERVER_ERROR,
+            StatusCode::BAD_REQUEST,
             &serde_json::json!({"error": error.to_string()}),
         ),
         ErrorRuta::Lectura(error) => write_json(

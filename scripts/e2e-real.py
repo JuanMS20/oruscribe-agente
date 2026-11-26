@@ -268,6 +268,80 @@ def main():
         check("redaccion: sin JWT", "eyJhbGci" not in todo)
         check("envio con cabecera X-Sentry-Auth o DSN en la ruta", any("abc123def456" in (" ".join(v for k, v in e["cab"].items() if k.lower() == "x-sentry-auth") + e["ruta"]) for e in sentry[antes:]) if nuevos else False)
 
+        m.configurar("autonomous")
+        crlf = m.carpeta / "crlf.txt"
+        crlf.write_bytes(b"linea uno\r\nlinea dos\r\nlinea tres\r\n")
+        m.proveedor([llamada("edit", {"path": str(crlf), "old_string": "linea uno\nlinea dos", "new_string": "UNO\nDOS"}), cierre()])
+        j = m.turno("edita un archivo con finales de linea de Windows")
+        datos_crlf = crlf.read_bytes()
+        check("edit multilinea sobre un archivo CRLF cambia el texto", b"UNO" in datos_crlf, (datos_crlf, resultados_de_pasos(j)))
+        check("edit sobre CRLF no deja el archivo con finales mezclados", datos_crlf.count(b"\r\n") == datos_crlf.count(b"\n"), datos_crlf)
+
+        raro = m.tmp / "Mi carpeta ñandú"
+        raro.mkdir()
+        (raro / "acción.txt").write_text("texto con tildes\n", encoding="utf-8")
+        m.configurar("autonomous", [raro])
+        m.proveedor([llamada("read", {"path": str(raro / "acción.txt")}), cierre()])
+        j = m.turno("lee un archivo con tildes y espacios en la ruta")
+        check("rutas con espacios y tildes funcionan", "texto con tildes" in resultados_de_pasos(j), resultados_de_pasos(j))
+        m.proveedor([llamada("write", {"path": str(raro / "nuevo_ñ.txt"), "content": "ok"}), cierre()])
+        m.turno("crea un archivo nuevo en carpeta con tildes y espacios")
+        check("write crea archivo en ruta con tildes y espacios", (raro / "nuevo_ñ.txt").exists())
+        m.proveedor([llamada("write", {"path": str(raro / "sub" / "hondo" / "n.txt"), "content": "ok"}), cierre()])
+        j = m.turno("intenta crear un archivo en subcarpetas inexistentes")
+        check("write en carpeta inexistente avisa sin crear", not (raro / "sub" / "hondo" / "n.txt").exists() and "carpeta" in resultados_de_pasos(j).lower(), resultados_de_pasos(j))
+        m.configurar("autonomous")
+
+        enlace = m.carpeta / "enlace"
+        try:
+            os.symlink(m.fuera, enlace, target_is_directory=True)
+            hay_enlace = True
+        except (OSError, NotImplementedError):
+            hay_enlace = False
+        if hay_enlace:
+            m.proveedor([llamada("read", {"path": str(enlace / "ajeno.txt")}), cierre()])
+            j = m.turno("lee a traves de un enlace simbolico")
+            check("symlink hacia afuera NO filtra el contenido", "DATO-AJENO" not in resultados_de_pasos(j), resultados_de_pasos(j))
+            m.proveedor([llamada("write", {"path": str(enlace / "escapado.txt"), "content": "x"}), cierre()])
+            m.turno("escribe a traves de un enlace simbolico")
+            check("symlink hacia afuera NO permite escribir", not (m.fuera / "escapado.txt").exists())
+        else:
+            print("SKIP symlink (sin permiso para crear enlaces)")
+
+        m.configurar("readonly")
+        via_bash = m.carpeta / "via_bash.txt"
+        orden = f'echo escapado > "{via_bash}"'
+        m.proveedor([llamada("bash", {"command": orden}), cierre()])
+        j = m.turno("en modo solo lectura intenta escribir con bash", decidir=False)
+        check("readonly NO deja escribir archivos usando bash", not via_bash.exists(), resultados_de_pasos(j))
+        m.configurar("autonomous")
+
+        m.proveedor([llamada("bash", {"command": "exit 3"}), cierre()])
+        j = m.turno("comando que falla")
+        check("bash con codigo de salida distinto de cero lo informa", "3" in resultados_de_pasos(j), resultados_de_pasos(j))
+
+        for ruta, cuerpo, nombre in [("/api/settings", ["no", "es", "objeto"], "settings con un array"), ("/api/agent/config", "texto", "config con una cadena"), ("/api/agent/approve", {}, "approve sin id"), ("/api/agent/undo", {"n": -5}, "undo con n negativo"), ("/api/notes", {"x": 1}, "notes con campos desconocidos")]:
+            st, _ = m.cli.pedir("POST", ruta, cuerpo)
+            check(f"entrada malformada ({nombre}) responde 4xx y no 5xx", 400 <= st < 500, st)
+        c = http.client.HTTPConnection("127.0.0.1", PUERTO_APP, timeout=30)
+        c.request("POST", "/api/agent/send", body=b"{no es json", headers={"Host": f"127.0.0.1:{PUERTO_APP}", "Cookie": m.cli.cookie, "Origin": f"http://127.0.0.1:{PUERTO_APP}", "Content-Type": "application/json"})
+        check("JSON roto responde 4xx", 400 <= c.getresponse().status < 500)
+        st, _ = m.cli.pedir("POST", "/api/agent/send", {"text": "x" * 300000})
+        check("mensaje enorme se rechaza con 4xx", 400 <= st < 500, st)
+
+        m.proveedor([llamada("bash", {"command": "sleep 3" if os.name != "nt" else "ping -n 4 127.0.0.1 >nul"}), cierre("fin")])
+        m.cli.pedir("POST", "/api/agent/reset")
+        st1, _ = m.cli.pedir("POST", "/api/agent/send", {"text": "primero"})
+        st2, _ = m.cli.pedir("POST", "/api/agent/send", {"text": "segundo a la vez"})
+        check("segundo envio mientras corre el primero -> 409", st1 == 200 and st2 == 409, (st1, st2))
+        m.cli.pedir("POST", "/api/agent/cancel")
+        t0 = time.time()
+        while time.time() - t0 < 20:
+            if not m.cli.pedir("GET", "/api/agent")[1].get("running"):
+                break
+            time.sleep(0.3)
+        check("cancelar detiene el turno", not m.cli.pedir("GET", "/api/agent")[1].get("running"))
+
         st, lista = m.cli.pedir("GET", "/api/agent/conversations")
         n_antes = len(lista) if st == 200 else -1
         m.parar()

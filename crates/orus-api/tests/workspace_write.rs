@@ -209,7 +209,7 @@ async fn errores_de_cuerpo_y_tope() {
         assert_eq!(marcada.as_deref(), Some(""));
     }
 
-    let cuerpo = afirmar_error(pedir(&base, "/api/tasks", "no-json").await, 500).await;
+    let cuerpo = afirmar_error(pedir(&base, "/api/tasks", "no-json").await, 400).await;
     assert!(
         cuerpo["error"]
             .as_str()

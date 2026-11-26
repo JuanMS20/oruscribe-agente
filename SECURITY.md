@@ -136,7 +136,7 @@ principal, la de respaldo permite publicar una versión que rote las llaves.
 | Secreto | Dónde | Quién lo puede leer |
 |---|---|---|
 | Token de sesión de OAuth | Windows: Credential Manager. Linux: Secret Service, con respaldo `session.json` (`0600`) si el llavero falta o está bloqueado; con `ORUSCRIBE_ALLOW_FILE_SECRETS=1`, archivo principal | La persona y la app; en Linux, otra persona con la misma cuenta puede leer el archivo |
-| Clave del proveedor de IA | Windows: Credential Manager. Linux: Secret Service, con respaldo `secret-agente-clave.json` (`0600`) | La persona y la app; en Linux, otra persona con la misma cuenta puede leer el archivo |
+| Clave del proveedor de IA | Windows: Credential Manager. Linux: Secret Service, con respaldo `secret-agente-clave.json` (`0600`); con `ORUSCRIBE_ALLOW_FILE_SECRETS=1`, archivo principal | La persona y la app; en Linux, otra persona con la misma cuenta puede leer el archivo |
 | Llave privada de firma | La ruta que indique `ORUSCRIBE_SIGNING_KEY`; por convención, `C:\Users\<persona>\.oruscribe\update-signing.key` | Solo la persona que publica |
 | Llave privada de respaldo | Medio fuera de línea | Solo la persona |
 

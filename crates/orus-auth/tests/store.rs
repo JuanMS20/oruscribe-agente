@@ -58,6 +58,16 @@ fn file_store_roundtrip() {
 }
 
 #[test]
+fn file_store_crea_la_carpeta_del_dato_al_guardar() {
+    let raiz = tempfile::tempdir().expect("carpeta temporal");
+    let dir = raiz.path().join("nueva").join("datos");
+    let store = FileStore::from_data_dir(&dir);
+
+    store.save(token()).expect("guardar la sesión");
+    assert!(dir.join("session.json").exists());
+}
+
+#[test]
 fn save_twice_loads_last() {
     let dir = tempfile::tempdir().expect("carpeta temporal");
     let store = FileStore::from_data_dir(dir.path());

@@ -145,7 +145,7 @@ pub(crate) async fn cambiar(
         cuerpo.telemetry,
     ) {
         Ok(settings) => settings,
-        Err(error) => return write_err(ErrorRuta::Sesion(error)),
+        Err(error) => return write_err(error.into()),
     };
     if let Some(encendido) = cuerpo.autostart
         && let Err(error) = autostart.cambiar(encendido)

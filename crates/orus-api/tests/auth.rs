@@ -74,7 +74,7 @@ async fn import_con_cuerpo_grande_responde_413() {
 }
 
 #[tokio::test]
-async fn import_con_json_malformado_responde_500() {
+async fn import_con_json_malformado_responde_400() {
     let (base, server) = levantar(AppDePrueba::nuevo().construir()).await;
 
     let response = reqwest::Client::new()
@@ -83,7 +83,7 @@ async fn import_con_json_malformado_responde_500() {
         .send()
         .await
         .unwrap();
-    assert_eq!(response.status(), 500);
+    assert_eq!(response.status(), 400);
     afirmar_cabeceras(&response);
     let body = cuerpo_json(response).await;
     assert!(body["error"].is_string(), "falta el error: {body}");

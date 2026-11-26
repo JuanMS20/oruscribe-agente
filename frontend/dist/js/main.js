@@ -106,7 +106,14 @@ export async function boot() {
     hideIntro();
     return;
   }
-  if (esEstadoSesionTerminada(st && st.status)) { showScreen("welcome"); noteError(st.error || T("session.ended")); hideIntro(); return; }
+  if (esEstadoSesionTerminada(st && st.status)) {
+    showScreen("welcome");
+    let hubo = false;
+    try { hubo = localStorage.getItem("huboSesion") === "1"; } catch { hubo = false; }
+    if (st.error || hubo) noteError(st.error || T("session.ended"));
+    hideIntro();
+    return;
+  }
   showScreen("welcome");
   hideIntro();
 }
@@ -177,6 +184,7 @@ export function noteError(msg) {
 
 export async function enterApp() {
   R.connOn = true;
+  try { localStorage.setItem("huboSesion", "1"); } catch { /* sin almacenamiento: no se recuerda */ }
   loadSnapshot();
   render();
   showScreen("app");

@@ -144,15 +144,15 @@ fn get_notas_sin_sesion_da_200_con_lista_vacia() {
 }
 
 #[test]
-fn post_sin_id_da_500_aunque_no_haya_sesion() {
-    en_datos_aislados("post_sin_id_da_500_aunque_no_haya_sesion", || {
+fn post_sin_id_da_400_aunque_no_haya_sesion() {
+    en_datos_aislados("post_sin_id_da_400_aunque_no_haya_sesion", || {
         con_runtime(async {
             let app = AppDePrueba::nuevo().construir();
             let (base, server) = soporte::levantar(app).await;
 
             let response = pedir(&base, "POST", "/api/notes", Some("{}".to_owned())).await;
             let (status, error) = error_de(response).await;
-            assert_eq!(status, 500, "el id se valida antes que la sesión");
+            assert_eq!(status, 400, "el id se valida antes que la sesión");
             assert_eq!(error, "la nota no tiene identificador");
 
             server.abort();
@@ -189,15 +189,15 @@ fn post_sin_sesion_con_id_da_401_con_el_texto_completo() {
 }
 
 #[test]
-fn delete_sin_id_da_500_aunque_no_haya_sesion() {
-    en_datos_aislados("delete_sin_id_da_500_aunque_no_haya_sesion", || {
+fn delete_sin_id_da_400_aunque_no_haya_sesion() {
+    en_datos_aislados("delete_sin_id_da_400_aunque_no_haya_sesion", || {
         con_runtime(async {
             let app = AppDePrueba::nuevo().construir();
             let (base, server) = soporte::levantar(app).await;
 
             let response = pedir(&base, "DELETE", "/api/notes", None).await;
             let (status, error) = error_de(response).await;
-            assert_eq!(status, 500, "el id se valida antes que la sesión");
+            assert_eq!(status, 400, "el id se valida antes que la sesión");
             assert_eq!(error, "falta el identificador");
 
             server.abort();
@@ -454,7 +454,7 @@ fn post_con_campos_null_los_trata_como_vacios() {
             )
             .await;
             let (status, error) = error_de(sin_id).await;
-            assert_eq!(status, 500, "null en id deja el id vacío");
+            assert_eq!(status, 400, "null en id deja el id vacío");
             assert_eq!(error, "la nota no tiene identificador");
 
             server.abort();
@@ -464,15 +464,15 @@ fn post_con_campos_null_los_trata_como_vacios() {
 }
 
 #[test]
-fn json_invalido_da_500() {
-    en_datos_aislados("json_invalido_da_500", || {
+fn json_invalido_da_400() {
+    en_datos_aislados("json_invalido_da_400", || {
         con_runtime(async {
             let app = app_con_sesion().await;
             let (base, server) = soporte::levantar(app).await;
 
             let response = pedir(&base, "POST", "/api/notes", Some("{".to_owned())).await;
             let (status, error) = error_de(response).await;
-            assert_eq!(status, 500);
+            assert_eq!(status, 400);
             assert!(!error.is_empty(), "el error de serde viaja en el cuerpo");
 
             server.abort();

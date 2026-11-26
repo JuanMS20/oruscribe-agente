@@ -47,6 +47,9 @@ fn ruta_candado(path: &Path) -> PathBuf {
 /// envejece (o queda con fecha futura) y puede reclamarse.
 fn adquirir_candado(path: &Path) -> io::Result<CandadoSesion> {
     let ruta = ruta_candado(path);
+    if let Some(dir) = ruta.parent().filter(|dir| !dir.as_os_str().is_empty()) {
+        create_private_dir(dir)?;
+    }
     let mut ultimo = None;
     for intento in 0..LOCK_INTENTOS {
         match OpenOptions::new().write(true).create_new(true).open(&ruta) {

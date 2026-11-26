@@ -20,9 +20,7 @@ use serde_json::json;
 
 use crate::{ErrorRuta, decode, write_err, write_json};
 
-/// Error de texto plano, no de validación: responde 500.
 const SIN_IDENTIFICADOR: &str = "la nota no tiene identificador";
-/// Error de texto plano: responde 500.
 const FALTA_IDENTIFICADOR: &str = "falta el identificador";
 /// El texto del error de sesión cerrada más el sufijo.
 const SIN_SESION: &str = "no has iniciado sesión: inicia sesión para escribir en el bloc";
@@ -292,7 +290,7 @@ pub(crate) async fn notas(
             };
             if entrada.id.is_empty() {
                 return write_json(
-                    StatusCode::INTERNAL_SERVER_ERROR,
+                    StatusCode::BAD_REQUEST,
                     &json!({ "error": SIN_IDENTIFICADOR }),
                 );
             }
@@ -313,7 +311,7 @@ pub(crate) async fn notas(
             let id = consulta.id.unwrap_or_default();
             if id.is_empty() {
                 return write_json(
-                    StatusCode::INTERNAL_SERVER_ERROR,
+                    StatusCode::BAD_REQUEST,
                     &json!({ "error": FALTA_IDENTIFICADOR }),
                 );
             }

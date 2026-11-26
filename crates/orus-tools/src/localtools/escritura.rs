@@ -68,7 +68,12 @@ fn write_file_con(
     if args.content.len() > MAX_CONTENIDO {
         return Err(Error::ContenidoGrande((MAX_CONTENIDO >> 20) as u64));
     }
-    let real = set.resolve(&args.path)?;
+    let real = set.resolve(&args.path).map_err(|error| match error {
+        Error::SinResolver(causa) if causa.kind() == std::io::ErrorKind::NotFound => {
+            Error::CarpetaDestinoNoExiste
+        }
+        otro => otro,
+    })?;
     let dir = real.parent().ok_or(Error::CarpetaDestinoNoExiste)?;
     set.resolve(&dir.to_string_lossy())?;
     match std::fs::metadata(dir) {
@@ -517,17 +522,13 @@ mod tests {
         let set = conjunto(raiz.path());
         let ruta = raiz.path().join("sub").join("x.txt");
 
-        // El contrato falla en `resolve` cuando falta un directorio intermedio
         let error = correr(
             &set,
             json!({"path": ruta.to_string_lossy(), "content": "x"}),
         )
         .await
         .expect_err("la carpeta no existe");
-        assert!(
-            error.starts_with("no se pudo resolver la ruta: "),
-            "{error}"
-        );
+        assert_eq!(error, "la carpeta donde va el archivo no existe");
         assert!(!ruta.exists(), "no debe crear carpetas");
 
         // El texto propio de la escritura aparece cuando el padre resuelve pero

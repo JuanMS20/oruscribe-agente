@@ -216,6 +216,7 @@ pub struct SecretStore {
     target: String,
     user: String,
     fallback: Option<PathBuf>,
+    solo_archivo: bool,
 }
 
 impl SecretStore {
@@ -224,6 +225,7 @@ impl SecretStore {
             target: format!("{service}:{name}"),
             user: name.to_owned(),
             fallback: None,
+            solo_archivo: false,
         }
     }
 
@@ -238,6 +240,7 @@ impl SecretStore {
             target: format!("{service}:{name}"),
             user: name.to_owned(),
             fallback: Some(data_dir.as_ref().join(format!("secret-{saneado}.json"))),
+            solo_archivo: crate::file_secrets_allowed(),
         }
     }
 
@@ -262,7 +265,28 @@ impl SecretStore {
         }
     }
 
+    fn leer_archivo(path: &Path) -> Result<String, Error> {
+        if !path.exists() {
+            return Err(Error::NoSession);
+        }
+        let datos = read_private(path)?;
+        Ok(serde_json::from_slice(&datos)?)
+    }
+
     pub fn get(&self) -> Result<Option<String>, Error> {
+        if self.solo_archivo
+            && let Some(path) = self.fallback.as_ref()
+        {
+            return match cargar_con_llavero_marcado::<String>(
+                Llavero::SinEntrada,
+                || Self::leer_archivo(path),
+                path,
+            ) {
+                Ok(valor) => Ok(Some(valor)),
+                Err(Error::NoSession) => Ok(None),
+                Err(error) => Err(error),
+            };
+        }
         let del_llavero = self
             .entry()
             .map_err(KeyError::from)
@@ -295,6 +319,13 @@ impl SecretStore {
     }
 
     pub fn set(&self, value: &str) -> Result<(), Error> {
+        if self.solo_archivo
+            && let Some(path) = self.fallback.as_ref()
+        {
+            let datos = serde_json::to_vec(&value)?;
+            guardar_respaldo_marcado(path, &datos)?;
+            return Ok(());
+        }
         let Some(path) = self.fallback.as_ref() else {
             return self
                 .entry()
@@ -326,6 +357,11 @@ impl SecretStore {
     }
 
     pub fn delete(&self) -> Result<(), Error> {
+        if self.solo_archivo
+            && let Some(path) = self.fallback.as_ref()
+        {
+            return Ok(borrar_respaldo_marcado(path)?);
+        }
         let file_result = match &self.fallback {
             Some(path) => borrar_respaldo_marcado(path),
             None => Ok(()),

@@ -217,7 +217,7 @@ async fn pick_folder_path_manual_archivo_no_carpeta_es_400() {
 }
 
 /// El cuerpo ahora se decodifica: un JSON inválido responde el error de
-/// `decode` (500) aunque haya
+/// `decode` (400) aunque haya
 /// selector cableado; antes el cuerpo se ignoraba y el diálogo se abría.
 #[tokio::test]
 async fn pick_folder_body_invalido_con_selector_es_error() {
@@ -233,7 +233,7 @@ async fn pick_folder_body_invalido_con_selector_es_error() {
         .send()
         .await
         .expect("POST pick-folder con cuerpo inválido");
-    assert_eq!(respuesta.status(), 500);
+    assert_eq!(respuesta.status(), 400);
 
     servidor.abort();
 }
