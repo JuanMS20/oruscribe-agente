@@ -108,7 +108,17 @@ struct RespuestaCerebro {
     #[serde(default)]
     tool_calls: Vec<LlamadaRecibidaCerebro>,
     #[serde(default)]
+    steps: Vec<PasoCerebro>,
+    #[serde(default)]
     error: Option<ErrorCerebro>,
+}
+
+#[derive(Deserialize, Default)]
+struct PasoCerebro {
+    #[serde(default, rename = "toolName", alias = "name", alias = "tool")]
+    tool_name: String,
+    #[serde(default, rename = "isError")]
+    is_error: bool,
 }
 
 #[derive(Deserialize)]
@@ -248,7 +258,7 @@ impl CloudBrain {
         } else {
             (limpiar_artefactos_modelo(&salida.content), Vec::new())
         };
-        let respuesta = ChatReply {
+        let mut respuesta = ChatReply {
             message: Message {
                 role: "assistant".to_owned(),
                 content: contenido,
@@ -258,10 +268,13 @@ impl CloudBrain {
             prompt_tokens: 0,
             completion_tokens: 0,
         };
-        // El cerebro puede contestar `{}` o sin `content` ni `tool_calls`: no
-        // es una respuesta y el turno no puede cerrarse en blanco (issue #126).
+        if respuesta_vacia(&respuesta.message) && !salida.steps.is_empty() {
+            respuesta.message.content = resumen_pasos(&salida.steps);
+        }
         if respuesta_vacia(&respuesta.message) {
-            return Err(ProviderError::local(SIN_RESPUESTA));
+            return Err(ProviderError::local(format!(
+                "{SIN_RESPUESTA}: respuesta HTTP 200 sin content, tool_calls ni steps"
+            )));
         }
         Ok(respuesta)
     }
@@ -331,6 +344,31 @@ impl CloudBrain {
         }
         Ok((respuesta.status(), datos))
     }
+}
+
+fn resumen_pasos(pasos: &[PasoCerebro]) -> String {
+    let total = pasos.len();
+    let accion = if total == 1 { "acción" } else { "acciones" };
+    let nombres: Vec<&str> = pasos
+        .iter()
+        .map(|paso| paso.tool_name.trim())
+        .filter(|nombre| !nombre.is_empty())
+        .take(3)
+        .collect();
+    let mut texto = format!("El cerebro ejecutó {total} {accion} de Oruscribe");
+    if !nombres.is_empty() {
+        texto.push_str(": ");
+        texto.push_str(&nombres.join(", "));
+        if total > nombres.len() {
+            texto.push_str(", …");
+        }
+    }
+    texto.push('.');
+    let errores = pasos.iter().filter(|paso| paso.is_error).count();
+    if errores > 0 {
+        texto.push_str(&format!(" {errores} con error."));
+    }
+    texto
 }
 
 #[async_trait]
@@ -1374,6 +1412,45 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn respuesta_con_pasos_no_es_vacia() {
+        for (cuerpo, nombre, fallidos) in [
+            (
+                r#"{"content":"","steps":[{"toolName":"get_my_tasks","isError":false,"args":{"token":"secreto"}}]}"#,
+                "get_my_tasks",
+                false,
+            ),
+            (
+                r#"{"content":"   ","steps":[{"toolName":"create_task","isError":true}]}"#,
+                "create_task",
+                true,
+            ),
+        ] {
+            let cuerpo = cuerpo.to_owned();
+            let servidor_url = servidor(move |_peticion: Request| {
+                let cuerpo = cuerpo.clone();
+                async move { con_json(200, &cuerpo) }
+            })
+            .await;
+
+            let respuesta = cerebro(&servidor_url, Some("t"))
+                .chat(peticion())
+                .await
+                .expect("los pasos ejecutados sí son una respuesta");
+
+            assert!(respuesta.message.content.contains(nombre), "{respuesta:?}");
+            assert_eq!(
+                respuesta.message.content.contains("error"),
+                fallidos,
+                "{respuesta:?}"
+            );
+            assert!(
+                !respuesta.message.content.contains("secreto"),
+                "{respuesta:?}"
+            );
+        }
+    }
+
     /// Un 200 del cerebro sin contenido no cierra el turno en blanco
     /// (issue #126).
     #[tokio::test]
@@ -1393,7 +1470,7 @@ mod tests {
 
             assert_eq!(
                 error.to_string(),
-                "el proveedor no devolvió ninguna respuesta"
+                "el proveedor no devolvió ninguna respuesta: respuesta HTTP 200 sin content, tool_calls ni steps"
             );
         }
     }
