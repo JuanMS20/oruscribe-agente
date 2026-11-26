@@ -15,6 +15,11 @@ Sin migración de datos. Backend: sin cambios.
   principal también para la clave del proveedor, y el primer guardado crea la
   carpeta de datos. Antes, la primera configuración en un equipo sin Secret
   Service fallaba.
+- Chat: si el cerebro responde con pasos ejecutados (`steps`) pero sin texto, la
+  app ya no descarta la respuesta como vacía; muestra un resumen de las
+  acciones y de cuántas fallaron.
+- Interfaz: en la primera ejecución ya no aparece «Tu sesión terminó»; ese aviso
+  solo sale cuando de verdad hubo una sesión previa.
 - Pruebas reales: la suite E2E cubre entradas mal formadas, edición CRLF,
   rutas con espacios y tildes, enlaces simbólicos, solo lectura y envíos
   simultáneos; corre en Windows y Linux. La entrega de telemetría se comprobó
