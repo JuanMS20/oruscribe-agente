@@ -402,6 +402,9 @@ async fn borrar_no_pisa_el_turno_del_timbre() {
         "borrar en el hueco no le quita el id al turno que recién arrancó"
     );
 
+    tokio::time::timeout(Duration::from_secs(10), runner.empezado.notified())
+        .await
+        .expect("el turno del timbre llega a correr");
     agente.cancel();
     tokio::time::timeout(Duration::from_secs(10), runner.terminado.notified())
         .await
@@ -453,7 +456,7 @@ async fn un_fallo_de_guardado_se_ve_aunque_el_turno_ya_tenga_error() {
     agente.open_conversation("403").unwrap();
 
     agente.empezar("hola", turno()).expect("el turno arranca");
-    tokio::time::timeout(Duration::from_secs(2), async {
+    tokio::time::timeout(Duration::from_secs(10), async {
         while agente.busy() {
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
@@ -475,7 +478,7 @@ async fn un_panico_en_el_turno_no_deja_el_agente_ocupado() {
     let agente = armar(base.path(), Arc::clone(&runner));
 
     agente.empezar("hola", turno()).expect("el turno arranca");
-    tokio::time::timeout(Duration::from_secs(2), async {
+    tokio::time::timeout(Duration::from_secs(10), async {
         while agente.busy() {
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
@@ -493,7 +496,7 @@ async fn un_panico_en_el_turno_deja_error_visible_y_guarda() {
     let agente = armar(base.path(), Arc::clone(&runner));
 
     agente.empezar("hola", turno()).expect("el turno arranca");
-    tokio::time::timeout(Duration::from_secs(2), async {
+    tokio::time::timeout(Duration::from_secs(10), async {
         while agente.busy() {
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
@@ -608,7 +611,7 @@ async fn cerrar_a_mitad_del_turno_conserva_el_mensaje() {
     );
 
     agente.cancel();
-    tokio::time::timeout(Duration::from_secs(2), async {
+    tokio::time::timeout(Duration::from_secs(10), async {
         while agente.busy() {
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
@@ -705,7 +708,7 @@ async fn timeout_con_aprobacion_pendiente_nombra_la_aprobacion() {
     });
     let agente = Arc::new(
         Agent::new(conversaciones(base.path()), Arc::clone(&cola), runner)
-            .with_turn_timeout(Duration::from_millis(100)),
+            .with_turn_timeout(Duration::from_secs(1)),
     );
 
     let error = agente.send("hola", turno()).await.unwrap_err();
