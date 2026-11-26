@@ -53,6 +53,11 @@ jobs:
           cargo build -p fake-provider --locked
           cargo test -p orus-app --test agent_turno --locked -- --ignored
 
+      - name: Prueba real de la app contra el proveedor y un Sentry falso
+        run: |
+          cargo build -p orus-server -p fake-provider --locked
+          python scripts/e2e-real.py
+
       - name: Compilar la app para Windows
         env:
           ORUSCRIBE_SENTRY_DSN: ${{ secrets.ORUSCRIBE_SENTRY_DSN }}
@@ -124,6 +129,11 @@ jobs:
 
       - name: Pruebas
         run: cargo test --workspace --locked --no-fail-fast
+
+      - name: Prueba real de la app contra el proveedor y un Sentry falso
+        run: |
+          cargo build -p orus-server -p fake-provider --locked
+          python3 scripts/e2e-real.py
 
       - name: Prueba del propio humo con apps de mentira
         run: sh scripts/test-smoke-linux.sh
